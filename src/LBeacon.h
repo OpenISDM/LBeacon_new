@@ -1,45 +1,45 @@
 /*
- * Copyright (c) 2016 Academia Sinica, Institute of Information Science
- *
- * License:
- *
- *      GPL 3.0 : The content of this file is subject to the terms and
- *      conditions defined in file 'COPYING.txt', which is part of this source
- *      code package.
- *
- * Project Name:
- *
- *      BeDIPS
- *
- * File Description:
- *
- *      This is the header file containing the function declarations and
- *      variables used in the LBeacon.c file.
- *
- * File Name:
- *
- *      LBeacon.h
- *
- * Abstract:
- *
- *      BeDIPS uses LBeacons to deliver 3D coordinates and textual
- *      descriptions of their locations to users' devices. Basically, a LBeacon
- *      is an inexpensive, Bluetooth Smart Ready device. The 3D coordinates and
- *      location description of every LBeacon are retrieved from BeDIS
- *      (Building/environment Data and Information System) and stored locally
- *      during deployment and maintenance times. Once initialized, each LBeacon
- *      broadcasts its coordinates and location description to Bluetooth
- *      enabled user devices within its coverage area.
- *
- * Authors:
- *
- *      Jake Lee, jakelee@iis.sinica.edu.tw
- *      Johnson Su, johnsonsu@iis.sinica.edu.tw
- *      Shirley Huang, shirley.huang.93@gmail.com
- *      Han Hu, hhu14@illinois.edu
- *      Jeffrey Lin, lin.jeff03@gmail.com
- *      Howard Hsu, haohsu0823@gmail.com
- */
+* Copyright (c) 2016 Academia Sinica, Institute of Information Science
+*
+* License:
+*
+*      GPL 3.0 : The content of this file is subject to the terms and
+*      conditions defined in file 'COPYING.txt', which is part of this source
+*      code package.
+*
+* Project Name:
+*
+*      BeDIPS
+*
+* File Description:
+*
+*      This is the header file containing the function declarations and
+*      variables used in the LBeacon.c file.
+*
+* File Name:
+*
+*      LBeacon.h
+*
+* Abstract:
+*
+*      BeDIPS uses LBeacons to deliver 3D coordinates and textual
+*      descriptions of their locations to users' devices. Basically, a LBeacon
+*      is an inexpensive, Bluetooth Smart Ready device. The 3D coordinates and
+*      location description of every LBeacon are retrieved from BeDIS
+*      (Building/environment Data and Information System) and stored locally
+*      during deployment and maintenance times. Once initialized, each LBeacon
+*      broadcasts its coordinates and location description to Bluetooth
+*      enabled user devices within its coverage area.
+*
+* Authors:
+*
+*      Jake Lee, jakelee@iis.sinica.edu.tw
+*      Johnson Su, johnsonsu@iis.sinica.edu.tw
+*      Shirley Huang, shirley.huang.93@gmail.com
+*      Han Hu, hhu14@illinois.edu
+*      Jeffrey Lin, lin.jeff03@gmail.com
+*      Howard Hsu, haohsu0823@gmail.com
+*/
 
 /*
 * INCLUDES
@@ -71,12 +71,12 @@
 #include <time.h>
 #include <unistd.h>
 #include "LinkedList.h"
-#include "Queue.h"
 #include "Utilities.h"
 
+
 /*
- * CONSTANTS
- */
+* CONSTANTS
+*/
 
 /* Command opcode pack/unpack from HCI library */
 #define cmd_opcode_pack(ogf, ocf) (uint16_t)((ocf & 0x03ff) | (ogf << 10))
@@ -94,7 +94,7 @@
 #define EIR_FLAGS 0X01
 
 /* BlueZ bluetooth extended inquiry response protocol: Manufacturer Specific
- * Data */
+* Data */
 #define EIR_MANUFACTURE_SPECIFIC_DATA 0xFF
 
 /* BlueZ bluetooth extended inquiry response protocol: complete local name */
@@ -110,20 +110,22 @@
 #define LENGTH_OF_TIME 10
 
 /* Transmission range limited. Only devices in this RSSI range are allowed to
- * connect */
+* connect */
 #define RSSI_RANGE -60
 
 /* Time interval, in milliseconds, that determines whether the bluetooth device
- * is to be removed from the push list */
+* is to be removed from the push list */
 #define TIMEOUT 30000
 
 /* Maximum number of characters in each line of output file used for tracking
- * scanned devices */
+* scanned devices */
 #define TRACKING_BUFFER 1024
 
+
+
 /*
- * GLOBAL VARIABLES
- */
+* GLOBAL VARIABLES
+*/
 
 /* The path of the object push file */
 char *g_filepath;
@@ -138,8 +140,8 @@ unsigned g_most_recent_timestamp_of_file = 0;
 int g_size_of_file = 0;
 
 /*
- * UNION
- */
+* UNION
+*/
 
 /* This union will convert floats into Hex code used for the beacon location */
 union {
@@ -159,8 +161,8 @@ union {
 } coordinate_Z;
 
 /*
- * TYPEDEF STRUCTS
- */
+* TYPEDEF STRUCTS
+*/
 
 typedef struct Config {
     /* A string representation of the X coordinate of the beacon location */
@@ -179,7 +181,7 @@ typedef struct Config {
     char filepath[CONFIG_BUFFER_SIZE];
 
     /* A string representation of the maximum number of devices to be handled by
-     * all push dongles */
+    * all push dongles */
     char maximum_number_of_devices[CONFIG_BUFFER_SIZE];
 
     /* A string representation of number of message groups */
@@ -240,26 +242,33 @@ typedef struct ThreadStatus {
     bool is_waiting_to_send;
 } ThreadStatus;
 
+
+
 /* An array of struct for storing information and status of each thread */
 ThreadStatus *g_idle_handler;
 
+
+List_Entry *scanned_list;
+List_Entry *waiting_list;
+
+
 /*
- * FUNCTIONS
- */
+* FUNCTIONS
+*/
 
 Config get_config(char *filename);
 long long get_system_time();
 bool check_is_used_address(char address[]);
-void send_to_push_dongle(bdaddr_t *bluetooth_device_address, int rssi);
+void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
 void *queue_to_array();
 void *send_file(void *id);
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
-                      int rssi);
+    int rssi);
 void start_scanning();
 void *cleanup_linked_list(void);
 void track_devices(bdaddr_t *bluetooth_device_address, char *filename);
 char *choose_file(char *message_to_send);
 int enable_advertising(int advertising_interval, char *advertising_uuid,
-                       int rssi_value);
+    int rssi_value);
 int disable_advertising();
 void *ble_beacon(void *beacon_location);
