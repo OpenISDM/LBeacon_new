@@ -206,12 +206,12 @@ bool check_is_used_address(char address[]) {
         temp = ListEntry(listptrs, Node, ptrs);
         /* Input MAC address exists in the linked list */
         int len = strlen(address);
-        char *addr_last_two = &address[len - 2];
-        char *temp_last_two = &temp->data.scanned_mac_address[len - 2];
-        if ((!strncmp(address, temp->data.scanned_mac_address, 2)) &&
-            (!strncmp(addr_last_two, temp_last_two, 2))) {
+        ScannedDevice *temp_data; 
+        temp_data = (struct ScannedDevice *)temp->data;
+        if (strcmp(address, &temp_data->scanned_mac_address[len + 10]) > 0) {
             return true;
         }
+        
         
     }
 
@@ -242,16 +242,16 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     /* Converts the bluetooth device address to a string */
     ba2str(bluetooth_device_address, address);
     strcat(address, "\0");
-
     /* Add to the linked list for new scanned devices */
     if (check_is_used_address(address) == false) {
+        //printf("Sending to the list.....");
         ScannedDevice data;
         data.initial_scanned_time = get_system_time();
         strncpy(data.scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS); //Copy the array of the address to the ScannedDevices
         Node *node_s = add_node_first(scanned_list);
         Node *node_w = add_node_first(waiting_list);
-        node_s->data = data;
-        node_w->data = data;
+        node_s->data = &data;
+        node_w->data = &data;
         print_list(scanned_list); 
         print_list(waiting_list);
         
@@ -295,7 +295,6 @@ void *queue_to_array() {
             if (g_idle_handler[device_id].idle == -1 && address != NULL) {
                 strncpy(g_idle_handler[device_id].scanned_mac_address, address,
                     LENGTH_OF_MAC_ADDRESS);
-                printf("Now removing the first node from the waiting list.....");
                 remove_first(waiting_list); //Replace the function of dequeue
                 g_idle_handler[device_id].idle = device_id;
                 g_idle_handler[device_id].is_waiting_to_send = true;
@@ -669,14 +668,18 @@ void *cleanup_linked_list(void) {
         /* Create a temporary node and set as the head */
         struct List_Entry *listptrs;
         Node *temp;
+        //printf("Cleaning list....");
         /* Go through list */
         list_for_each(listptrs, scanned_list){
             temp = ListEntry(listptrs, Node, ptrs);
 
+            ScannedDevice *temp_data;
+            temp_data = (struct ScannedDevice *)temp->data;
+
             /* Device has been in the linked list for at least 30 seconds */
-            if (get_system_time() - temp->data.initial_scanned_time > TIMEOUT) {
+            if (get_system_time() - temp_data->initial_scanned_time > TIMEOUT) {
                 printf("Removed %s from linked list\n",
-                    &temp->data.scanned_mac_address[0]);
+                    temp_data->scanned_mac_address[0]);
                 remove_node(temp);
                 //temp = temp->ptrs->next; //Only need to check the first node in the list and 
             }
@@ -1177,7 +1180,7 @@ int main(int argc, char **argv) {
         g_idle_handler[device_id].is_waiting_to_send = false;
     }
 
-    /*Create two lists for the searching scanned data and waiting queue*/
+    /*Create two lists for the scanned data and waiting queue*/
     scanned_list = (struct List_Entry*)malloc(sizeof(struct List_Entry));
     scanned_list->next = scanned_list;
     scanned_list->prev = scanned_list;

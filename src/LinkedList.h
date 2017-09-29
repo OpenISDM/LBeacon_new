@@ -69,7 +69,7 @@ typedef struct List_Entry {
 
 /* Struct for each node in the linked list; data is a ScannedDevice struct */
 typedef struct Node {
-	ScannedDevice data;
+	void *data;
 	struct List_Entry ptrs;
 	
 }Node;

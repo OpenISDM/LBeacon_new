@@ -44,6 +44,7 @@
 *      Han Hu, hhu14@illinois.edu
 *      Jeffrey Lin, lin.jeff03@gmail.com
 *      Howard Hsu, haohsu0823@gmail.com
+*      Han Wang, hollywang@iis.sinica.edu.tw 
 */
 
 #include "LinkedList.h"
@@ -118,7 +119,7 @@ void remove_node(Node *removed_node) {
 }
 
 void remove_first(List_Entry *entry) {
-
+    printf("Removing \n");
     struct Node *node = ListEntry(entry->next, Node, ptrs);
     delete_node(entry->next);
     free(node);
@@ -141,11 +142,11 @@ void print_list(List_Entry *entry) {
 
     struct List_Entry *listptrs = NULL;
     struct Node *node;
-  
     for (listptrs = (entry)->next; listptrs != (entry); listptrs = listptrs->next) {
         node = ListEntry(listptrs, Node, ptrs);
-        ScannedDevice data = node->data;
-        printf("%s ", &data.scanned_mac_address[0]);
+        ScannedDevice *data;
+        data = (struct ScannedDevice *)node->data;
+        printf("%s ", &data->scanned_mac_address[0]);
     }
     printf("\n");
 
@@ -158,9 +159,9 @@ char *get_first_content(List_Entry *entry) {
     }
 
     struct Node *node = ListEntry(entry->next, Node, ptrs);
-    ScannedDevice data = node->data;
-
-    char *address = &data.scanned_mac_address[0];
+    ScannedDevice *data;
+    data = (struct ScannedDevice *) node->data;
+    char *address = &data->scanned_mac_address[0];
     
 
     return address;
