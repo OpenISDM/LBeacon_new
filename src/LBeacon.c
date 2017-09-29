@@ -41,20 +41,17 @@
 *      Han Hu, hhu14@illinois.edu
 *      Jeffrey Lin, lin.jeff03@gmail.com
 *      Howard Hsu, haohsu0823@gmail.com
+*	   Han Wang, hollywang@iis.sinica.edu.tw	
 */
 
 #include "LBeacon.h"
 
 
-List_Entry *scanned_list;
-List_Entry *waiting_list;
-
-
 /*
 *  get_config:
 *
-*  This function will go through the config file, read line by line until the
-*  end of file, and store the data into the global variable of a Config struct.
+*  This function goes through the config file, reads line by line until the
+*  end of file, and stores the data into the global variable of a Config struct.
 *
 *  Parameters:
 *
@@ -77,6 +74,8 @@ Config get_config(char *filename) {
     /* Create spaces for storing the string of the current line being read */
     char config_setting[CONFIG_BUFFER_SIZE];
     char *config_message[11];
+
+     /* Keep reading each line and store into the config struct */
     fgets(config_setting, sizeof(config_setting), file);
     config_message[0] = strstr((char *)config_setting, DELIMITER);
     config_message[0] = config_message[0] + strlen(DELIMITER);
@@ -181,14 +180,13 @@ long long get_system_time() {
 *  check_is_used_address:
 *
 *  This helper function checks whether the specified MAC address given as input
-*  is in the linked list with recently scanned bluetooth devices. If it is, the
+*  is in the scanned list with recently scanned bluetooth devices. If it is, the
 *  function returns true, else the function returns false.
 *
 *  Parameters:
 *
 *  address - scanned MAC address of bluetooth device
 * 
-*
 *  Return value:
 *
 *  true - used MAC address
@@ -203,16 +201,15 @@ bool check_is_used_address(char address[]) {
     /* Go through list */
     list_for_each(listptrs, scanned_list) {
 
-        temp = ListEntry(listptrs, Node, ptrs);
-        /* Input MAC address exists in the linked list */
+    	/* Input MAC address exists in the linked list */
+        temp = ListEntry(listptrs, Node, ptrs);       
         int len = strlen(address);
         ScannedDevice *temp_data; 
         temp_data = (struct ScannedDevice *)temp->data;
         if (strcmp(address, &temp_data->scanned_mac_address[len + 10]) > 0) {
             return true;
         }
-        
-        
+               
     }
 
     /* Input MAC address is new and unused */
@@ -223,14 +220,13 @@ bool check_is_used_address(char address[]) {
 *  send_to_push_dongle:
 *
 *  For each new scanned bluetooth device, this function adds the scanned device
-*  to the linked list of ScannedDevice struct that stores its scanned timestamp
-*  and MAC address and to the queue of MAC addresses waiting for an available
+*  to the scanned list of ScannedDevice struct that stores its scanned timestamp
+*  and MAC address and to the waiting list of MAC addresses waiting for an available
 *  thread to send the message to its device.
 *
 *  Parameters:
 *
 *  bluetooth_device_address - bluetooth device address
-*  rssi - RSSI value of bluetooth device
 *
 *  Return value:
 *
@@ -242,18 +238,16 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     /* Converts the bluetooth device address to a string */
     ba2str(bluetooth_device_address, address);
     strcat(address, "\0");
-    /* Add to the linked list for new scanned devices */
-    if (check_is_used_address(address) == false) {
-        //printf("Sending to the list.....");
+    
+    /* Add to the scanned list and waiting list for new scanned devices */
+    if (check_is_used_address(address) == false) {       
         ScannedDevice data;
         data.initial_scanned_time = get_system_time();
-        strncpy(data.scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS); //Copy the array of the address to the ScannedDevices
+        strncpy(data.scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS); 
         Node *node_s = add_node_first(scanned_list);
         Node *node_w = add_node_first(waiting_list);
         node_s->data = &data;
         node_w->data = &data;
-        print_list(scanned_list); 
-        print_list(waiting_list);
         
     }
 }
@@ -263,8 +257,8 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 *
 *  This function will continuously look through the ThreadStatus array that
 *  contains all the send_file thread statuses. Once a thread becomes available
-*  and the queue is not empty, the first MAC address in the queue will be
-*  added to the ThreadStatus array and removed from the queue.
+*  and the waiting list is not empty, the first MAC address in the waiting list
+*  will beadded to the ThreadStatus array and removed from the waiting list.
 *
 *  Parameters:
 *
@@ -281,21 +275,21 @@ void *queue_to_array() {
     /* An iterator through the array of ScannedDevice struct */
     int device_id;
 
-    /* An indicator for continuing to check for unused threads */
+    /* An indicator of keep checking for unused threads */
     bool check_thread_status_cancelled = false;
 
     while (check_thread_status_cancelled == false) {
         /* Go through the array of ThreadStatus */
         for (device_id = 0; device_id < maximum_number_of_devices;
             device_id++) {
-            //printf("Now get the content from the first node....\n"); //A hint for the processing state 
+        
             char *address = get_first_content(waiting_list);
             /* Add MAC address to the array and dequeue when a thread becomes
             * available */
             if (g_idle_handler[device_id].idle == -1 && address != NULL) {
                 strncpy(g_idle_handler[device_id].scanned_mac_address, address,
                     LENGTH_OF_MAC_ADDRESS);
-                remove_first(waiting_list); //Replace the function of dequeue
+                remove_first(waiting_list); 
                 g_idle_handler[device_id].idle = device_id;
                 g_idle_handler[device_id].is_waiting_to_send = true;
             }
@@ -494,6 +488,9 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     }
     printf("\n");
     fflush(NULL);
+
+	return;
+
 }
 
 /*
@@ -515,19 +512,19 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 *  None
 */
 void start_scanning() {
-    struct hci_filter filter;
-    struct pollfd output;
-    unsigned char event_buffer[HCI_MAX_EVENT_SIZE];
-    unsigned char *event_buffer_pointer;
-    hci_event_hdr *event_handler;
-    inquiry_cp inquiry_copy;
-    inquiry_info_with_rssi *info_rssi;
-    inquiry_info *info;
-    int event_buffer_length;
-    int dongle_device_id = 0;
-    int socket = 0;
-    int results;
-    int results_id;
+    struct hci_filter filter;        				/*Filter for controling the events*/
+    struct pollfd output;							/*A callback event from the socket */
+    unsigned char event_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the callback event*/
+    unsigned char *event_buffer_pointer;			/*A pointer for the event buffer */
+    hci_event_hdr *event_handler;					/*Record the event type */
+    inquiry_cp inquiry_copy;						/*Storing the message from the socket */
+    inquiry_info_with_rssi *info_rssi;				/*Record an EVT_INQUIRY_RESULT_WITH_RSSI message */
+    inquiry_info *info;								/*Record an EVT_INQUIRY_RESULT message */
+    int event_buffer_length;						/*Length of the event buffer */
+    int dongle_device_id = 0;						/*Number of the dongle */
+    int socket = 0;									/*Number of the socket */
+    int results;									/*Return the result form the socket */
+    int results_id;									/*ID of the result */
 
     /* Open Bluetooth device */
     socket = hci_open_dev(dongle_device_id);
@@ -643,12 +640,12 @@ void start_scanning() {
 }
 
 /*
-*  cleanup_linked_list:
+*  cleanup_scanned_list:
 *
 *  This function determines when the bluetooth device's scanned data will be
-*  removed from the linked list. In the background, this working thread will
+*  removed from the scanned list. In the background, this working thread will
 *  continuously check if it has been 30 seconds since the bluetooth was added
-*  to the linked list. If so, the ScannedDevice struct will be removed.
+*  to the scanned list. If so, the ScannedDevice struct will be removed.
 *
 *  Parameters:
 *
@@ -658,30 +655,25 @@ void start_scanning() {
 *
 *  None
 */
-void *cleanup_linked_list(void) {
-    /* An indicator for continuing to clean the linked list */
-   
-    bool clean_linked_list_cancelled = false;
+void *cleanup_scanned_list(void) {
+    
+    /* An indicator for continuing to clean the scanned list */ 
+    bool clean_scanned_list_cancelled = false;
 
-    while (clean_linked_list_cancelled == false) {
+    while (clean_scanned_list_cancelled == false) {
         
-        /* Create a temporary node and set as the head */
         struct List_Entry *listptrs;
-        Node *temp;
-        //printf("Cleaning list....");
+        Node *temp;        
         /* Go through list */
         list_for_each(listptrs, scanned_list){
             temp = ListEntry(listptrs, Node, ptrs);
-
             ScannedDevice *temp_data;
             temp_data = (struct ScannedDevice *)temp->data;
-
-            /* Device has been in the linked list for at least 30 seconds */
+            /* Device has been in the scanned list for at least 30 seconds */
             if (get_system_time() - temp_data->initial_scanned_time > TIMEOUT) {
-                printf("Removed %s from linked list\n",
+                printf("Removed %s from scanned list\n",
                     temp_data->scanned_mac_address[0]);
                 remove_node(temp);
-                //temp = temp->ptrs->next; //Only need to check the first node in the list and 
             }
             else {
                 break;
@@ -698,7 +690,7 @@ void *cleanup_linked_list(void) {
 *  track_devices:
 *
 *  This function tracks the MAC addresses of scanned bluetooth devices under
-*  the beacon. An output file will contain each timestamp and the MAC addresses
+*  the beacon. An output file will contain for each timestamp and the MAC addresses
 *  of the scanned bluetooth devices at the given timestamp. Format timestamp
 *  and MAC addresses into a string and append new line to end of file. " - " is
 *  used to separate timestamp with MAC address and ", " is used to separate
@@ -1094,7 +1086,7 @@ int disable_advertising() {
 }
 
 /*
-*  control_advertising:
+*  ble_beacon:
 *
 *  This function allows avertising to be stopped with ctrl-c if
 *  enable_advertising was a success.
@@ -1143,9 +1135,7 @@ int main(int argc, char **argv) {
     char hex_c[CONFIG_BUFFER_SIZE];
 
     /* Return value of pthread_create used to check for errors */
-    int return_value;
-
-   
+    int return_value;   
 
     /* Load config struct */
     g_config = get_config(CONFIG_FILENAME);
@@ -1206,20 +1196,19 @@ int main(int argc, char **argv) {
     }
 
     
+    /* Clean up the scanned list */
+    pthread_t cleanup_scanned_list_id;
 
-    /* Clean up the linked list */
-    pthread_t cleanup_linked_list_id;
-
-    return_value = pthread_create(&cleanup_linked_list_id, NULL,
-        (void *)cleanup_linked_list, NULL);
+    return_value = pthread_create(&cleanup_scanned_list_id, NULL,
+        (void *)cleanup_scanned_list, NULL);
 
     if (return_value != 0) {
         /* Error handling */
-        perror("Error with cleanup_linked_list using pthread_create");
+        perror("Error with cleanup_scanned_list using pthread_create");
         pthread_exit(NULL);
     }
     
-    /* Send MAC address in queue to an available thread */
+    /* Send MAC address in waiting list to an available thread */
     pthread_t queue_to_array_id;
 
     return_value =
@@ -1269,9 +1258,9 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    return_value = pthread_join(cleanup_linked_list_id, NULL);
+    return_value = pthread_join(cleanup_scanned_list_id, NULL);
     if (return_value != 0) {
-        perror("Error with cleanup_linked_list_id using pthread_join");
+        perror("Error with cleanup_scanned_list_id using pthread_join");
         exit(EXIT_FAILURE);
     }
 

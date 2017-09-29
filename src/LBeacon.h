@@ -39,6 +39,7 @@
 *      Han Hu, hhu14@illinois.edu
 *      Jeffrey Lin, lin.jeff03@gmail.com
 *      Howard Hsu, haohsu0823@gmail.com
+*      Han Wang, hollywang@iis.sinica.edu.tw
 */
 
 /*
@@ -248,6 +249,7 @@ typedef struct ThreadStatus {
 ThreadStatus *g_idle_handler;
 
 
+/*Two list of struct for recording scanned devices */
 List_Entry *scanned_list;
 List_Entry *waiting_list;
 
@@ -265,7 +267,7 @@ void *send_file(void *id);
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi);
 void start_scanning();
-void *cleanup_linked_list(void);
+void *cleanup_scanned_list(void);
 void track_devices(bdaddr_t *bluetooth_device_address, char *filename);
 char *choose_file(char *message_to_send);
 int enable_advertising(int advertising_interval, char *advertising_uuid,

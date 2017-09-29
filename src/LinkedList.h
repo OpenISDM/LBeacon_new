@@ -39,6 +39,7 @@
 *      Han Hu, hhu14@illinois.edu
 *      Jeffrey Lin, lin.jeff03@gmail.com
 *      Howard Hsu, haohsu0823@gmail.com
+*	   Han Wang, hollywang@iis.sinica.edu.tw
 */
 
 #include <stdbool.h>
@@ -46,10 +47,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define offsetof(type, member) ((size_t) &((type *)0)->member)
-#define ListEntry(ptr,type,member) ((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
-#define list_for_each(pos, head) for (pos = (head)->next; pos != (head); pos = pos->next)
+/*
+* CONSTANTS
+*/
 
+/*Macro for calculating the offset of two addresses*/
+#define offsetof(type, member) ((size_t) &((type *)0)->member)
+/*Macro for geting the master struct from the sub struct */
+#define ListEntry(ptr,type,member) ((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
+/*Macro for the method going through the list structure */
+#define list_for_each(pos, head) for (pos = (head)->next; pos != (head); pos = pos->next)
 /* Length of a Bluetooth MAC address */
 #define LENGTH_OF_MAC_ADDRESS 18
 
@@ -59,21 +66,19 @@ typedef struct ScannedDevice {
 	char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
 } ScannedDevice;
 
-
+/*Strcut for the head of list containing two pointers: next and prev */
 typedef struct List_Entry {	
 	struct List_Entry *next;
 	struct List_Entry *prev;
 	
 }List_Entry;
 
-
-/* Struct for each node in the linked list; data is a ScannedDevice struct */
+/* Struct for each node in the list with any type of data */
 typedef struct Node {
 	void *data;
 	struct List_Entry ptrs;
 	
 }Node;
-
 
 
 /*
