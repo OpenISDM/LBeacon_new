@@ -756,6 +756,8 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
         fputs("\n", output);
         fputs(long_long_to_string, output);
         fputs(" - ", output);
+		fputs(g_initial_timestamp_of_file, output);
+		fputs(" - ", output);
         fputs(address, output);
         fclose(output);
 
@@ -1126,6 +1128,7 @@ void *ble_beacon(void *beacon_location) {
         disable_advertising();
     }
 }
+
 
 int main(int argc, char **argv) {
     /* An iterator through the array of ScannedDevice struct */
