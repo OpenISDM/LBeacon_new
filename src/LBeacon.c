@@ -711,6 +711,7 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
 
     /* Converts long long type to a string */
     char long_long_to_string[LENGTH_OF_TIME];
+    char long_long_to_string_init[LENGTH_OF_TIME];
 
     /* Get current timestamp when tracking bluetooth devices */
     unsigned timestamp = (unsigned)time(NULL);
@@ -729,6 +730,7 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
         fclose(output);
         g_size_of_file++;
         g_initial_timestamp_of_file = timestamp;
+        sprintf(long_long_to_string_init, "%u", timestamp);
         memset(&address[0], 0, sizeof(address));
     }
 
@@ -756,7 +758,7 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
         fputs("\n", output);
         fputs(long_long_to_string, output);
         fputs(" - ", output);
-		fputs(g_initial_timestamp_of_file, output);
+		fputs(long_long_to_string_init, output);
 		fputs(" - ", output);
         fputs(address, output);
         fclose(output);
