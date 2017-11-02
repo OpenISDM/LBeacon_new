@@ -274,3 +274,4 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
     int rssi_value);
 int disable_advertising();
 void *ble_beacon(void *beacon_location);
+void startThread(void * (*run)(void*), void *arg);
