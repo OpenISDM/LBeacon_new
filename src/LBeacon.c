@@ -1131,14 +1131,14 @@ void *ble_beacon(void *beacon_location) {
     }
 }
 
-void startThread(void * (*run)(void*), void *arg){
 
-    pthread_t t;
+void startThread(pthread_t threads ,void * (*run)(void*), void *arg){
+
     pthread_attr_t attr;
     if (pthread_attr_init(&attr) != 0
-      || pthread_create(&t, &attr, run, arg) != 0
+      || pthread_create(&threads, &attr, run, arg) != 0
       || pthread_attr_destroy(&attr) != 0
-      || pthread_detach(t) != 0) {
+      || pthread_detach(threads) != 0) {
     printf("Unable to launch a thread\n");
     exit(1);
   }
@@ -1206,38 +1206,18 @@ int main(int argc, char **argv) {
 
     /* Enable message advertising to BLE bluetooth devices */
     pthread_t ble_beacon_id;
-    return_value =
-        pthread_create(&ble_beacon_id, NULL, (void *)ble_beacon, hex_c);
-    if (return_value != 0) {
-        /* Error handling */
-        perror("Error with ble_beacon using pthread_create");
-        pthread_exit(NULL);
-    }
-
+    startThread(ble_beacon_id, ble_beacon, hex_c);
+    
     
     /* Clean up the scanned list */
     pthread_t cleanup_scanned_list_id;
-
-    return_value = pthread_create(&cleanup_scanned_list_id, NULL,
-        (void *)cleanup_scanned_list, NULL);
-
-    if (return_value != 0) {
-        /* Error handling */
-        perror("Error with cleanup_scanned_list using pthread_create");
-        pthread_exit(NULL);
-    }
+    startThread(cleanup_scanned_list_id,cleanup_scanned_list, NULL);
+    
     
     /* Send MAC address in waiting list to an available thread */
     pthread_t queue_to_array_id;
-
-    return_value =
-        pthread_create(&queue_to_array_id, NULL, (void *)queue_to_array, NULL);
-
-    if (return_value != 0) {
-        perror("Error with queue_to_array using pthread_create");
-        pthread_exit(NULL);
-    }
-
+    startThread(queue_to_array_id, queue_to_array, NULL);
+    
 
 
     /* Send message to the scanned MAC address */
