@@ -1206,23 +1206,28 @@ int main(int argc, char **argv) {
 
     /* Enable message advertising to BLE bluetooth devices */
     pthread_t ble_beacon_id;
+    
     startThread(ble_beacon_id, ble_beacon, hex_c);
     
     
     /* Clean up the scanned list */
     pthread_t cleanup_scanned_list_id;
+    
     startThread(cleanup_scanned_list_id,cleanup_scanned_list, NULL);
     
     
     /* Send MAC address in waiting list to an available thread */
     pthread_t queue_to_array_id;
+    
     startThread(queue_to_array_id, queue_to_array, NULL);
     
 
 
     /* Send message to the scanned MAC address */
     pthread_t send_file_id[maximum_number_of_devices];
+    
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
+        
         startThread(send_file_id[device_id], send_file, (void*)device_id);
     }
 
