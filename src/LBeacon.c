@@ -41,7 +41,7 @@
 *      Han Hu, hhu14@illinois.edu
 *      Jeffrey Lin, lin.jeff03@gmail.com
 *      Howard Hsu, haohsu0823@gmail.com
-*	   Han Wang, hollywang@iis.sinica.edu.tw	
+*      Han Wang, hollywang@iis.sinica.edu.tw    
 */
 
 #include "LBeacon.h"
@@ -201,7 +201,7 @@ bool check_is_used_address(char address[]) {
     /* Go through list */
     list_for_each(listptrs, scanned_list) {
 
-    	/* Input MAC address exists in the linked list */
+        /* Input MAC address exists in the linked list */
         temp = ListEntry(listptrs, Node, ptrs);       
         int len = strlen(address);
         ScannedDevice *temp_data; 
@@ -489,7 +489,7 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     printf("\n");
     fflush(NULL);
 
-	return;
+    return;
 
 }
 
@@ -512,19 +512,19 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 *  None
 */
 void start_scanning() {
-    struct hci_filter filter;        				/*Filter for controling the events*/
-    struct pollfd output;							/*A callback event from the socket */
+    struct hci_filter filter;                       /*Filter for controling the events*/
+    struct pollfd output;                           /*A callback event from the socket */
     unsigned char event_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the callback event*/
-    unsigned char *event_buffer_pointer;			/*A pointer for the event buffer */
-    hci_event_hdr *event_handler;					/*Record the event type */
-    inquiry_cp inquiry_copy;						/*Storing the message from the socket */
-    inquiry_info_with_rssi *info_rssi;				/*Record an EVT_INQUIRY_RESULT_WITH_RSSI message */
-    inquiry_info *info;								/*Record an EVT_INQUIRY_RESULT message */
-    int event_buffer_length;						/*Length of the event buffer */
-    int dongle_device_id = 0;						/*Number of the dongle */
-    int socket = 0;									/*Number of the socket */
-    int results;									/*Return the result form the socket */
-    int results_id;									/*ID of the result */
+    unsigned char *event_buffer_pointer;            /*A pointer for the event buffer */
+    hci_event_hdr *event_handler;                   /*Record the event type */
+    inquiry_cp inquiry_copy;                        /*Storing the message from the socket */
+    inquiry_info_with_rssi *info_rssi;              /*Record an EVT_INQUIRY_RESULT_WITH_RSSI message */
+    inquiry_info *info;                             /*Record an EVT_INQUIRY_RESULT message */
+    int event_buffer_length;                        /*Length of the event buffer */
+    int dongle_device_id = 0;                       /*Number of the dongle */
+    int socket = 0;                                 /*Number of the socket */
+    int results;                                    /*Return the result form the socket */
+    int results_id;                                 /*ID of the result */
 
     /* Open Bluetooth device */
     socket = hci_open_dev(dongle_device_id);
@@ -572,6 +572,8 @@ void start_scanning() {
 
     output.fd = socket;
     output.events = POLLIN | POLLERR | POLLHUP;
+
+
 
     /* An indicator for continuing to scan for devices */
     bool scan_devices_cancelled = false;
@@ -712,7 +714,7 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
     /* Converts long long type to a string */
     char long_long_to_string[LENGTH_OF_TIME];
     char long_long_to_string_init[LENGTH_OF_TIME];
-
+ 
     /* Get current timestamp when tracking bluetooth devices */
     unsigned timestamp = (unsigned)time(NULL);
     sprintf(long_long_to_string, "%u", timestamp);
@@ -730,7 +732,7 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
         fclose(output);
         g_size_of_file++;
         g_initial_timestamp_of_file = timestamp;
-        sprintf(long_long_to_string_init, "%u", timestamp);
+        sprintf(long_long_to_string_init, "%u", g_initial_timestamp_of_file);
         memset(&address[0], 0, sizeof(address));
     }
 
@@ -758,8 +760,8 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
         fputs("\n", output);
         fputs(long_long_to_string, output);
         fputs(" - ", output);
-		fputs(long_long_to_string_init, output);
-		fputs(" - ", output);
+        fputs(long_long_to_string_init, output);
+        fputs(" - ", output);
         fputs(address, output);
         fclose(output);
 
@@ -1198,37 +1200,41 @@ int main(int argc, char **argv) {
     waiting_list->prev = waiting_list;
     
 
+
     /* Store coordinates of the beacon location */
     sprintf(hex_c, "E2C56DB5DFFB48D2B060D0F5%02x%02x%02x%02x%02x%02x%02x%02x",
         coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
         coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
         coordinate_Y.b[2], coordinate_Y.b[3]);
 
+   
+
     /* Enable message advertising to BLE bluetooth devices */
-    pthread_t ble_beacon_id;
+    pthread_t ble_beacon_thread;
     
-    startThread(ble_beacon_id, ble_beacon, hex_c);
+    startThread(ble_beacon_thread, ble_beacon, hex_c);
     
+
     
     /* Clean up the scanned list */
-    pthread_t cleanup_scanned_list_id;
+    pthread_t cleanup_scanned_list_thread;
     
-    startThread(cleanup_scanned_list_id,cleanup_scanned_list, NULL);
-    
-    
-    /* Send MAC address in waiting list to an available thread */
-    pthread_t queue_to_array_id;
-    
-    startThread(queue_to_array_id, queue_to_array, NULL);
-    
+    startThread(cleanup_scanned_list_thread,cleanup_scanned_list, NULL);
 
+  
+    /* Send MAC address in waiting list to an available thread */
+    pthread_t queue_to_array_thread;
+    
+    startThread(queue_to_array_thread, queue_to_array, NULL);
+ 
 
     /* Send message to the scanned MAC address */
-    pthread_t send_file_id[maximum_number_of_devices];
+    pthread_t send_file_thread[maximum_number_of_devices];
     
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
         
-        startThread(send_file_id[device_id], send_file, (void*)device_id);
+        startThread(send_file_thread[device_id], send_file, (void*)device_id);
+      
     }
 
 
@@ -1244,27 +1250,27 @@ int main(int argc, char **argv) {
 
 
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
-        return_value = pthread_join(send_file_id[device_id], NULL);
+        return_value = pthread_join(send_file_thread[device_id], NULL);
         if (return_value != 0) {
             perror("Error with send_file_id using pthread_join");
             exit(EXIT_FAILURE);
         }
     }
 
-    return_value = pthread_join(queue_to_array_id, NULL);
+    return_value = pthread_join(queue_to_array_thread, NULL);
     if (return_value != 0) {
         perror("Error with queue_to_array_id using pthread_join");
         exit(EXIT_FAILURE);
     }
 
-    return_value = pthread_join(cleanup_scanned_list_id, NULL);
+    return_value = pthread_join(cleanup_scanned_list_thread, NULL);
     if (return_value != 0) {
         perror("Error with cleanup_scanned_list_id using pthread_join");
         exit(EXIT_FAILURE);
     }
 
-    pthread_cancel(ble_beacon_id);
-    return_value = pthread_join(ble_beacon_id, NULL);
+    pthread_cancel(ble_beacon_thread);
+    return_value = pthread_join(ble_beacon_thread, NULL);
     if (return_value != 0) {
         perror("Error with ble_beacon using pthread_join");
         exit(EXIT_FAILURE);
