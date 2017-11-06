@@ -1223,12 +1223,7 @@ int main(int argc, char **argv) {
     /* Send message to the scanned MAC address */
     pthread_t send_file_id[maximum_number_of_devices];
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
-        return_value = pthread_create(&send_file_id[device_id], NULL,
-            (void *)send_file, (void *)device_id);
-        if (return_value != 0) {
-            perror("Error with send_file using pthread_create");
-            pthread_exit(NULL);
-        }
+        startThread(send_file_id[device_id], send_file, (void*)device_id);
     }
 
 
