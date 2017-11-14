@@ -253,6 +253,9 @@ ThreadStatus *g_idle_handler;
 List_Entry *scanned_list;
 List_Entry *waiting_list;
 
+/*The number of error code*/
+extern int errno; 
+
 
 /*
 * FUNCTIONS
