@@ -253,7 +253,7 @@ ThreadStatus *g_idle_handler;
 List_Entry *scanned_list;
 List_Entry *waiting_list;
 
-/*The number of error code*/
+/*The number of error code */
 extern int errno; 
 
 
@@ -263,7 +263,7 @@ extern int errno;
 
 Config get_config(char *filename);
 long long get_system_time();
-bool check_is_used_address(char address[]);
+bool check_is_in_list(List_Entry *list, char address[]);
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
 void *queue_to_array();
 void *send_file(void *id);

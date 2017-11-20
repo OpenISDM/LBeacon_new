@@ -177,7 +177,7 @@ long long get_system_time() {
 }
 
 /*
-*  check_is_used_address:
+*  check_is_in_list:
 *
 *  This helper function checks whether the specified MAC address given as input
 *  is in the scanned list with recently scanned bluetooth devices. If it is, the
@@ -185,6 +185,7 @@ long long get_system_time() {
 *
 *  Parameters:
 *
+*  list - the list is goning to check 
 *  address - scanned MAC address of bluetooth device
 * 
 *  Return value:
@@ -192,14 +193,14 @@ long long get_system_time() {
 *  true - used MAC address
 *  false - new MAC address
 */
-bool check_is_used_address(char address[]) {
+bool check_is_in_list(List_Entry *list, char address[]) {
     
     /* Create a temporary node and set as the head */
     struct List_Entry *listptrs;
     Node *temp;
 
     /* Go through list */
-    list_for_each(listptrs, scanned_list) {
+    list_for_each(listptrs, list) {
 
         /* Input MAC address exists in the linked list */
         temp = ListEntry(listptrs, Node, ptrs);       
@@ -240,7 +241,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     strcat(address, "\0");
     
     /* Add to the scanned list and waiting list for new scanned devices */
-    if (check_is_used_address(address) == false) {       
+    if (check_is_in_list(scanned_list, address) == false) {       
         ScannedDevice data;
         data.initial_scanned_time = get_system_time();
         strncpy(data.scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS); 
