@@ -332,7 +332,7 @@ void print_list(List_Entry *entry) {
  *
  *  return_value - MAC address of the fist node.
  */
-char *get_first_content(List_Entry *entry) {
+char *get_first_entry(List_Entry *entry) {
 
     if (get_list_length(entry) == 0 ) {
         return NULL;

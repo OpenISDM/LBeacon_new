@@ -220,10 +220,10 @@ bool check_is_in_list(List_Entry *list, char address[]) {
 /*
 *  send_to_push_dongle:
 *
-*  For each new scanned bluetooth device, this function adds the scanned device
-*  to the scanned list of ScannedDevice struct that stores its scanned timestamp
-*  and MAC address and to the waiting list of MAC addresses waiting for an available
-*  thread to send the message to its device.
+*  For each newly scanned bluetooth device, this function adds the Scanned Device
+*  struct of the device to the scanned list of ScannedDevice struct that stores 
+*  its scanned timestamp and MAC address and to the waiting list of MAC addresses 
+*  waiting for an available thread to send a message to the device with the address.
 *
 *  Parameters:
 *
@@ -234,13 +234,15 @@ bool check_is_in_list(List_Entry *list, char address[]) {
 *  None
 */
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
+    
     /* Stores the MAC address as a string */
     char address[LENGTH_OF_MAC_ADDRESS];
+    
     /* Converts the bluetooth device address to a string */
     ba2str(bluetooth_device_address, address);
     strcat(address, "\0");
     
-    /* Add to the scanned list and waiting list for new scanned devices */
+    /* Add newly scanned devices to the scanned list and waiting list for new scanned devices */
     if (check_is_in_list(scanned_list, address) == false) {       
         ScannedDevice data;
         data.initial_scanned_time = get_system_time();
@@ -256,10 +258,10 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 /*
 *  queue_to_array:
 *
-*  This function will continuously look through the ThreadStatus array that
-*  contains all the send_file thread statuses. Once a thread becomes available
+*  This function continuously looks through the ThreadStatus array that
+*  contains all the send_file thread status. When a thread becomes available
 *  and the waiting list is not empty, the first MAC address in the waiting list
-*  will beadded to the ThreadStatus array and removed from the waiting list.
+*  will be added to the ThreadStatus array and removed from the waiting list.
 *
 *  Parameters:
 *
@@ -270,6 +272,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 *  None
 */
 void *queue_to_array() {
+    
     /* Maximum number of devices to be handled by all push dongles */
     int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
 
@@ -280,16 +283,20 @@ void *queue_to_array() {
     bool check_thread_status_cancelled = false;
 
     while (check_thread_status_cancelled == false) {
+        
         /* Go through the array of ThreadStatus */
         for (device_id = 0; device_id < maximum_number_of_devices;
             device_id++) {
         
-            char *address = get_first_content(waiting_list);
-            /* Add MAC address to the array and dequeue when a thread becomes
-            * available */
+            char *address = get_first_entry(waiting_list);
+            
+            /* Remove from waiting_list and add MAC address to the array when a 
+             * thread becomes available */
             if (g_idle_handler[device_id].idle == -1 && address != NULL) {
-                strncpy(g_idle_handler[device_id].scanned_mac_address, address,
-                    LENGTH_OF_MAC_ADDRESS);
+                strncpy(g_idle_handler[device_id].scanned_mac_address, 
+                        address,
+                        LENGTH_OF_MAC_ADDRESS);
+
                 remove_first(waiting_list); 
                 g_idle_handler[device_id].idle = device_id;
                 g_idle_handler[device_id].is_waiting_to_send = true;

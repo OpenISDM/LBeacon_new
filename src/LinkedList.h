@@ -96,5 +96,5 @@ void remove_node(Node *removed_node);
 void remove_first(List_Entry *entry);
 void remove_last(List_Entry *entry);
 void print_list(List_Entry *entry);
-char *get_first_content(List_Entry *entry);
+char *get_first_entry(List_Entry *entry);
 int get_list_length(List_Entry *entry);
