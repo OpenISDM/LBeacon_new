@@ -310,21 +310,21 @@ return;
 /*
 *  send_file:
 *
-*  This function enables the caller to send the push message to the specified
-*  bluetooth device asynchronously.
-*
-*  [N.B. The beacon may still be scanning for other bluetooth devices for which
-*  the message is being pushed to.]
+*  This function enables the caller to send the push message asynchronously using
+*  the specified thread. 
+*  
+*  [N.B. The beacon may still be scanning for other bluetooth devices.]
 *
 *  Parameters:
 *
-*  id - thread ID for each send_file thread
+*  id - ID of the thread used to send the push message 
 *
 *  Return value:
 *
 *  None
 */
 void *send_file(void *id) {
+    
     obexftp_client_t *client = NULL; /* ObexFTP client */
     int dongle_device_id = 0;        /* Device ID of each dongle */
     int socket;                      /* ObexFTP client's socket */
@@ -450,8 +450,10 @@ void *send_file(void *id) {
                 /* Close socket */
                 obexftp_close(client);
                 client = NULL;
-                strncpy(g_idle_handler[device_id].scanned_mac_address, "0",
-                    LENGTH_OF_MAC_ADDRESS);
+                strncpy(g_idle_handler[device_id].scanned_mac_address
+                        "0",
+                        LENGTH_OF_MAC_ADDRESS);
+                
                 g_idle_handler[device_id].idle = -1;
                 g_idle_handler[device_id].is_waiting_to_send = false;
                 close(socket);
@@ -1157,6 +1159,7 @@ void startThread(pthread_t threads ,void * (*run)(void*), void *arg){
 
 
 int main(int argc, char **argv) {
+    
     /* An iterator through the array of ScannedDevice struct */
     int device_id;
 
