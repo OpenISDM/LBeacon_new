@@ -256,6 +256,8 @@ List_Entry *waiting_list;
 /*The number of error code */
 extern int errno; 
 
+bool start_scanning_cancelled = false;
+
 
 /*
 * FUNCTIONS

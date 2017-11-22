@@ -279,10 +279,8 @@ void *queue_to_array() {
     /* An iterator through the array of ScannedDevice struct */
     int device_id;
 
-    /* An indicator of keep checking for unused threads */
-    bool check_thread_status_cancelled = false;
 
-    while (check_thread_status_cancelled == false) {
+    while (start_scanning_cancelled = false) {
         
         /* Go through the array of ThreadStatus */
         for (device_id = 0; device_id < maximum_number_of_devices;
@@ -348,10 +346,8 @@ void *send_file(void *id) {
     /* An iterator through a block of devices per dongle */
     int block_id;
 
-    /* An indicator for continuing to send messages */
-    bool send_messages_cancelled = false;
 
-    while (send_messages_cancelled == false) {
+    while (start_scanning_cancelled = false) {
         for (device_id = 0; device_id < maximum_number_of_devices;
             device_id++) {
             if (device_id == thread_id &&
@@ -450,7 +446,7 @@ void *send_file(void *id) {
                 /* Close socket */
                 obexftp_close(client);
                 client = NULL;
-                strncpy(g_idle_handler[device_id].scanned_mac_address
+                strncpy(g_idle_handler[device_id].scanned_mac_address,
                         "0",
                         LENGTH_OF_MAC_ADDRESS);
                 
@@ -669,10 +665,8 @@ void start_scanning() {
 */
 void *cleanup_scanned_list(void) {
     
-    /* An indicator for continuing to clean the scanned list */ 
-    bool clean_scanned_list_cancelled = false;
 
-    while (clean_scanned_list_cancelled == false) {
+    while (start_scanning_cancelled = false) {
         
         struct List_Entry *listptrs;
         Node *temp;        
@@ -1250,8 +1244,6 @@ int main(int argc, char **argv) {
 
 
 
-    /* An indicator for continuing to run the beacon */
-    bool start_scanning_cancelled = false;
 
     /* Start scanning for bluetooth devices */
     while (start_scanning_cancelled == false) {
