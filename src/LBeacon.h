@@ -256,7 +256,9 @@ List_Entry *waiting_list;
 /*The number of error code */
 extern int errno; 
 
-bool start_scanning_cancelled = false;
+/* Two global flags for threads */
+bool ready_to_work = true;
+bool send_message_cancelled = false;
 
 
 /*

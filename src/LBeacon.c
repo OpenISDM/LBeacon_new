@@ -280,7 +280,7 @@ void *queue_to_array() {
     int device_id;
 
 
-    while (start_scanning_cancelled = false) {
+    while (ready_to_work = false) {
         
         /* Go through the array of ThreadStatus */
         for (device_id = 0; device_id < maximum_number_of_devices;
@@ -347,7 +347,7 @@ void *send_file(void *id) {
     int block_id;
 
 
-    while (start_scanning_cancelled = false) {
+    while (send_message_cancelled = false) {
         for (device_id = 0; device_id < maximum_number_of_devices;
             device_id++) {
             if (device_id == thread_id &&
@@ -666,7 +666,7 @@ void start_scanning() {
 void *cleanup_scanned_list(void) {
     
 
-    while (start_scanning_cancelled = false) {
+    while (ready_to_work = true) {
         
         struct List_Entry *listptrs;
         Node *temp;        
@@ -1246,7 +1246,7 @@ int main(int argc, char **argv) {
 
 
     /* Start scanning for bluetooth devices */
-    while (start_scanning_cancelled == false) {
+    while (ready_to_work == true) {
         start_scanning();
     }
 
