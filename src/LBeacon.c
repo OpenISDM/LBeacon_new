@@ -55,17 +55,17 @@
 *
 *  Parameters:
 *
-*  filename - the name of the config file that stores all the beacon data
+*  file_name - the name of the config file that stores all the beacon data
 *
 *  Return value:
 *
-*  config - Config struct including filepath, coordinates, etc.
+*  config - Config struct including file path, coordinates, etc.
 */
-Config get_config(char *filename) {
+Config get_config(char *file_name) {
     /* Return value that contains a struct of all config information */
     Config config;
 
-    FILE *file = fopen(filename, "r");
+    FILE *file = fopen(file_name, "r");
     if (file == NULL) {
         /* Error handling */
         perror("Error opening file");
@@ -97,14 +97,14 @@ Config get_config(char *filename) {
     fgets(config_setting, sizeof(config_setting), file);
     config_message[3] = strstr((char *)config_setting, DELIMITER);
     config_message[3] = config_message[3] + strlen(DELIMITER);
-    memcpy(config.filename, config_message[3], strlen(config_message[3]));
-    config.filename_length = strlen(config_message[3]);
+    memcpy(config.file_name, config_message[3], strlen(config_message[3]));
+    config.file_name_length = strlen(config_message[3]);
     
     fgets(config_setting, sizeof(config_setting), file);
     config_message[4] = strstr((char *)config_setting, DELIMITER);
     config_message[4] = config_message[4] + strlen(DELIMITER);
-    memcpy(config.filepath, config_message[4], strlen(config_message[4]));
-    config.filepath_length = strlen(config_message[4]);
+    memcpy(config.file_path, config_message[4], strlen(config_message[4]));
+    config.file_path_length = strlen(config_message[4]);
     
     fgets(config_setting, sizeof(config_setting), file);
     config_message[5] = strstr((char *)config_setting, DELIMITER);
@@ -247,8 +247,8 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
         ScannedDevice data;
         data.initial_scanned_time = get_system_time();
         strncpy(data.scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS); 
-        Node *node_s = add_node_first(scanned_list);
-        Node *node_w = add_node_first(waiting_list);
+        Node *node_s = insert_node_head(scanned_list);
+        Node *node_w = insert_node_head(waiting_list);
         node_s->data = &data;
         node_w->data = &data;
         
@@ -286,7 +286,7 @@ void *queue_to_array() {
         for (device_id = 0; device_id < maximum_number_of_devices;
             device_id++) {
         
-            char *address = get_first_entry(waiting_list);
+            char *address = get_head_entry(waiting_list);
             
             /* Remove from waiting_list and add MAC address to the array when a 
              * thread becomes available */
@@ -295,7 +295,7 @@ void *queue_to_array() {
                         address,
                         LENGTH_OF_MAC_ADDRESS);
 
-                remove_first(waiting_list); 
+                list_remove_head(waiting_list);
                 g_idle_handler[device_id].idle = device_id;
                 g_idle_handler[device_id].is_waiting_to_send = true;
             }
@@ -329,7 +329,7 @@ void *send_file(void *id) {
     int channel = -1;                /* ObexFTP channel */
     int thread_id = (int)id;         /* Thread ID */
     char *address = NULL;            /* Scanned MAC address */
-    char *filename;                  /* Filename of message to be sent */
+    char *file_name;                  /* File name of message to be sent */
     int return_value;                /* Return value for error handling */
 
     int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
@@ -389,16 +389,16 @@ void *send_file(void *id) {
                 address = (char *)g_idle_handler[device_id].scanned_mac_address;
                 channel = obexftp_browse_bt_push(address);
 
-                /* Extract basename from filepath */
-                filename = strrchr(g_filepath, '/');
-                filename[g_config.filename_length] = '\0';
-                if (!filename) {
-                    filename = g_filepath;
+                /* Extract basename from file path */
+                file_name = strrchr(g_push_file_path, '/');
+                file_name[g_config.file_name_length] = '\0';
+                if (!file_name) {
+                    file_name = g_push_file_path;
                 }
                 else {
-                    filename++;
+                    file_name++;
                 }
-                printf("Sending file %s to %s\n", filename, address);
+                printf("Sending file %s to %s\n", file_name, address);
 
                 /* Open connection */
                 client = obexftp_open(OBEX_TRANS_BLUETOOTH, NULL, NULL, NULL);
@@ -441,7 +441,7 @@ void *send_file(void *id) {
                 }
 
                 /* Push file to the scanned device */
-                return_value = obexftp_put_file(client, g_filepath, filename);
+                return_value = obexftp_put_file(client, g_push_file_path, file_name);
                 if (0 > return_value) {
                     /* Error handling */
                     perror("Error putting file");
@@ -690,7 +690,7 @@ void *cleanup_scanned_list(void) {
             if (get_system_time() - temp_data->initial_scanned_time > TIMEOUT) {
                 printf("Removed %s from scanned list\n",
                     temp_data->scanned_mac_address[0]);
-                remove_node(temp);
+                list_remove_node(temp);
             }
             else {
                 break;
@@ -716,13 +716,13 @@ void *cleanup_scanned_list(void) {
 *  Parameters:
 *
 *  bluetooth_device_address - bluetooth device address
-*  filename - name of the file where all the data will be stored
+*  file_name - name of the file where all the data will be stored
 *
 *  Return value:
 *
 *  None
 */
-void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
+void track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
     /* Scanned MAC address */
     char address[LENGTH_OF_MAC_ADDRESS];
 
@@ -736,7 +736,7 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
 
     /* If file is empty, create new file with LBeacon UUID */
     if (0 == g_size_of_file) {
-        FILE *output = fopen(filename, "w+"); /* w+ overwrites the file */
+        FILE *output = fopen(file_name, "w+"); /* w+ overwrites the file */
         if (output == NULL) {
             /* Error handling */
             perror("Error opening file");
@@ -746,8 +746,8 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
         fputs(g_config.uuid, output);
         fclose(output);
         g_size_of_file++;
-        g_initial_timestamp_of_file = timestamp;
-        sprintf(long_long_to_string_init, "%u", g_initial_timestamp_of_file);
+        g_initial_timestamp_of_tracking_file = timestamp;
+        sprintf(long_long_to_string_init, "%u", g_initial_timestamp_of_tracking_file);
         memset(&address[0], 0, sizeof(address));
     }
 
@@ -756,8 +756,8 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
     strcat(address, "\0");
 
     FILE *output;
-    char line[TRACKING_BUFFER];
-    output = fopen(filename, "a+"); /* a+ appends to the file */
+    char line[TRACKING_FILE_LINE_LENGTH ];
+    output = fopen(file_name, "a+"); /* a+ appends to the file */
 
     if (output == NULL) {
         /* Error handling */
@@ -766,12 +766,12 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
     }
 
     /* Go through the whole file to get to the last line */
-    while (fgets(line, TRACKING_BUFFER, output) != NULL) {
+    while (fgets(line, TRACKING_FILE_LINE_LENGTH , output) != NULL) {
     }
 
     /* If timestamp already exists, add MAC address to end of the previous line
     * otherwise create a new line */
-    if (timestamp != g_most_recent_timestamp_of_file) {
+    if (timestamp != g_most_recent_timestamp_of_tracking_file) {
         fputs("\n", output);
         fputs(long_long_to_string, output);
         fputs(" - ", output);
@@ -780,7 +780,7 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
         fputs(address, output);
         fclose(output);
 
-        g_most_recent_timestamp_of_file = timestamp;
+        g_most_recent_timestamp_of_tracking_file = timestamp;
         g_size_of_file++;
     }
     else {
@@ -794,9 +794,9 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
     }
 
     /* Send to gateway every 5 minutes */
-    if (300 <= timestamp - g_initial_timestamp_of_file) {
+    if (300 <= timestamp - g_initial_timestamp_of_tracking_file) {
         g_size_of_file = 0;
-        g_most_recent_timestamp_of_file = 0;
+        g_most_recent_timestamp_of_tracking_file = 0;
         /* @todo: send to gateway function */
     }
 }
@@ -804,9 +804,9 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
 /*
 *  choose_file:
 *
-*  This function receives the name of the message file and returns the filepath
+*  This function receives the name of the message file and returns the file path
 *  where the message is located. It goes through each directory in the messages
-*  folder and in each category, it reads each filename to find the designated
+*  folder and in each category, it reads each file name to find the designated
 *  message we want to broadcast to the users under the beacon.
 *
 *  Parameters:
@@ -815,24 +815,24 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *filename) {
 *
 *  Return value:
 *
-*  return_value - message filepath
+*  return_value - message file path
 */
 char *choose_file(char *message_to_send) {
     DIR *groupdir;           /* A dirent that stores list of directories */
     struct dirent *groupent; /* A dirent struct that stores directory info */
     int message_id = 0;      /* A iterator for number of messages and groups */
     int group_id = 0;        /* A iterator for number of groups */
-    char *return_value;      /* Return value which turns filepath to a string */
+    char *return_value;      /* Return value which turns file path to a string */
 
                              /* Convert number of groups and messages from a string to an integer */
     int number_of_groups = atoi(g_config.number_of_groups);
     int number_of_messages = atoi(g_config.number_of_messages);
 
     /* An array of buffer for group file names */
-    char groups[number_of_groups][FILENAME_BUFFER];
+    char groups[number_of_groups][FILE_NAME_BUFFER];
 
     /* An array of buffer for message file names */
-    char messages[number_of_messages][FILENAME_BUFFER];
+    char messages[number_of_messages][FILE_NAME_BUFFER];
 
     /* Stores all the name of files and directories in groups */
     groupdir = opendir("/home/pi/LBeacon/messages/");
@@ -852,30 +852,30 @@ char *choose_file(char *message_to_send) {
         return NULL;
     }
 
-    /* Stores filepath of message_to_send */
-    char filepath[FILENAME_BUFFER];
-    memset(filepath, 0, FILENAME_BUFFER);
+    /* Stores file path of message_to_send */
+    char file_path[FILE_NAME_BUFFER];
+    memset(file_path, 0, FILE_NAME_BUFFER);
     message_id = 0;
 
     /* Go through each message in directory and store each file name */
     for (group_id = 0; group_id < number_of_groups; group_id++) {
-        /* Concatenate strings to make filepath */
-        sprintf(filepath, "/home/pi/LBeacon/messages/");
-        strcat(filepath, groups[group_id]);
+        /* Concatenate strings to make file path */
+        sprintf(file_path, "/home/pi/LBeacon/messages/");
+        strcat(file_path, groups[group_id]);
 
         DIR *messagedir;
         struct dirent *messageent;
-        messagedir = opendir(filepath);
+        messagedir = opendir(file_path);
         if (messagedir) {
             while ((messageent = readdir(messagedir)) != NULL) {
                 if (strcmp(messageent->d_name, ".") != 0 &&
                     strcmp(messageent->d_name, "..") != 0) {
                     strcpy(messages[message_id], messageent->d_name);
-                    /* If message name found, return filepath */
+                    /* If message name found, return file path */
                     if (0 == strcmp(messages[message_id], message_to_send)) {
-                        strcat(filepath, "/");
-                        strcat(filepath, messages[message_id]);
-                        return_value = &filepath[0];
+                        strcat(file_path, "/");
+                        strcat(file_path, messages[message_id]);
+                        return_value = &file_path[0];
                         return return_value;
                     }
                     message_id++;
@@ -1175,17 +1175,17 @@ int main(int argc, char **argv) {
     int return_value;   
 
     /* Load config struct */
-    g_config = get_config(CONFIG_FILENAME);
-    g_filepath = malloc(g_config.filepath_length + g_config.filename_length);
-    if (g_filepath == NULL) {
+    g_config = get_config(CONFIG_FILE_NAME);
+    g_push_file_path = malloc(g_config.file_path_length + g_config.file_name_length);
+    if (g_push_file_path == NULL) {
         /* Error handling */
         perror("Failed to allocate memory");
         return -1;
     }
 
-    memcpy(g_filepath, g_config.filepath, g_config.filepath_length - 1);
-    memcpy(g_filepath + g_config.filepath_length - 1, g_config.filename,
-        g_config.filename_length - 1);
+    memcpy(g_push_file_path, g_config.file_path, g_config.file_path_length - 1);
+    memcpy(g_push_file_path + g_config.file_path_length - 1, g_config.file_name,
+        g_config.file_name_length - 1);
     coordinate_X.f = (float)atof(g_config.coordinate_X);
     coordinate_Y.f = (float)atof(g_config.coordinate_Y);
     coordinate_Z.f = (float)atof(g_config.coordinate_Z);
@@ -1291,6 +1291,6 @@ int main(int argc, char **argv) {
     }
 
     free(g_idle_handler);
-    free(g_filepath);
+    free(g_push_file_path);
     return 0;
 }

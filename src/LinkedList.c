@@ -51,7 +51,7 @@
 
 
 /*
-*  __list_add:
+*  list_insert_:
 *
 *  This function changes the links between the original nodes and the added 
 *  new node.
@@ -66,7 +66,7 @@
 *
 *  None
 */
-void __list_add(List_Entry *new_node, List_Entry *prev, List_Entry *next) {
+void list_insert_(List_Entry *new_node, List_Entry *prev, List_Entry *next) {
 
     next->prev = new_node;
     new_node->next = next;
@@ -77,9 +77,9 @@ void __list_add(List_Entry *new_node, List_Entry *prev, List_Entry *next) {
 
 
 /*
-*  list_add_first:
+*  list_insert_first:
 *
-*  This function calls the function of __list_add to add a new node at the 
+*  This function calls the function of list_insert_ to add a new node at the 
 *  first of the list.
 *
 *  Parameters:
@@ -91,17 +91,17 @@ void __list_add(List_Entry *new_node, List_Entry *prev, List_Entry *next) {
 *
 *  None
 */
-void list_add_first(List_Entry *new_node, List_Entry *head) {
+void list_insert_first(List_Entry *new_node, List_Entry *head) {
 
-    __list_add(new_node, head, head->next);
+    list_insert_(new_node, head, head->next);
 
 }
 
 
 /*
-*  list_add_tail:
+*  list_insert_tail:
 *
-*  This function calls the function of __list_add to add a new node at the 
+*  This function calls the function of list_insert_ to add a new node at the 
 *  last of the list.
 *
 *  Parameters:
@@ -114,28 +114,30 @@ void list_add_first(List_Entry *new_node, List_Entry *head) {
 *  None
 */
 
-void list_add_tail(List_Entry *new_node, List_Entry *head) {
+void list_insert_tail(List_Entry *new_node, List_Entry *head) {
 
-    __list_add(new_node, head->prev, head);
+    list_insert_(new_node, head->prev, head);
 
 }
 
 /*
-*  __delete_node:
+*  remove_node__:
 *
 *  This function changes the links between the original nodes and the node  
 *  which is going to be deleted.
 *
 *  Parameters:
 *
-*  prev - the struct of list entry for the node which is going to be deleted points to previously.
-*  next - the struct of list entry for the node which is going to be deleted points to next.
+*  prev - the struct of list entry for the node which is going to be deleted 
+*  points to previously.
+*  next - the struct of list entry for the node which is going to be deleted 
+*  points to next.
 *   
 *  Return value:
 *
 *  None
 */
-void __delete_node(List_Entry *prev, List_Entry *next) {
+void remove_node__(List_Entry *prev, List_Entry *next) {
 
     next->prev = prev;
     prev->next = next;
@@ -144,22 +146,24 @@ void __delete_node(List_Entry *prev, List_Entry *next) {
 
 
 /*
-*  delete_node:
+*  remove_node_:
 *
-*  This function calls the function of __delete_node to delete a node in the list.
+*  This function calls the function of remove_node__ to delete a node in the 
+*  list.
 *
 *  Parameters:
 *
-*  removed_node_ptrs - the struct of list entry for the node is going to be removed.
+*  removed_node_ptrs - the struct of list entry for the node is going to be
+*  removed.
 *  
 *   
 *  Return value:
 *
 *  None
 */
-void delete_node(List_Entry *removed_node_ptrs) {
+void remove_node_(List_Entry *removed_node_ptrs) {
 
-    __delete_node(removed_node_ptrs->prev, removed_node_ptrs->next);
+    remove_node__(removed_node_ptrs->prev, removed_node_ptrs->next);
 
 
 }
@@ -169,46 +173,48 @@ void delete_node(List_Entry *removed_node_ptrs) {
 
 
 /*
-*  add_node_first:
+*  insert_node_head:
 *
 *  This function creates a space for the struct of node is going to be 
-*  added at the first of the list and returns the node.
+*  added at the head of the list and returns the node.
 *
 *  Parameters:
 *
-*  entry - the head of the list for determining which list is goning to add to.
+*  entry - the head of the list for determining which list is goning to add
+*  to.
 *   
 *  Return value:
 *
 *  node - a new node added to the list.
 */
-struct Node *add_node_first(List_Entry *entry) {
+struct Node *insert_node_head(List_Entry *entry) {
     struct Node *node;
     node = (struct Node*)malloc(sizeof(struct Node));
-    list_add_first(&node->ptrs, entry);
+    list_insert_first(&node->ptrs, entry);
     
     return node;
 
 }
 
 /*
-*  add_node_tail:
+*  insert_node_tail:
 *
 *  This function creates a space for the struct of node is going to be 
 *  added at the last of the list and returns the node.
 *
 *  Parameters:
 *
-*  entry - the head of the list for determining which list is goning to add to.
+*  entry - the head of the list for determining which list is goning to add
+*  to.
 *   
 *  Return value:
 *
 *  node - a new node added to the list.
 */
-struct Node *add_node_tail(List_Entry *entry) {
+struct Node *insert_node_tail(List_Entry *entry) {
     struct Node *node;
     node = (struct Node*)malloc(sizeof(struct Node));
-    list_add_tail(&node->ptrs, entry);
+    list_insert_tail(&node->ptrs, entry);
 
     return node;
 
@@ -216,46 +222,47 @@ struct Node *add_node_tail(List_Entry *entry) {
 
 
 /*
-*  remove_node:
+*  list_remove_node:
 *
-*  This function calls the function of delete_node to delete a node in the list 
+*  This function calls the function of remove_node_ to delete a node in the
+*  list 
 *  and release the memory.
 *
 *  Parameters:
 *
-*  removed_node - the struct of node for the specified node is going to be removed.
+*  removed_node - the struct of node for the specified node is going to be
+*  removed.
 *  
-*   
 *  Return value:
 *
 *  None
 */
-void remove_node(Node *removed_node) {
+void list_remove_node(Node *removed_node) {
 
-    delete_node(&removed_node->ptrs);
+    remove_node_(&removed_node->ptrs);
     free(removed_node);
 
 }
 
 /*
-*  remove_first:
+*  list_remove_head:
 *
-*  This function calls the function of delete_node to delete a node at the first of 
-*  the list and release the memory.
+*  This function calls the function of remove_node_ to delete a node at the
+*  first of the list and release the memory.
 *
 *  Parameters:
 *
-*  entry - the head of the list for determining which list is goning to be modified.
-*  
+*  entry - the head of the list for determining which list is goning to be
+*  modified.
 *   
 *  Return value:
 *
 *  None
 */
-void remove_first(List_Entry *entry) {
+void list_remove_head(List_Entry *entry) {
     printf("Removing \n");
     struct Node *node = ListEntry(entry->next, Node, ptrs);
-    delete_node(entry->next);
+    remove_node_(entry->next);
     free(node);
 }
 
@@ -263,13 +270,13 @@ void remove_first(List_Entry *entry) {
 /*
 *  remove_last:
 *
-*  This function calls the function of delete_node to delete a node at the last of 
-*  the list and release the memory.
+*  This function calls the function of remove_node_ to delete a node at the  
+*  last of the list and release the memory.
 *
 *  Parameters:
 *
-*  entry - the head of the list for determining which list is goning to be modified.
-*  
+*  entry - the head of the list for determining which list is goning to be 
+*  modified.
 *   
 *  Return value:
 *
@@ -278,7 +285,7 @@ void remove_first(List_Entry *entry) {
 void remove_last(List_Entry *entry) {
 
     struct Node *node = ListEntry(entry->prev, Node, ptrs);
-    delete_node(entry->prev);
+    remove_node_(entry->prev);
     free(node);
 
 }
@@ -287,12 +294,14 @@ void remove_last(List_Entry *entry) {
 /*
  *  print_linked_list:
  *
- *  This function prints all the MAC addresses in the list. When printing, the MAC
- *  addresses will be in the order of starting from the first node to the last in the list.
+ *  This function prints all the MAC addresses in the list. When printing, 
+ *  the MAC addresses will be in the order of starting from the first node
+ *  to the last in the list.
  *
  *  Parameters:
  *
- *  entry - the head of the list for determining which list is goning to be printed.
+ *  entry - the head of the list for determining which list is goning to be
+ *  printed.
  *
  *  Return value:
  *
@@ -318,21 +327,22 @@ void print_list(List_Entry *entry) {
 }
 
 /*
- *  get_first_content:
+ *  get_head_content:
  *
- *  This function peeks at the head of the list. If the list is empty, it returns NULL
- *  because it doesn't exist. Otherwise, this function returns the MAC address of the 
- *  node at the first of the list.
+ *  This function peeks at the head of the list. If the list is empty, it 
+ *  returns NULL because it doesn't exist. Otherwise, this function returns
+ *  the MAC address of the node at the head of the list.
  *
  *  Parameters:
  *
- *  entry - the head of the list for determining which list is goning to be modified.
+ *  entry - the head of the list for determining which list is goning to be 
+ *  modified.
  *
  *  Return value:
  *
  *  return_value - MAC address of the fist node.
  */
-char *get_first_entry(List_Entry *entry) {
+char *get_head_entry(List_Entry *entry) {
 
     if (get_list_length(entry) == 0 ) {
         return NULL;
@@ -351,12 +361,13 @@ char *get_first_entry(List_Entry *entry) {
 /*
  *  get_list_length:
  *
- *  This function gets the length of the list. Starting from the first node, we increment the 
- *  length variable node by node.
+ *  This function gets the length of the list. Starting from the first node,
+ *  we increment the length variable node by node.
  *
  *  Parameters:
  *
- *  entry - the head of the list for determining which list is goning to be modified.
+ *  entry - the head of the list for determining which list is goning to be 
+ *  modified.
  *
  *  Return value:
  *

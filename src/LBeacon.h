@@ -42,6 +42,8 @@
 *      Han Wang, hollywang@iis.sinica.edu.tw
 */
 
+
+
 /*
 * INCLUDES
 */
@@ -75,6 +77,7 @@
 #include "Utilities.h"
 
 
+
 /*
 * CONSTANTS
 */
@@ -85,8 +88,8 @@
 /* Maximum number of characters in each line of config file */
 #define CONFIG_BUFFER_SIZE 64
 
-/* Filepath of the config file */
-#define CONFIG_FILENAME "../config/config.conf"
+/* File path of the config file */
+#define CONFIG_FILE_NAME "../config/config.conf"
 
 /* Parameter that determines the start of the config file */
 #define DELIMITER "="
@@ -104,23 +107,23 @@
 /* BlueZ bluetooth extended inquiry response protocol: shorten local name */
 #define EIR_NAME_SHORT 0x08
 
-/* Maximum number of characters in message filenames */
-#define FILENAME_BUFFER 256
+/* Maximum number of characters in message file names */
+#define FILE_NAME_BUFFER 256
 
 /* Length of time in Epoch */
 #define LENGTH_OF_TIME 10
 
-/* Transmission range limited. Only devices in this RSSI range are allowed to
-* connect */
+/* Transmission range limited. Only devices in this RSSI range are allowed
+* to connect */
 #define RSSI_RANGE -60
 
-/* Time interval, in milliseconds, that determines whether the bluetooth device
-* is to be removed from the push list */
+/* Time interval,maximum length of time in milliseconds, a bluetooth device
+* stays in the push list */
 #define TIMEOUT 30000
 
 /* Maximum number of characters in each line of output file used for tracking
 * scanned devices */
-#define TRACKING_BUFFER 1024
+#define TRACKING_FILE_LINE_LENGTH 1024
 
 
 
@@ -129,22 +132,40 @@
 */
 
 /* The path of the object push file */
-char *g_filepath;
+char *g_push_file_path;
 
-/* The first timestamp of the output file used for tracking scanned devices */
-unsigned g_initial_timestamp_of_file = 0;
+/* The first timestamp of the output file used for tracking scanned
+* devices */
+unsigned g_initial_timestamp_of_tracking_file = 0;
 
-/* The most recent time of the output file used for tracking scanned devices */
-unsigned g_most_recent_timestamp_of_file = 0;
+/* The most recent time of the output file used for tracking scanned
+* devices */
+unsigned g_most_recent_timestamp_of_tracking_file = 0;
 
 /* Number of lines in the output file used for tracking scanned devices */
 int g_size_of_file = 0;
+
+
+
+/*Two list of struct for recording scanned devices */
+List_Entry *scanned_list;
+List_Entry *waiting_list;
+
+/*The number of error code */
+extern int errno;
+
+/* Two global flags for threads */
+bool ready_to_work = true;
+bool send_message_cancelled = false;
+
+
 
 /*
 * UNION
 */
 
-/* This union will convert floats into Hex code used for the beacon location */
+/* This union will convert floats into Hex code used for the beacon
+* location */
 union {
     float f;
     unsigned char b[sizeof(float)];
@@ -161,6 +182,8 @@ union {
     unsigned char b[sizeof(float)];
 } coordinate_Z;
 
+
+
 /*
 * TYPEDEF STRUCTS
 */
@@ -175,14 +198,14 @@ typedef struct Config {
     /* A string representation of the Z coordinate of the beacon location */
     char coordinate_Z[CONFIG_BUFFER_SIZE];
 
-    /* A string representation of the message filename */
-    char filename[CONFIG_BUFFER_SIZE];
+    /* A string representation of the message file name */
+    char file_name[CONFIG_BUFFER_SIZE];
 
-    /* A string representation of the message filename's filepath */
-    char filepath[CONFIG_BUFFER_SIZE];
+    /* A string representation of the message file name's file path */
+    char file_path[CONFIG_BUFFER_SIZE];
 
-    /* A string representation of the maximum number of devices to be handled by
-    * all push dongles */
+    /* A string representation of the maximum number of devices to be
+    handled by all push dongles */
     char maximum_number_of_devices[CONFIG_BUFFER_SIZE];
 
     /* A string representation of number of message groups */
@@ -209,11 +232,11 @@ typedef struct Config {
     /* The string length needed to store coordinate_Z */
     int coordinate_Z_length;
 
-    /* The string length needed to store filename */
-    int filename_length;
+    /* The string length needed to store file name */
+    int file_name_length;
 
-    /* The string length needed to store filepath */
-    int filepath_length;
+    /* The string length needed to store file path */
+    int file_path_length;
 
     /* The string length needed to store maximum_number_of_devices */
     int maximum_number_of_devices_length;
@@ -243,29 +266,14 @@ typedef struct ThreadStatus {
     bool is_waiting_to_send;
 } ThreadStatus;
 
-
-
 /* An array of struct for storing information and status of each thread */
 ThreadStatus *g_idle_handler;
-
-
-/*Two list of struct for recording scanned devices */
-List_Entry *scanned_list;
-List_Entry *waiting_list;
-
-/*The number of error code */
-extern int errno; 
-
-/* Two global flags for threads */
-bool ready_to_work = true;
-bool send_message_cancelled = false;
-
 
 /*
 * FUNCTIONS
 */
 
-Config get_config(char *filename);
+Config get_config(char *file_name);
 long long get_system_time();
 bool check_is_in_list(List_Entry *list, char address[]);
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
@@ -275,7 +283,7 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi);
 void start_scanning();
 void *cleanup_scanned_list(void);
-void track_devices(bdaddr_t *bluetooth_device_address, char *filename);
+void track_devices(bdaddr_t *bluetooth_device_address, char *file_name);
 char *choose_file(char *message_to_send);
 int enable_advertising(int advertising_interval, char *advertising_uuid,
     int rssi_value);
