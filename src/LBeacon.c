@@ -217,6 +217,75 @@ bool check_is_in_list(List_Entry *list, char address[]) {
     return false;
 }
 
+
+
+/*
+ *  print_linked_list:
+ *
+ *  This function prints all the MAC addresses in the list. When printing, 
+ *  the MAC addresses will be in the order of starting from the first node
+ *  to the last in the list.
+ *
+ *  Parameters:
+ *
+ *  entry - the head of the list for determining which list is goning to be
+ *  printed.
+ *
+ *  Return value:
+ *
+ *  None
+ */
+void print_list(List_Entry *entry) {
+
+    
+    if (get_list_length(entry) == 0 ) {
+        return;
+    }
+
+    struct List_Entry *listptrs = NULL;
+    struct Node *node;
+    for (listptrs = (entry)->next; listptrs != (entry); listptrs = listptrs->next) {
+        node = ListEntry(listptrs, Node, ptrs);
+        ScannedDevice *data;
+        data = (struct ScannedDevice *)node->data;
+        printf("%s ", &data->scanned_mac_address[0]);
+    }
+    printf("\n");
+
+}
+
+
+/*
+ *  get_head_content:
+ *
+ *  This function peeks at the head of the list. If the list is empty, it 
+ *  returns NULL because it doesn't exist. Otherwise, this function returns
+ *  the MAC address of the node at the head of the list.
+ *
+ *  Parameters:
+ *
+ *  entry - the head of the list for determining which list is goning to be 
+ *  modified.
+ *
+ *  Return value:
+ *
+ *  return_value - MAC address of the fist node.
+ */
+char *get_head_entry(List_Entry *entry) {
+
+    if (get_list_length(entry) == 0 ) {
+        return NULL;
+    }
+
+    struct Node *node = ListEntry(entry->next, Node, ptrs);
+    ScannedDevice *data;
+    data = (struct ScannedDevice *) node->data;
+    char *address = &data->scanned_mac_address[0];
+    
+
+    return address;
+}
+
 /*
 *  send_to_push_dongle:
 *
@@ -244,6 +313,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     
     /* Add newly scanned devices to the scanned list and waiting list for new scanned devices */
     if (check_is_in_list(scanned_list, address) == false) {       
+        
         ScannedDevice data;
         data.initial_scanned_time = get_system_time();
         strncpy(data.scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS); 
@@ -683,6 +753,7 @@ void *cleanup_scanned_list(void) {
         Node *temp;        
         /* Go through list */
         list_for_each(listptrs, scanned_list){
+            
             temp = ListEntry(listptrs, Node, ptrs);
             ScannedDevice *temp_data;
             temp_data = (struct ScannedDevice *)temp->data;
@@ -1218,33 +1289,34 @@ int main(int argc, char **argv) {
 
 
     /* Store coordinates of the beacon location */
-    sprintf(hex_c, "E2C56DB5DFFB48D2B060D0F5%02x%02x%02x%02x%02x%02x%02x%02x",
-        coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
-        coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
-        coordinate_Y.b[2], coordinate_Y.b[3]);
+    sprintf(hex_c,
+            "E2C56DB5DFFB48D2B060D0F5%02x%02x%02x%02x%02x%02x%02x%02x",
+            coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
+            coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
+            coordinate_Y.b[2], coordinate_Y.b[3]);
 
    
 
-    /* Enable message advertising to BLE bluetooth devices */
+    /* Create the thread for message advertising to BLE bluetooth devices */
     pthread_t ble_beacon_thread;
     
     startThread(ble_beacon_thread, ble_beacon, hex_c);
     
 
     
-    /* Clean up the scanned list */
+    /* Create the the cleanup_scanned_list thread */
     pthread_t cleanup_scanned_list_thread;
     
     startThread(cleanup_scanned_list_thread,cleanup_scanned_list, NULL);
 
   
-    /* Send MAC address in waiting list to an available thread */
+    /* Create the thread for sending MAC address in waiting list to an available thread */
     pthread_t queue_to_array_thread;
     
     startThread(queue_to_array_thread, queue_to_array, NULL);
  
 
-    /* Send message to the scanned MAC address */
+    /* Create an arrayof threads for sending message to the scanned MAC address */
     pthread_t send_file_thread[maximum_number_of_devices];
     
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
@@ -1252,8 +1324,6 @@ int main(int argc, char **argv) {
         startThread(send_file_thread[device_id], send_file, (void*)device_id);
       
     }
-
-
 
 
     /* Start scanning for bluetooth devices */

@@ -61,15 +61,8 @@
 /*Macro for the method going through the list structure */
 #define list_for_each(pos, head) for (pos = (head)->next; pos != (head); pos = pos->next)
 
-/* Length of a Bluetooth MAC address */
-#define LENGTH_OF_MAC_ADDRESS 18
 
 
-/* Struct for storing scanned timestamp and MAC address of the user's device */
-typedef struct ScannedDevice {
-	long long initial_scanned_time;
-	char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
-} ScannedDevice;
 
 /*Strcut for the head of list containing two pointers: next and prev */
 typedef struct List_Entry {	
@@ -90,16 +83,14 @@ typedef struct Node {
 * FUNCTIONS
 */
 
-void list_insert_(List_Entry *new_node, List_Entry *prev, List_Entry *next);
-void list_insert_head(List_Entry *new_node, List_Entry *head);
-void list_insert_tail(List_Entry *new_node, List_Entry *head);
-void remove_node__(List_Entry *prev, List_Entry *next);
-void remove_node_(List_Entry *removed_node_ptrs);
+inline void list_insert_(List_Entry *new_node, List_Entry *prev, List_Entry *next);
+inline void list_insert_head(List_Entry *new_node, List_Entry *head);
+inline void list_insert_tail(List_Entry *new_node, List_Entry *head);
+inline void remove_node__(List_Entry *prev, List_Entry *next);
+inline void remove_node_(List_Entry *removed_node_ptrs);
 struct Node *insert_node_head(List_Entry *entry); 
 struct Node *insert_node_tail(List_Entry *entry); 
 void list_remove_node(Node *removed_node); 
 void list_remove_head(List_Entry *entry); 
 void remove_last(List_Entry *entry);
-void print_list(List_Entry *entry);
-char *get_head_entry(List_Entry *entry);
 int get_list_length(List_Entry *entry);

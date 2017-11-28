@@ -50,6 +50,7 @@
 #include "LinkedList.h"
 
 
+
 /*
 *  list_insert_:
 *
@@ -66,7 +67,7 @@
 *
 *  None
 */
-void list_insert_(List_Entry *new_node, List_Entry *prev, List_Entry *next) {
+inline void list_insert_(List_Entry *new_node, List_Entry *prev, List_Entry *next) {
 
     next->prev = new_node;
     new_node->next = next;
@@ -91,7 +92,7 @@ void list_insert_(List_Entry *new_node, List_Entry *prev, List_Entry *next) {
 *
 *  None
 */
-void list_insert_first(List_Entry *new_node, List_Entry *head) {
+inline void list_insert_first(List_Entry *new_node, List_Entry *head) {
 
     list_insert_(new_node, head, head->next);
 
@@ -114,7 +115,7 @@ void list_insert_first(List_Entry *new_node, List_Entry *head) {
 *  None
 */
 
-void list_insert_tail(List_Entry *new_node, List_Entry *head) {
+inline void list_insert_tail(List_Entry *new_node, List_Entry *head) {
 
     list_insert_(new_node, head->prev, head);
 
@@ -137,7 +138,7 @@ void list_insert_tail(List_Entry *new_node, List_Entry *head) {
 *
 *  None
 */
-void remove_node__(List_Entry *prev, List_Entry *next) {
+inline void remove_node__(List_Entry *prev, List_Entry *next) {
 
     next->prev = prev;
     prev->next = next;
@@ -161,7 +162,7 @@ void remove_node__(List_Entry *prev, List_Entry *next) {
 *
 *  None
 */
-void remove_node_(List_Entry *removed_node_ptrs) {
+inline void remove_node_(List_Entry *removed_node_ptrs) {
 
     remove_node__(removed_node_ptrs->prev, removed_node_ptrs->next);
 
@@ -290,72 +291,6 @@ void remove_last(List_Entry *entry) {
 
 }
 
-
-/*
- *  print_linked_list:
- *
- *  This function prints all the MAC addresses in the list. When printing, 
- *  the MAC addresses will be in the order of starting from the first node
- *  to the last in the list.
- *
- *  Parameters:
- *
- *  entry - the head of the list for determining which list is goning to be
- *  printed.
- *
- *  Return value:
- *
- *  None
- */
-void print_list(List_Entry *entry) {
-
-    
-    if (get_list_length(entry) == 0 ) {
-        return;
-    }
-
-    struct List_Entry *listptrs = NULL;
-    struct Node *node;
-    for (listptrs = (entry)->next; listptrs != (entry); listptrs = listptrs->next) {
-        node = ListEntry(listptrs, Node, ptrs);
-        ScannedDevice *data;
-        data = (struct ScannedDevice *)node->data;
-        printf("%s ", &data->scanned_mac_address[0]);
-    }
-    printf("\n");
-
-}
-
-/*
- *  get_head_content:
- *
- *  This function peeks at the head of the list. If the list is empty, it 
- *  returns NULL because it doesn't exist. Otherwise, this function returns
- *  the MAC address of the node at the head of the list.
- *
- *  Parameters:
- *
- *  entry - the head of the list for determining which list is goning to be 
- *  modified.
- *
- *  Return value:
- *
- *  return_value - MAC address of the fist node.
- */
-char *get_head_entry(List_Entry *entry) {
-
-    if (get_list_length(entry) == 0 ) {
-        return NULL;
-    }
-
-    struct Node *node = ListEntry(entry->next, Node, ptrs);
-    ScannedDevice *data;
-    data = (struct ScannedDevice *) node->data;
-    char *address = &data->scanned_mac_address[0];
-    
-
-    return address;
-}
 
 
 /*

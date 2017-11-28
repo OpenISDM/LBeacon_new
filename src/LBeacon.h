@@ -125,6 +125,9 @@
 * scanned devices */
 #define TRACKING_FILE_LINE_LENGTH 1024
 
+/* Length of a Bluetooth MAC address */
+#define LENGTH_OF_MAC_ADDRESS 18
+
 
 
 /*
@@ -260,11 +263,20 @@ typedef struct Config {
 /* Struct for storing config information from the input file */
 Config g_config;
 
+
 typedef struct ThreadStatus {
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
     int idle;
     bool is_waiting_to_send;
 } ThreadStatus;
+
+
+/* Struct for storing scanned timestamp and MAC address of the user's device */
+typedef struct ScannedDevice {
+    long long initial_scanned_time;
+    char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
+} ScannedDevice;
+
 
 /* An array of struct for storing information and status of each thread */
 ThreadStatus *g_idle_handler;
@@ -276,6 +288,8 @@ ThreadStatus *g_idle_handler;
 Config get_config(char *file_name);
 long long get_system_time();
 bool check_is_in_list(List_Entry *list, char address[]);
+void print_list(List_Entry *entry);
+char *get_head_entry(List_Entry *entry);
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
 void *queue_to_array();
 void *send_file(void *id);
