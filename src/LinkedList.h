@@ -83,14 +83,25 @@ typedef struct Node {
 * FUNCTIONS
 */
 
+
+/* The function changes the links between node and the added new node.*/
 inline void list_insert_(List_Entry *new_node, List_Entry *prev, List_Entry *next);
+
+/* The function calls the function of list_insert_ to add a new node at the 
+ * first of the list.*/
 inline void list_insert_head(List_Entry *new_node, List_Entry *head);
+
+/* The function calls the function of list_insert_ to add a new node at the 
+ * last of the list.*/
 inline void list_insert_tail(List_Entry *new_node, List_Entry *head);
-inline void remove_node__(List_Entry *prev, List_Entry *next);
-inline void remove_node_(List_Entry *removed_node_ptrs);
-struct Node *insert_node_head(List_Entry *entry); 
-struct Node *insert_node_tail(List_Entry *entry); 
-void list_remove_node(Node *removed_node); 
-void list_remove_head(List_Entry *entry); 
-void remove_last(List_Entry *entry);
-int get_list_length(List_Entry *entry);
+
+/* The function changes the links between the node and the node which 
+ * is going to be removed.*/
+inline void list_remove_(List_Entry *prev, List_Entry *next);
+
+/* The function calls the function of remove_node__ to delete a node in the 
+ * list.*/
+inline void list_remove_node(List_Entry *removed_node_ptrs);
+
+/* The function returns the length of the list. */
+inline int get_list_length(List_Entry *entry);

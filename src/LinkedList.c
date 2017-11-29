@@ -54,7 +54,7 @@
 /*
 *  list_insert_:
 *
-*  This function changes the links between the original nodes and the added 
+*  This function changes the links between node and the added 
 *  new node.
 *
 *  Parameters:
@@ -122,10 +122,10 @@ inline void list_insert_tail(List_Entry *new_node, List_Entry *head) {
 }
 
 /*
-*  remove_node__:
+*  list_remove_:
 *
-*  This function changes the links between the original nodes and the node  
-*  which is going to be deleted.
+*  This function changes the links between the node and the node which 
+*  is going to be removed.
 *
 *  Parameters:
 *
@@ -138,7 +138,7 @@ inline void list_insert_tail(List_Entry *new_node, List_Entry *head) {
 *
 *  None
 */
-inline void remove_node__(List_Entry *prev, List_Entry *next) {
+inline void list_remove_(List_Entry *prev, List_Entry *next) {
 
     next->prev = prev;
     prev->next = next;
@@ -147,7 +147,7 @@ inline void remove_node__(List_Entry *prev, List_Entry *next) {
 
 
 /*
-*  remove_node_:
+*  list_remove_node:
 *
 *  This function calls the function of remove_node__ to delete a node in the 
 *  list.
@@ -162,142 +162,18 @@ inline void remove_node__(List_Entry *prev, List_Entry *next) {
 *
 *  None
 */
-inline void remove_node_(List_Entry *removed_node_ptrs) {
+inline void list_remove_node(List_Entry *removed_node_ptrs) {
 
-    remove_node__(removed_node_ptrs->prev, removed_node_ptrs->next);
+    list_remove_(removed_node_ptrs->prev, removed_node_ptrs->next);
 
 
 }
-
-
-/*********************************************************************/
-
-
-/*
-*  insert_node_head:
-*
-*  This function creates a space for the struct of node is going to be 
-*  added at the head of the list and returns the node.
-*
-*  Parameters:
-*
-*  entry - the head of the list for determining which list is goning to add
-*  to.
-*   
-*  Return value:
-*
-*  node - a new node added to the list.
-*/
-struct Node *insert_node_head(List_Entry *entry) {
-    struct Node *node;
-    node = (struct Node*)malloc(sizeof(struct Node));
-    list_insert_first(&node->ptrs, entry);
-    
-    return node;
-
-}
-
-/*
-*  insert_node_tail:
-*
-*  This function creates a space for the struct of node is going to be 
-*  added at the last of the list and returns the node.
-*
-*  Parameters:
-*
-*  entry - the head of the list for determining which list is goning to add
-*  to.
-*   
-*  Return value:
-*
-*  node - a new node added to the list.
-*/
-struct Node *insert_node_tail(List_Entry *entry) {
-    struct Node *node;
-    node = (struct Node*)malloc(sizeof(struct Node));
-    list_insert_tail(&node->ptrs, entry);
-
-    return node;
-
-}
-
-
-/*
-*  list_remove_node:
-*
-*  This function calls the function of remove_node_ to delete a node in the
-*  list 
-*  and release the memory.
-*
-*  Parameters:
-*
-*  removed_node - the struct of node for the specified node is going to be
-*  removed.
-*  
-*  Return value:
-*
-*  None
-*/
-void list_remove_node(Node *removed_node) {
-
-    remove_node_(&removed_node->ptrs);
-    free(removed_node);
-
-}
-
-/*
-*  list_remove_head:
-*
-*  This function calls the function of remove_node_ to delete a node at the
-*  first of the list and release the memory.
-*
-*  Parameters:
-*
-*  entry - the head of the list for determining which list is goning to be
-*  modified.
-*   
-*  Return value:
-*
-*  None
-*/
-void list_remove_head(List_Entry *entry) {
-    printf("Removing \n");
-    struct Node *node = ListEntry(entry->next, Node, ptrs);
-    remove_node_(entry->next);
-    free(node);
-}
-
-
-/*
-*  remove_last:
-*
-*  This function calls the function of remove_node_ to delete a node at the  
-*  last of the list and release the memory.
-*
-*  Parameters:
-*
-*  entry - the head of the list for determining which list is goning to be 
-*  modified.
-*   
-*  Return value:
-*
-*  None
-*/
-void remove_last(List_Entry *entry) {
-
-    struct Node *node = ListEntry(entry->prev, Node, ptrs);
-    remove_node_(entry->prev);
-    free(node);
-
-}
-
 
 
 /*
  *  get_list_length:
  *
- *  This function gets the length of the list. Starting from the first node,
- *  we increment the length variable node by node.
+ *  This function returns the length of the list. 
  *
  *  Parameters:
  *
@@ -308,7 +184,7 @@ void remove_last(List_Entry *entry) {
  *
  *  length - number of nodes in the list.
  */
-int get_list_length(List_Entry * entry) {
+inline int get_list_length(List_Entry * entry) {
 
     struct List_Entry *listptrs;
     int list_length = 0;
