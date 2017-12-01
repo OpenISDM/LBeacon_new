@@ -286,6 +286,27 @@ char *get_head_entry(List_Entry *entry) {
     return address;
 }
 
+
+
+void free_list(List_Entry *entry){
+
+    if (get_list_length(entry) == 0 ) {
+        return;
+    }
+
+    struct List_Entry *listptrs;
+    Node *temp;
+
+    list_for_each(listptrs, entry){
+        
+        temp = ListEntry(listptrs, Node, ptrs);
+        free(temp);
+        temp = NULL;
+
+    }
+
+}
+
 /*
 *  send_to_push_dongle:
 *
@@ -779,9 +800,11 @@ void *cleanup_scanned_list(void) {
 
     }
 
+
     return;
 
 }
+
 
 /*
 *  track_devices:
@@ -881,102 +904,6 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
     }
 }
 
-/*
-*  choose_file:
-*
-*  This function receives the name of the message file and returns the file path
-*  where the message is located. It goes through each directory in the messages
-*  folder and in each category, it reads each file name to find the designated
-*  message we want to broadcast to the users under the beacon.
-*
-*  Parameters:
-*
-*  message_to_send - name of the message file we want to retrieve
-*
-*  Return value:
-*
-*  return_value - message file path
-*/
-char *choose_file(char *message_to_send) {
-    DIR *groupdir;           /* A dirent that stores list of directories */
-    struct dirent *groupent; /* A dirent struct that stores directory info */
-    int message_id = 0;      /* A iterator for number of messages and groups */
-    int group_id = 0;        /* A iterator for number of groups */
-    char *return_value;      /* Return value which turns file path to a string */
-
-                             /* Convert number of groups and messages from a string to an integer */
-    int number_of_groups = atoi(g_config.number_of_groups);
-    int number_of_messages = atoi(g_config.number_of_messages);
-
-    /* An array of buffer for group file names */
-    char groups[number_of_groups][FILE_NAME_BUFFER];
-
-    /* An array of buffer for message file names */
-    char messages[number_of_messages][FILE_NAME_BUFFER];
-
-    /* Stores all the name of files and directories in groups */
-    groupdir = opendir("/home/pi/LBeacon/messages/");
-    if (groupdir) {
-        while ((groupent = readdir(groupdir)) != NULL) {
-            if (strcmp(groupent->d_name, ".") != 0 &&
-                strcmp(groupent->d_name, "..") != 0) {
-                strcpy(groups[message_id], groupent->d_name);
-                message_id++;
-            }
-        }
-        closedir(groupdir);
-    }
-    else {
-        /* Error handling */
-        perror("Directories do not exist");
-        return NULL;
-    }
-
-    /* Stores file path of message_to_send */
-    char file_path[FILE_NAME_BUFFER];
-    memset(file_path, 0, FILE_NAME_BUFFER);
-    message_id = 0;
-
-    /* Go through each message in directory and store each file name */
-    for (group_id = 0; group_id < number_of_groups; group_id++) {
-        /* Concatenate strings to make file path */
-        sprintf(file_path, "/home/pi/LBeacon/messages/");
-        strcat(file_path, groups[group_id]);
-
-        DIR *messagedir;
-        struct dirent *messageent;
-        messagedir = opendir(file_path);
-        if (messagedir) {
-            while ((messageent = readdir(messagedir)) != NULL) {
-                if (strcmp(messageent->d_name, ".") != 0 &&
-                    strcmp(messageent->d_name, "..") != 0) {
-                    strcpy(messages[message_id], messageent->d_name);
-                    /* If message name found, return file path */
-                    if (0 == strcmp(messages[message_id], message_to_send)) {
-                        strcat(file_path, "/");
-                        strcat(file_path, messages[message_id]);
-                        return_value = &file_path[0];
-                        return return_value;
-                    }
-                    message_id++;
-                }
-            }
-            closedir(messagedir);
-        }
-        else {
-            /* Error handling */
-            perror("Message files do not exist");
-            return NULL;
-        }
-    
-        return;
-    
-    }
-
-    /* Error handling */
-    perror("Message files do not exist");
-    return NULL;
-}
 
 /*
 *  enable_advertising:
@@ -1237,10 +1164,21 @@ void startThread(pthread_t threads ,void * (*run)(void*), void *arg){
       || pthread_attr_destroy(&attr) != 0
       || pthread_detach(threads) != 0) {
     printf("Unable to launch a thread\n");
-    exit(1);
+    pthread_exit(NULL);
   }
 
 }
+
+void cleanup_exit(){
+
+    ready_to_work = false;
+    free_list(scanned_list);
+    free_list(waiting_list);
+    //pthread_exit(NULL);
+    return;
+
+}
+
 
 
 int main(int argc, char **argv) {
@@ -1340,7 +1278,7 @@ int main(int argc, char **argv) {
         start_scanning();
     }
 
-
+    
 
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
         return_value = pthread_join(send_file_thread[device_id], NULL);

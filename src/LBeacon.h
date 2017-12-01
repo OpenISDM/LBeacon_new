@@ -278,6 +278,7 @@ typedef struct ScannedDevice {
 } ScannedDevice;
 
 
+
 /* An array of struct for storing information and status of each thread */
 ThreadStatus *g_idle_handler;
 
@@ -290,6 +291,7 @@ long long get_system_time();
 bool check_is_in_list(List_Entry *list, char address[]);
 void print_list(List_Entry *entry);
 char *get_head_entry(List_Entry *entry);
+void free_list(List_Entry *entry);
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
 void *queue_to_array();
 void *send_file(void *id);
@@ -304,3 +306,16 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
 int disable_advertising();
 void *ble_beacon(void *beacon_location);
 void startThread(pthread_t threads ,void * (*run)(void*), void *arg);
+void cleanup_exit();
+
+/* The function calls the function of list_insert_ to add a new node at the 
+ * first of the list.*/
+extern void list_insert_head(List_Entry *new_node, List_Entry *head);
+
+/* The function calls the function of remove_node__ to delete a node in the 
+ * list.*/
+extern void list_remove_node(List_Entry *removed_node_ptrs);
+
+/* The function returns the length of the list. */
+extern int get_list_length(List_Entry *entry);
+
