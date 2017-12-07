@@ -23,13 +23,14 @@
 * Abstract:
 *
 *      BeDIPS uses LBeacons to deliver 3D coordinates and textual
-*      descriptions of their locations to users' devices. Basically, a LBeacon
-*      is an inexpensive, Bluetooth Smart Ready device. The 3D coordinates and
-*      location description of every LBeacon are retrieved from BeDIS
-*      (Building/environment Data and Information System) and stored locally
-*      during deployment and maintenance times. Once initialized, each LBeacon
-*      broadcasts its coordinates and location description to Bluetooth
-*      enabled user devices within its coverage area.
+*      descriptions of their locations to users' devices. Basically, a 
+*      LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D 
+*      coordinates and location description of every LBeacon are retrieved 
+*      from BeDIS (Building/environment Data and Information System) and 
+*      stored locally during deployment and maintenance times. Once 
+*      initialized, each LBeacon broadcasts its coordinates and location 
+*      description to Bluetooth enabled user devices within its coverage 
+*      area.
 *
 * Authors:
 *
@@ -98,7 +99,7 @@
 #define EIR_FLAGS 0X01
 
 /* BlueZ bluetooth extended inquiry response protocol: Manufacturer Specific
-* Data */
+ * Data */
 #define EIR_MANUFACTURE_SPECIFIC_DATA 0xFF
 
 /* BlueZ bluetooth extended inquiry response protocol: complete local name */
@@ -114,7 +115,7 @@
 #define LENGTH_OF_TIME 10
 
 /* Transmission range limited. Only devices in this RSSI range are allowed
-* to connect */
+ * to connect */
 #define RSSI_RANGE -60
 
 /* Time interval,maximum length of time in milliseconds, a bluetooth device
@@ -122,7 +123,7 @@
 #define TIMEOUT 30000
 
 /* Maximum number of characters in each line of output file used for tracking
-* scanned devices */
+ * scanned devices */
 #define TRACKING_FILE_LINE_LENGTH 1024
 
 /* Length of a Bluetooth MAC address */
@@ -266,12 +267,13 @@ Config g_config;
 
 typedef struct ThreadStatus {
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
-    int idle;
+    bool idle;
     bool is_waiting_to_send;
 } ThreadStatus;
 
 
-/* Struct for storing scanned timestamp and MAC address of the user's device */
+/* Struct for storing scanned timestamp and MAC address of the user's
+*  device */
 typedef struct ScannedDevice {
     long long initial_scanned_time;
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
@@ -305,17 +307,70 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
     int rssi_value);
 int disable_advertising();
 void *ble_beacon(void *beacon_location);
-void startThread(pthread_t threads ,void * (*run)(void*), void *arg);
+void startThread(pthread_t threads, void * (*run)(void*), void *arg);
 void cleanup_exit();
 
-/* The function calls the function of list_insert_ to add a new node at the 
- * first of the list.*/
+/* The function calls the function of list_insert_ to add a new node at the
+* first of the list.*/
 extern void list_insert_head(List_Entry *new_node, List_Entry *head);
 
-/* The function calls the function of remove_node__ to delete a node in the 
- * list.*/
+/* The function calls the function of remove_node__ to delete a node in the
+* list.*/
 extern void list_remove_node(List_Entry *removed_node_ptrs);
 
 /* The function returns the length of the list. */
 extern int get_list_length(List_Entry *entry);
+
+
+
+/*In dirent.h, Open a directory stream corresponding */
+extern DIR *opendir(const char *dirname);
+
+/*In obexftp/client.h, Create an obexftp client.*/
+extern obexftp_client_t * obexftp_open(int transport, obex_ctrans_t *ctrans,
+    obexftp_info_cb_t infocb, void *infocb_data);
+
+/*In strung.h, Fill block of memory*/
+extern void * memset(void * ptr, int value, size_t num);
+
+/* In stdlib.h, Allocate memory block.*/
+extern void* malloc(size_t size);
+
+/* In stdlib.h, Deallocate memory block.*/
+extern void free(void* ptr);
+
+/* In bluetooth.h,  Opens a Bluetooth socket with the specified resource
+*  number*/
+extern int hci_open_dev(int dev_id);
+
+/*In bluetooth/hci_lib.h, Clear filter*/
+extern void hci_filter_clear(struct hci_filter *    f);
+
+/*In bluetooth/hci_lib.h, Filter set ptype */
+extern void hci_filter_set_ptype(int t, struct hci_filter *f);
+
+/*In bluetooth/hci_lib.h, Filter set event */
+extern void hci_filter_set_event(int e, struct hci_filter *f);
+
+/*In bluetooth/hci_lib.h, Configure inquiry mode */
+extern int hci_write_inquiry_mode(int dd, uint8_t mode, int to);
+
+/*In bluetooth/hci_lib.h, Send cmd */
+extern int  hci_send_cmd(int dd, uint16_t ogf, uint16_t ocf, uint8_t plen,
+    void *param);
+
+/*In pthread.h, Initialize thread attributes object*/
+extern int pthread_attr_init(pthread_attr_t *attr);
+
+/*In pthread.h, Destroy thread attributes object*/
+extern int pthread_attr_destroy(pthread_attr_t *attr);
+
+/*In pthread.h, Detach a thread*/
+extern int pthread_detach(pthread_t thread);
+
+/*In pthread.h, Create a new thread*/
+extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+    void *(*start_routine) (void *), void *arg);
+
+
 
