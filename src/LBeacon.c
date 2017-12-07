@@ -572,7 +572,7 @@ void *send_file(void *id) {
                     return;
                 }
 
-                /* Close socket */
+               /* Leave the socket open */
                 obexftp_close(client);
                 client = NULL;
                 strncpy(g_idle_handler[device_id].scanned_mac_address,
@@ -632,13 +632,13 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 /*
 *  start_scanning:
 *
-*  This function scans continuously for bluetooth devices under the beacon
-*  until there is a need to cancel scanning. Each scanned device will fall
-*  under one of three cases: a bluetooth device with no RSSI value, a 
-*  bluetooth device with a RSSI value, or if the user wants to cancel 
-*  scanning. When the device is within RSSI value, the bluetooth device will 
-*  be added to the linked list so a message can be sent to the device.
-*
+*  This function scans continuously for bluetooth devices under the coverage
+*  of the  beacon until there is a need to cancel scanning. Each scanned
+*  device will fall under one of three cases: a bluetooth device with no RSSI
+*  value and a bluetooth device with a RSSI value, When the device is within 
+*  RSSI value, the bluetooth device will  be added to the linked list so a
+*  message can be sent to the device.
+*  
 *  Parameters:
 *
 *  None
@@ -665,7 +665,7 @@ void start_scanning() {
     int results; /*Return the result form the socket */
     int results_id; /*ID of the result */
 
-    
+
     /* Open Bluetooth device */
     socket = hci_open_dev(dongle_device_id);
     if (0 > dongle_device_id || 0 > socket) {
@@ -787,10 +787,11 @@ void start_scanning() {
 /*
 *  cleanup_scanned_list:
 *
-*  This function determines when the bluetooth device's scanned data will be
-*  removed from the scanned list. In the background, this working thread will
-*  continuously check if it has been 30 seconds since the bluetooth was added
-*  to the scanned list. If so, the ScannedDevice struct will be removed.
+*  This function determines when scernned Device struct of each discovered
+*  device remains in the seanned list for at most TIME_IN_SCANNED_LIST sec
+*  scanned data of device in the scanned list. In the background, This work
+*  thread continuously check the scanned list. If so, the ScannedDevice
+*  struct will be removed.
 *
 *  Parameters:
 *
@@ -840,11 +841,8 @@ void *cleanup_scanned_list(void) {
 *  track_devices:
 *
 *  This function tracks the MAC addresses of scanned bluetooth devices under
-*  the beacon. An output file will contain for each timestamp and the MAC 
-*  addresses of the scanned bluetooth devices at the given timestamp. Format 
-*  timestamp and MAC addresses into a string and append new line to end of 
-*  file. " - " is used to separate timestamp with MAC address and ", " is 
-*  used to separate each MAC address.
+*  the beacon. An output file will contain for each timestamp and the MAC
+*  addresses of the scanned bluetooth devices at the given timestamp.
 *
 *  Parameters:
 *
@@ -927,8 +925,9 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
         fclose(output);
     }
 
-    /* Send to gateway every 5 minutes */
-    if (300 <= timestamp - g_initial_timestamp_of_tracking_file) {
+    /* Send to gateway every TIME_INTERVAL_OF_SEND_TO_GATEWAY minutes */
+     if (TIME_INTERVAL_OF_SEND_TO_GATEWAY <=
+        timestamp - g_initial_timestamp_of_tracking_file) {
         g_size_of_file = 0;
         g_most_recent_timestamp_of_tracking_file = 0;
         /* @todo: send to gateway function */
@@ -944,7 +943,7 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
 *
 *  Parameters:
 *
-*  advertising_interval - the time interval for whic the LBeacon can 
+*  advertising_interval - the time interval for which the LBeacon can 
 *  advertise advertising_uuid - universally unique identifier for advertising
 *  rssi_value - RSSI value of the bluetooth device
 *
@@ -979,7 +978,8 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
     request.rparam = &status;
     request.rlen = 1;
 
-    int return_value = hci_send_req(device_handle, &request, 1000);
+     int return_value = hci_send_req(device_handle, &request,
+                                    HCI_SEND_REQUEST_TIMEOUT);
     if (return_value < 0) {
         /* Error handling */
         hci_close_dev(device_handle);
@@ -1000,7 +1000,8 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
     request.rparam = &status;
     request.rlen = 1;
 
-    return_value = hci_send_req(device_handle, &request, 1000);
+     return_value = hci_send_req(device_handle, &request,
+                                HCI_SEND_REQUEST_TIMEOUT);
 
     if (return_value < 0) {
         /* Error handling */
@@ -1073,7 +1074,8 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
     request.rparam = &status;
     request.rlen = 1;
 
-    return_value = hci_send_req(device_handle, &request, 1000);
+    return_value = hci_send_req(device_handle, &request,
+                                HCI_SEND_REQUEST_TIMEOUT);
 
     hci_close_dev(device_handle);
 
@@ -1128,7 +1130,8 @@ int disable_advertising() {
     request.rparam = &status;
     request.rlen = 1;
 
-    int return_value = hci_send_req(device_handle, &request, 1000);
+    int return_value = hci_send_req(device_handle, &request,
+                                    HCI_SEND_REQUEST_TIMEOUT);
 
     hci_close_dev(device_handle);
 
@@ -1162,8 +1165,10 @@ int disable_advertising() {
 *  None
 */
 void *ble_beacon(void *beacon_location) {
+    
     int enable_advertising_success =
-        enable_advertising(300, beacon_location, 20);
+        enable_advertising(ADVERTISING_INTERVAL, beacon_location,
+                           RSSI_VALUE);
 
     if (enable_advertising_success == 0) {
         struct sigaction sigint_handler;
@@ -1208,7 +1213,8 @@ void cleanup_exit(){
     ready_to_work = false;
     free_list(scanned_list);
     free_list(waiting_list);
-    //pthread_exit(NULL);
+    free(g_idle_handler);
+    free(g_push_file_path);
     return;
 
 }
@@ -1251,7 +1257,8 @@ int main(int argc, char **argv) {
     if (g_idle_handler == NULL) {
         /* Error handling */
         perror("Failed to allocate memory");
-        return -1;
+        cleanup_exit();
+        return;
     }
 
     /* Initialize each ThreadStatus struct in the array */
