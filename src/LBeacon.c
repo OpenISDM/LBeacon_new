@@ -433,157 +433,125 @@ return;
 *
 *  None
 */
-void *send_file(void *id) {
+void *send_file(void *dongle_id) {
     
     obexftp_client_t *client = NULL; /* ObexFTP client */
-    int dongle_device_id = 0;        /* Device ID of each dongle */
+    int dongle_device_id = dongle_id;        /* Device ID of dongle */
     int socket;                      /* ObexFTP client's socket */
     int channel = -1;                /* ObexFTP channel */
-    int thread_id = (int)id;         /* Thread ID */
     char *address = NULL;            /* Scanned MAC address */
     char *file_name;                  /* File name of message to be sent */
     int return_value;                /* Return value for error handling */
 
-    int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
-    int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
-    int maximum_number_of_devices_per_dongle =
-        maximum_number_of_devices / number_of_push_dongles;
-
+   
     /* An iterator through the array of ScannedDevice struct */
     int device_id;
 
-    /* An iterator through each push dongle */
-    int push_dongle_id;
-
-    /* An iterator through a block of devices per dongle */
-    int block_id;
-
-
     while (send_message_cancelled = false) {
-        for (device_id = 0; device_id < maximum_number_of_devices;
-            device_id++) {
-            if (device_id == thread_id &&
-                g_idle_handler[device_id].is_waiting_to_send == true) {
-                /* Depending on the number of push dongles, split the threads
-                * evenly and assign each thread to a push dongle device ID */
-                for (push_dongle_id = 0;
-                    push_dongle_id < number_of_push_dongles;
-                    push_dongle_id++) {
-                    for (block_id = 0;
-                        block_id < maximum_number_of_devices_per_dongle;
-                        block_id++) {
-                        if (thread_id ==
-                            push_dongle_id *
-                            maximum_number_of_devices_per_dongle +
-                            block_id) {
-                            dongle_device_id = push_dongle_id + 1;
-                        }
-                    }
-                }
 
-                /* Open socket and use current time as start time to keep 
-                 * of how long has taken to send the message to the device */
-                socket = hci_open_dev(dongle_device_id);
-                if (0 > dongle_device_id || 0 > socket) {
-                    /* Error handling */
-                    perror("Error opening socket");
-                    strncpy(
-                            g_idle_handler[device_id].scanned_mac_address,
-                            "0",
-                            LENGTH_OF_MAC_ADDRESS);
-
-                    g_idle_handler[device_id].idle = true;
-                    g_idle_handler[device_id].is_waiting_to_send = false;
-                    break;
-                }
-
-                long long start = get_system_time();
-                address = 
-                    (char *)g_idle_handler[device_id].scanned_mac_address;
-                channel = obexftp_browse_bt_push(address);
-
-                /* Extract basename from file path */
-                file_name = strrchr(g_push_file_path, '/');
-                file_name[g_config.file_name_length] = '\0';
-                if (!file_name) {
-                    file_name = g_push_file_path;
-                }
-                else {
-                    file_name++;
-                }
-                printf("Sending file %s to %s\n", file_name, address);
-
-                /* Open connection */
-                client = obexftp_open(OBEX_TRANS_BLUETOOTH, NULL, NULL,
-                                      NULL);
-                long long end = get_system_time();
-                printf("Time to open connection: %lld ms\n", end - start);
-                
-                if (client == NULL) {
-                    /* Error handling */
-                    perror("Error opening obexftp client");
-                    strncpy(
-                            g_idle_handler[device_id].scanned_mac_address,
-                            "0",
-                            LENGTH_OF_MAC_ADDRESS);
-
-                    g_idle_handler[device_id].idle = true;
-                    g_idle_handler[device_id].is_waiting_to_send = false;
-                    close(socket);
-                    break;
-                }
-
-                /* Connect to the scanned device */
-                return_value = obexftp_connect_push(client, address,
-                                                    channel);
-
-                /* If obexftp_connect_push returns a negative integer, then 
-                 * it goes into error handling */
-                if (0 > return_value) {
-                    /* Error handling */
-                    perror("Error connecting to obexftp device");
-                    obexftp_close(client);
-                    client = NULL;
-                    strncpy(
-                            g_idle_handler[device_id].scanned_mac_address,
-                            "0",
-                            LENGTH_OF_MAC_ADDRESS);
-                    
-                    g_idle_handler[device_id].idle = true;
-                    g_idle_handler[device_id].is_waiting_to_send = false;
-                    close(socket);
-                    break;
-                }
-
-                /* Push file to the scanned device */
-                return_value = obexftp_put_file(client, g_push_file_path,
-                                                file_name);
-                if (0 > return_value) {
-                    /* Error handling */
-                    perror("Error putting file");
-                }
-
-                /* Disconnect connection */
-                return_value = obexftp_disconnect(client);
-                if (0 > return_value) {
-                    /* Error handling todo */
-                    perror("Error disconnecting the client");
-                    pthread_exit(NULL);
-                    return;
-                }
-
-               /* Leave the socket open */
-                obexftp_close(client);
-                client = NULL;
-                strncpy(g_idle_handler[device_id].scanned_mac_address,
-                        "0",
-                        LENGTH_OF_MAC_ADDRESS);
-                
-                g_idle_handler[device_id].idle = true;
-                g_idle_handler[device_id].is_waiting_to_send = false;
-                close(socket);
-            }
+        /* Open socket and use current time as start time to keep 
+         * of how long has taken to send the message to the device */
+        socket = hci_open_dev(dongle_device_id);
+        if (0 > dongle_device_id || 0 > socket) {
+            /* Error handling */
+            perror("Error opening socket");
+            strncpy(
+                    g_idle_handler[device_id].scanned_mac_address,
+                    "0",
+                    LENGTH_OF_MAC_ADDRESS);
+    
+            g_idle_handler[device_id].idle = true;
+            g_idle_handler[device_id].is_waiting_to_send = false;
+            break;
         }
+    
+        long long start = get_system_time();
+        address = 
+            (char *)g_idle_handler[device_id].scanned_mac_address;
+        channel = obexftp_browse_bt_push(address);
+    
+        /* Extract basename from file path */
+        file_name = strrchr(g_push_file_path, '/');
+        file_name[g_config.file_name_length] = '\0';
+        if (!file_name) {
+            file_name = g_push_file_path;
+        }
+        else {
+            file_name++;
+        }
+        printf("Sending file %s to %s\n", file_name, address);
+    
+        /* Open connection */
+        client = obexftp_open(OBEX_TRANS_BLUETOOTH, NULL, NULL,
+                              NULL);
+        long long end = get_system_time();
+        printf("Time to open connection: %lld ms\n", end - start);
+        
+        if (client == NULL) {
+            /* Error handling */
+            perror("Error opening obexftp client");
+            strncpy(
+                    g_idle_handler[device_id].scanned_mac_address,
+                    "0",
+                    LENGTH_OF_MAC_ADDRESS);
+    
+            g_idle_handler[device_id].idle = true;
+            g_idle_handler[device_id].is_waiting_to_send = false;
+            close(socket);
+            break;
+        }
+    
+        /* Connect to the scanned device */
+        return_value = obexftp_connect_push(client, address,
+                                            channel);
+    
+        /* If obexftp_connect_push returns a negative integer, then 
+         * it goes into error handling */
+        if (0 > return_value) {
+            /* Error handling */
+            perror("Error connecting to obexftp device");
+            obexftp_close(client);
+            client = NULL;
+            strncpy(
+                    g_idle_handler[device_id].scanned_mac_address,
+                    "0",
+                    LENGTH_OF_MAC_ADDRESS);
+            
+            g_idle_handler[device_id].idle = true;
+            g_idle_handler[device_id].is_waiting_to_send = false;
+            close(socket);
+            break;
+        }
+    
+        /* Push file to the scanned device */
+        return_value = obexftp_put_file(client, g_push_file_path,
+                                        file_name);
+        if (0 > return_value) {
+            /* Error handling */
+            perror("Error putting file");
+        }
+    
+        /* Disconnect connection */
+        return_value = obexftp_disconnect(client);
+        if (0 > return_value) {
+            /* Error handling todo */
+            perror("Error disconnecting the client");
+            pthread_exit(NULL);
+            return;
+        }
+    
+       /* Leave the socket open */
+        obexftp_close(client);
+        client = NULL;
+        strncpy(g_idle_handler[device_id].scanned_mac_address,
+                "0",
+                LENGTH_OF_MAC_ADDRESS);
+        
+        g_idle_handler[device_id].idle = true;
+        g_idle_handler[device_id].is_waiting_to_send = false;
+        close(socket);
+
+
     }
 }
 
@@ -1306,7 +1274,21 @@ int main(int argc, char **argv) {
     pthread_t queue_to_array_thread;
     
     startThread(queue_to_array_thread, queue_to_array, NULL);
- 
+
+
+    /*From send_file */
+    int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
+    int maximum_number_of_devices_per_dongle =
+        maximum_number_of_devices / number_of_push_dongles;
+    
+    /* An iterator through each push dongle */
+    int push_dongle_id;
+
+    /* An iterator through a block of devices per dongle */
+    int block_id;
+
+    int dongle_device_id = 0; /*Device ID of dongle */
+
 
     /* Create an arrayof threads for sending message to the scanned MAC 
      * address */
@@ -1314,8 +1296,34 @@ int main(int argc, char **argv) {
     
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
         
-        startThread(send_file_thread[device_id], send_file,
-                    (void*)device_id);
+         if (g_idle_handler[device_id].is_waiting_to_send == true) {
+            /* Depending on the number of push dongles, split the threads
+             * evenly and assign each thread to a push dongle device ID */
+            for (push_dongle_id = 0;
+                push_dongle_id < number_of_push_dongles;
+                push_dongle_id++) {
+                
+                for (block_id = 0;
+                     block_id < maximum_number_of_devices_per_dongle;
+                     block_id++) {
+                        
+                    if (device_id ==
+                        push_dongle_id *
+                        maximum_number_of_devices_per_dongle +
+                        block_id) {
+                            
+                            dongle_device_id = push_dongle_id + 1;
+                        
+                        }
+                    
+                    }
+                
+                }
+  
+            }
+
+        startThread(send_file_thread[device_id], send_file, 
+                    (void *)dongle_device_id);
       
     }
 

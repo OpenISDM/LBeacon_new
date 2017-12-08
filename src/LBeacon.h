@@ -314,7 +314,7 @@ char *get_head_entry(List_Entry *entry);
 void free_list(List_Entry *entry);
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
 void *queue_to_array();
-void *send_file(void *id);
+void *send_file(void *dongle_id);
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi);
 void start_scanning();
