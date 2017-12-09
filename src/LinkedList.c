@@ -13,13 +13,11 @@
 *
 * File Description:
 *
-*      This file contains the implementation of a linked list data structure.
-*      It has functions for inserting a node to the front of the linked list
-*      and deleting a specific node. It can also check the length of the
-*      linked list and print the information stored on all nodes in the list.
-*      The purpose of this linked list implementation is to allow scanned MAC
-*      addresses and its timestamp to be stored as a way of keeping track
-*      which devices have just been scanned.
+*      This file contains the generic implementation of a double-linked-list 
+*      data structure.It has functions for inserting a node to the front of the 
+*      list and deleting a specific node. It can also check the length of the
+*      list. Any datatype of data could be stored in this list. 
+*     
 *
 * File Name:
 *
@@ -67,7 +65,8 @@
 *
 *  None
 */
-inline void list_insert_(List_Entry *new_node, List_Entry *prev, List_Entry *next) {
+inline void list_insert_(List_Entry *new_node, List_Entry *prev, 
+                         List_Entry *next) {
 
     next->prev = new_node;
     new_node->next = next;
@@ -189,7 +188,8 @@ inline int get_list_length(List_Entry * entry) {
     struct List_Entry *listptrs;
     int list_length = 0;
 
-    for (listptrs = (entry)->next; listptrs != (entry); listptrs = listptrs->next) {
+    for (listptrs = (entry)->next; listptrs != (entry); 
+         listptrs = listptrs->next) {
         list_length++;
     }
 

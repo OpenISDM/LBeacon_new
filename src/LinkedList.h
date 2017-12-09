@@ -56,10 +56,12 @@
 #define offsetof(type, member) ((size_t) &((type *)0)->member)
 
 /*Macro for geting the master struct from the sub struct */
-#define ListEntry(ptr,type,member)((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
+#define ListEntry(ptr,type,member)	\
+		((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
 
 /*Macro for the method going through the list structure */
-#define list_for_each(pos, head) for (pos = (head)->next; pos != (head); pos = pos->next)
+#define list_for_each(pos, head)	\
+		for (pos = (head)->next; pos != (head); pos = pos->next)
 
 
 
@@ -85,7 +87,8 @@ typedef struct Node {
 
 
 /* The function changes the links between node and the added new node.*/
-inline void list_insert_(List_Entry *new_node, List_Entry *prev, List_Entry *next);
+inline void list_insert_(List_Entry *new_node, List_Entry *prev,
+						 List_Entry *next);
 
 /* The function calls the function of list_insert_ to add a new node at the 
  * first of the list.*/
