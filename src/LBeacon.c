@@ -1243,6 +1243,7 @@ int main(int argc, char **argv) {
     g_config = get_config(CONFIG_FILE_NAME);
     g_push_file_path =
         malloc(g_config.file_path_length + g_config.file_name_length);
+    
     if (g_push_file_path == NULL) {
         /* Error handling */
         perror("Failed to allocate memory");
@@ -1376,27 +1377,27 @@ int main(int argc, char **argv) {
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
         return_value = pthread_join(send_file_thread[device_id], NULL);
         if (return_value != 0) {
-            perror("Error with send_file_id using pthread_join");
+            perror(strerror(errno));
             exit(EXIT_FAILURE);
         }
     }
 
     return_value = pthread_join(queue_to_array_thread, NULL);
     if (return_value != 0) {
-        perror("Error with queue_to_array_id using pthread_join");
+        perror(strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     return_value = pthread_join(cleanup_scanned_list_thread, NULL);
     if (return_value != 0) {
-        perror("Error with cleanup_scanned_list_id using pthread_join");
+        perror(strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     pthread_cancel(ble_beacon_thread);
     return_value = pthread_join(ble_beacon_thread, NULL);
     if (return_value != 0) {
-        perror("Error with ble_beacon using pthread_join");
+        perror(strerror(errno));
         exit(EXIT_FAILURE);
     }
 

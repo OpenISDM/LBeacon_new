@@ -347,6 +347,13 @@ bool send_message_cancelled = false;
 
 
 /*
+* EXTERNAL GLOBAL VARIABLES
+*/
+extern int errno;
+
+
+
+/*
 * FUNCTIONS
 */
 
