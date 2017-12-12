@@ -71,7 +71,7 @@ Config get_config(char *file_name) {
     FILE *file = fopen(file_name, "r");
     if (file == NULL) {
         /* Error handling */
-        perror("Error opening file");
+        perror(errordesc[E_OPEN_FILE].message);
     }
     else {
     /* Create spaces for storing the string of the current line being read */
@@ -454,7 +454,7 @@ void *send_file(void *dongle_id) {
         socket = hci_open_dev(dongle_device_id);
         if (0 > dongle_device_id || 0 > socket) {
             /* Error handling */
-            perror("Error opening socket");
+            perror(errordesc[E_SEND_OPEN_SOCKET].message);
             strncpy(
                     g_idle_handler[device_id].scanned_mac_address,
                     "0",
@@ -489,7 +489,7 @@ void *send_file(void *dongle_id) {
         
         if (client == NULL) {
             /* Error handling */
-            perror("Error opening obexftp client");
+            perror(errordesc[E_SEND_OBEXFTP_CLIENT].message);
             strncpy(
                     g_idle_handler[device_id].scanned_mac_address,
                     "0",
@@ -509,7 +509,7 @@ void *send_file(void *dongle_id) {
          * it goes into error handling */
         if (0 > return_value) {
             /* Error handling */
-            perror("Error connecting to obexftp device");
+            perror(errordesc[E_SEND_CONNECT_DEVICE].message);
             obexftp_close(client);
             client = NULL;
             strncpy(
@@ -528,14 +528,14 @@ void *send_file(void *dongle_id) {
                                         file_name);
         if (0 > return_value) {
             /* Error handling */
-            perror("Error putting file");
+            perror(errordesc[E_SEND_PUT_FILE].message);
         }
     
         /* Disconnect connection */
         return_value = obexftp_disconnect(client);
         if (0 > return_value) {
             /* Error handling todo */
-            perror("Error disconnecting the client");
+            perror(errordesc[E_SEND_DISCONNECT_CLIENT].message);
             pthread_exit(NULL);
             return;
         }
@@ -637,9 +637,11 @@ void start_scanning() {
     /* Open Bluetooth device */
     socket = hci_open_dev(dongle_device_id);
     if (0 > dongle_device_id || 0 > socket) {
+        
         /* Error handling */
-        perror("Error opening socket");
+        perror(errordesc[E_SCAN_OPEN_SOCKET].message);
         return;
+    
     }
 
     /* Setup filter */
@@ -648,20 +650,28 @@ void start_scanning() {
     hci_filter_set_event(EVT_INQUIRY_RESULT, &filter);
     hci_filter_set_event(EVT_INQUIRY_RESULT_WITH_RSSI, &filter);
     hci_filter_set_event(EVT_INQUIRY_COMPLETE, &filter);
+
+
     if (0 > setsockopt(socket, SOL_HCI, HCI_FILTER, &filter,
                        sizeof(filter))) {
+        
         /* Error handling */
-        perror("Error setting HCI filter");
+        perror(errordesc[E_SCAN_SET_HCI_FILTER].message);
         hci_close_dev(socket);
         return;
+    
     }
+
+
     hci_write_inquiry_mode(socket, 0x01, 10);
     if (0 > hci_send_cmd(socket, OGF_HOST_CTL, OCF_WRITE_INQUIRY_MODE,
         WRITE_INQUIRY_MODE_RP_SIZE, &inquiry_copy)) {
+        
         /* Error handling */
-        perror("Error setting inquiry mode");
+        perror(errordesc[E_SCAN_SET_INQUIRY_MODE].message);
         hci_close_dev(socket);
         return;
+    
     }
 
     memset(&inquiry_copy, 0, sizeof(inquiry_copy));
@@ -675,10 +685,12 @@ void start_scanning() {
 
     if (0 > hci_send_cmd(socket, OGF_LINK_CTL, OCF_INQUIRY, INQUIRY_CP_SIZE,
         &inquiry_copy)) {
+        
         /* Error handling */
-        perror("Error starting inquiry");
+        perror(errordesc[E_SCAN_START_INQUIRY].message);
         hci_close_dev(socket);
         return;
+    
     }
 
     output.fd = socket;
@@ -723,30 +735,43 @@ void start_scanning() {
                 /* Scanned device with RSSI value; when within rangle, send
                 * message to bluetooth device. */
             case EVT_INQUIRY_RESULT_WITH_RSSI: {
+                
                 for (results_id = 0; results_id < results; results_id++) {
+
                     info_rssi = (void *)event_buffer_pointer +
                         (sizeof(*info_rssi) * results_id) + 1;
+                    
                     track_devices(&info_rssi->bdaddr, "output.txt");
                     print_RSSI_value(&info_rssi->bdaddr, 1,
                         info_rssi->rssi);
+                    
                     if (info_rssi->rssi > RSSI_RANGE) {
+                    
                         send_to_push_dongle(&info_rssi->bdaddr);
+                    
                     }
+                
                 }
+            
             } break;
 
-                /* Stop the scanning process */
+            /* Stop the scanning process */
             case EVT_INQUIRY_COMPLETE: {
+                
                 scan_devices_cancelled = true;
+            
             } break;
 
             default:
+
                 break;
+            
             }
         }
     } //end while 
 
     printf("Scanning done\n");
+    
     close(socket);
 
     return;
@@ -785,6 +810,7 @@ void *cleanup_scanned_list(void) {
            
             /* Device has been in the scanned list for at least 30 seconds */
             if (get_system_time() - temp_data->initial_scanned_time > TIMEOUT) {
+                
                 printf("Removed %s from scanned list\n",
                        temp_data->scanned_mac_address[0]);
                 
@@ -835,12 +861,17 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
 
     /* If file is empty, create new file with LBeacon UUID */
     if (0 == g_size_of_file) {
+    
         FILE *output = fopen(file_name, "w+"); /* w+ overwrites the file */
+    
         if (output == NULL) {
+    
             /* Error handling */
-            perror("Error opening file");
+            perror(errordesc[E_OPEN_FILE].message);
             return;
+    
         }
+    
         fputs("LBeacon UUID: ", output);
         fputs(g_config.uuid, output);
         fclose(output);
@@ -849,6 +880,7 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
         sprintf(long_long_to_string_init, "%u",
                 g_initial_timestamp_of_tracking_file);
         memset(&address[0], 0, sizeof(address));
+    
     }
 
     /* Converts the bluetooth device address to a string */
@@ -860,9 +892,11 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
     output = fopen(file_name, "a+"); /* a+ appends to the file */
 
     if (output == NULL) {
+    
         /* Error handling */
-        perror("Error opening file");
+        perror(errordesc[E_OPEN_FILE].message);
         return;
+    
     }
 
     /* Go through the whole file to get to the last line */
@@ -884,9 +918,11 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
         g_size_of_file++;
     }
     else {
+    
         /* Double check that the MAC address is not already added at a given
         * timestamp */
         if (strstr(line, address) == NULL) {
+    
             fputs(", ", output);
             fputs(address, output);
         }
@@ -894,11 +930,13 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
     }
 
     /* Send to gateway every TIME_INTERVAL_OF_SEND_TO_GATEWAY minutes */
-     if (TIME_INTERVAL_OF_SEND_TO_GATEWAY <=
+    if (TIME_INTERVAL_OF_SEND_TO_GATEWAY <=
         timestamp - g_initial_timestamp_of_tracking_file) {
+        
         g_size_of_file = 0;
         g_most_recent_timestamp_of_tracking_file = 0;
         /* @todo: send to gateway function */
+    
     }
 }
 
@@ -1139,6 +1177,7 @@ void *ble_beacon(void *beacon_location) {
                            RSSI_VALUE);
 
     if (enable_advertising_success == 0) {
+        
         struct sigaction sigint_handler;
         sigint_handler.sa_handler = ctrlc_handler;
         sigemptyset(&sigint_handler.sa_mask);
@@ -1246,7 +1285,6 @@ int main(int argc, char **argv) {
     waiting_list->prev = waiting_list;
     
 
-
     /* Store coordinates of the beacon location */
     sprintf(hex_c,
             "E2C56DB5DFFB48D2B060D0F5%02x%02x%02x%02x%02x%02x%02x%02x",
@@ -1276,7 +1314,6 @@ int main(int argc, char **argv) {
     startThread(queue_to_array_thread, queue_to_array, NULL);
 
 
-    /*From send_file */
     int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
     int maximum_number_of_devices_per_dongle =
         maximum_number_of_devices / number_of_push_dongles;

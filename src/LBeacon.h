@@ -141,6 +141,8 @@
 /* RSSI value of the bluetooth device */
 #define RSSI_VALUE 20
 
+
+
 /*
 * UNION
 */
@@ -252,6 +254,48 @@ typedef struct ScannedDevice {
     long long initial_scanned_time;
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
 } ScannedDevice;
+
+
+
+/*
+* ERROR CODE
+*/
+
+enum Error_code {
+
+    E_OPEN_FILE = 0,
+    E_SEND_OPEN_SOCKET = 1,
+    E_SEND_OBEXFTP_CLIENT = 2,
+    E_SEND_CONNECT_DEVICE = 3,
+    E_SEND_PUT_FILE = 4,
+    E_SEND_DISCONNECT_CLIENT = 5,
+    E_SCAN_OPEN_SOCKET = 6,
+    E_SCAN_SET_HCI_FILTER = 7,
+    E_SCAN_SET_INQUIRY_MODE = 8,
+    E_SCAN_START_INQUIRY = 9
+  
+};
+
+typedef enum Error_code error_t;
+
+struct _errordesc {
+    int code;
+    char *message;
+}errordesc[] = {
+
+    {E_OPEN_FILE, "Error with opening file"},
+    {E_SEND_OPEN_SOCKET, "Error with opening socket"},
+    {E_SEND_OBEXFTP_CLIENT, "Error opening obexftp client"},
+    {E_SEND_CONNECT_DEVICE, "Error connecting to obexftp device"},
+    {E_SEND_PUT_FILE, "Error with putting file"},
+    {E_SEND_DISCONNECT_CLIENT, "Disconnecting the client"},
+    {E_SCAN_OPEN_SOCKET, "Error with opening socket"},
+    {E_SCAN_SET_HCI_FILTER, "Error with setting HCI filter"},
+    {E_SCAN_SET_INQUIRY_MODE, "Error with settnig inquiry mode"},
+    {E_SCAN_START_INQUIRY, "Error with starting inquiry"},
+
+};
+
 
 
 /*
