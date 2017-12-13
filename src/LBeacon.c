@@ -65,13 +65,18 @@
 *  config - Config struct including file path, coordinates, etc.
 */
 Config get_config(char *file_name) {
+    
     /* Return value that contains a struct of all config information */
     Config config;
 
     FILE *file = fopen(file_name, "r");
     if (file == NULL) {
+        
         /* Error handling */
         perror(errordesc[E_OPEN_FILE].message);
+        ready_to_work = false;
+        return;
+    
     }
     else {
     /* Create spaces for storing the string of the current line being read */
@@ -218,8 +223,11 @@ bool check_is_in_list(List_Entry *list, char address[]) {
         int len = strlen(address);
         ScannedDevice *temp_data; 
         temp_data = (struct ScannedDevice *)temp->data;
+        
         if (strcmp(address, &temp_data->scanned_mac_address[len + 10]) > 0) {
+        
             return true;
+        
         }
                
     }
@@ -248,20 +256,24 @@ bool check_is_in_list(List_Entry *list, char address[]) {
  */
 void print_list(List_Entry *entry) {
 
-    
+    /*Check whether the list is empty */
     if (get_list_length(entry) == 0 ) {
         return;
     }
 
     struct List_Entry *listptrs = NULL;
     struct Node *node;
+    
     for (listptrs = (entry)->next; listptrs != (entry);
-         listptrs = listptrs->next) {
+        listptrs = listptrs->next) {
+        
         node = ListEntry(listptrs, Node, ptrs);
         ScannedDevice *data;
         data = (struct ScannedDevice *)node->data;
         printf("%s ", &data->scanned_mac_address[0]);
+    
     }
+    
     printf("\n");
 
 }
@@ -285,6 +297,7 @@ void print_list(List_Entry *entry) {
  */
 char *get_head_entry(List_Entry *entry) {
 
+    /*Check whether the list is empty */
     if (get_list_length(entry) == 0 ) {
         return NULL;
     }
@@ -299,9 +312,23 @@ char *get_head_entry(List_Entry *entry) {
 }
 
 
-
+/*
+ *  free_list:
+ *
+ *  This function frees the resources of the list.
+ *
+ *  Parameters:
+ *
+ *  entry - the head of the list for determining which list is goning to be 
+ *  modified.
+ *
+ *  Return value:
+ *
+ *  None
+ */
 void free_list(List_Entry *entry){
 
+    /*Check whether the list is empty */
     if (get_list_length(entry) == 0 ) {
         return;
     }
@@ -406,6 +433,7 @@ void *queue_to_array() {
 
                 struct Node *node = ListEntry(waiting_list->next, Node,
                                               ptrs);
+                
                 list_remove_node(waiting_list->next);
                 free(node);
                 g_idle_handler[device_id].idle = false;
@@ -413,7 +441,9 @@ void *queue_to_array() {
             }
         }
     }
-return;
+
+    pthread_exit(NULL);
+    return;
 
 }
 
@@ -452,7 +482,9 @@ void *send_file(void *dongle_id) {
         /* Open socket and use current time as start time to keep 
          * of how long has taken to send the message to the device */
         socket = hci_open_dev(dongle_device_id);
+        
         if (0 > dongle_device_id || 0 > socket) {
+            
             /* Error handling */
             perror(errordesc[E_SEND_OPEN_SOCKET].message);
             strncpy(
@@ -463,6 +495,7 @@ void *send_file(void *dongle_id) {
             g_idle_handler[device_id].idle = true;
             g_idle_handler[device_id].is_waiting_to_send = false;
             break;
+        
         }
     
         long long start = get_system_time();
@@ -473,11 +506,16 @@ void *send_file(void *dongle_id) {
         /* Extract basename from file path */
         file_name = strrchr(g_push_file_path, '/');
         file_name[g_config.file_name_length] = '\0';
+        
         if (!file_name) {
+            
             file_name = g_push_file_path;
+        
         }
         else {
+            
             file_name++;
+        
         }
         printf("Sending file %s to %s\n", file_name, address);
     
@@ -488,6 +526,7 @@ void *send_file(void *dongle_id) {
         printf("Time to open connection: %lld ms\n", end - start);
         
         if (client == NULL) {
+            
             /* Error handling */
             perror(errordesc[E_SEND_OBEXFTP_CLIENT].message);
             strncpy(
@@ -499,6 +538,7 @@ void *send_file(void *dongle_id) {
             g_idle_handler[device_id].is_waiting_to_send = false;
             close(socket);
             break;
+        
         }
     
         /* Connect to the scanned device */
@@ -508,6 +548,7 @@ void *send_file(void *dongle_id) {
         /* If obexftp_connect_push returns a negative integer, then 
          * it goes into error handling */
         if (0 > return_value) {
+            
             /* Error handling */
             perror(errordesc[E_SEND_CONNECT_DEVICE].message);
             obexftp_close(client);
@@ -521,23 +562,27 @@ void *send_file(void *dongle_id) {
             g_idle_handler[device_id].is_waiting_to_send = false;
             close(socket);
             break;
+        
         }
     
         /* Push file to the scanned device */
         return_value = obexftp_put_file(client, g_push_file_path,
                                         file_name);
         if (0 > return_value) {
-            /* Error handling */
+            
+            /* TODO: Error handling */
             perror(errordesc[E_SEND_PUT_FILE].message);
         }
     
         /* Disconnect connection */
         return_value = obexftp_disconnect(client);
         if (0 > return_value) {
-            /* Error handling todo */
+            
+            /* TODO: Error handling  */
             perror(errordesc[E_SEND_DISCONNECT_CLIENT].message);
             pthread_exit(NULL);
             return;
+        
         }
     
        /* Leave the socket open */
@@ -553,6 +598,12 @@ void *send_file(void *dongle_id) {
 
 
     }
+
+
+    send_message_cancelled = true;
+    pthread_exit(NULL);
+    return;
+
 }
 
 /*
@@ -616,62 +667,64 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 *  None
 */
 void start_scanning() {
+    
+    
+
     struct hci_filter filter; /*Filter for controling the events*/
     struct pollfd output; /*A callback event from the socket */
     unsigned char event_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the 
-                                                     *callback event*/
+                                                      *callback event*/
     unsigned char *event_buffer_pointer; /*A pointer for the event buffer */
     hci_event_hdr *event_handler; /*Record the event type */
     inquiry_cp inquiry_copy; /*Storing the message from the socket */
     inquiry_info_with_rssi *info_rssi; /*Record an 
-                                        *EVT_INQUIRY_RESULT_WITH_RSSI message
-                                        */
+                                         *EVT_INQUIRY_RESULT_WITH_RSSI message
+                                         */
     inquiry_info *info; /*Record an EVT_INQUIRY_RESULT message */
     int event_buffer_length; /*Length of the event buffer */
     int dongle_device_id = 0; /*dongle id */
     int socket = 0; /*Number of the socket */
     int results; /*Return the result form the socket */
-    int results_id; /*ID of the result */
-
+    int results_id; /*ID of the result */       
 
     /* Open Bluetooth device */
     socket = hci_open_dev(dongle_device_id);
-    if (0 > dongle_device_id || 0 > socket) {
-        
-        /* Error handling */
-        perror(errordesc[E_SCAN_OPEN_SOCKET].message);
-        return;
     
-    }
-
+    if (0 > dongle_device_id || 0 > socket) {
+         
+         /* Error handling */
+         perror(errordesc[E_SCAN_OPEN_SOCKET].message);
+         return;
+     
+    }   
+    
     /* Setup filter */
     hci_filter_clear(&filter);
     hci_filter_set_ptype(HCI_EVENT_PKT, &filter);
     hci_filter_set_event(EVT_INQUIRY_RESULT, &filter);
     hci_filter_set_event(EVT_INQUIRY_RESULT_WITH_RSSI, &filter);
-    hci_filter_set_event(EVT_INQUIRY_COMPLETE, &filter);
-
+    hci_filter_set_event(EVT_INQUIRY_COMPLETE, &filter);        
 
     if (0 > setsockopt(socket, SOL_HCI, HCI_FILTER, &filter,
-                       sizeof(filter))) {
-        
-        /* Error handling */
-        perror(errordesc[E_SCAN_SET_HCI_FILTER].message);
-        hci_close_dev(socket);
-        return;
-    
-    }
-
+                        sizeof(filter))) {
+         
+         /* Error handling */
+         perror(errordesc[E_SCAN_SET_HCI_FILTER].message);
+         hci_close_dev(socket);
+         return;
+     
+    }       
 
     hci_write_inquiry_mode(socket, 0x01, 10);
-    if (0 > hci_send_cmd(socket, OGF_HOST_CTL, OCF_WRITE_INQUIRY_MODE,
-        WRITE_INQUIRY_MODE_RP_SIZE, &inquiry_copy)) {
-        
-        /* Error handling */
-        perror(errordesc[E_SCAN_SET_INQUIRY_MODE].message);
-        hci_close_dev(socket);
-        return;
     
+    if (0 > hci_send_cmd(socket, OGF_HOST_CTL, OCF_WRITE_INQUIRY_MODE,
+         WRITE_INQUIRY_MODE_RP_SIZE, &inquiry_copy)) {
+         
+         /* Error handling */
+         perror(errordesc[E_SCAN_SET_INQUIRY_MODE].message);
+         hci_close_dev(socket);
+         return;
+     
     }
 
     memset(&inquiry_copy, 0, sizeof(inquiry_copy));
@@ -679,99 +732,104 @@ void start_scanning() {
     inquiry_copy.lap[1] = 0x8b;
     inquiry_copy.lap[0] = 0x33;
     inquiry_copy.num_rsp = 0;
-    inquiry_copy.length = 0x30;
-
-    printf("Starting inquiry with RSSI...\n");
-
-    if (0 > hci_send_cmd(socket, OGF_LINK_CTL, OCF_INQUIRY, INQUIRY_CP_SIZE,
-        &inquiry_copy)) {
-        
-        /* Error handling */
-        perror(errordesc[E_SCAN_START_INQUIRY].message);
-        hci_close_dev(socket);
-        return;
+    inquiry_copy.length = 0x30; 
+    printf("Starting inquiry with RSSI...\n");  
     
-    }
-
+    if (0 > hci_send_cmd(socket, OGF_LINK_CTL, OCF_INQUIRY, INQUIRY_CP_SIZE,
+         &inquiry_copy)) {
+         
+         /* Error handling */
+         perror(errordesc[E_SCAN_START_INQUIRY].message);
+         hci_close_dev(socket);
+         return;
+     
+    }   
+    
     output.fd = socket;
-    output.events = POLLIN | POLLERR | POLLHUP;
-
-
-
-    /* An indicator for continuing to scan for devices */
-    bool scan_devices_cancelled = false;
-
-    while (scan_devices_cancelled == false) {
-        output.revents = 0;
-
+    output.events = POLLIN | POLLERR | POLLHUP; 
+     
+    bool keep_scanning = true;
+    
+    while (keep_scanning == true) {
+         
+        output.revents = 0; 
         /* Poll the bluetooth device for an event */
         if (0 < poll(&output, 1, -1)) {
+            
             event_buffer_length =
-                read(socket, event_buffer, sizeof(event_buffer));
-
+                    read(socket, event_buffer, sizeof(event_buffer));   
+            
             if (0 > event_buffer_length) {
-                continue;
-            }
-            else if (0 == event_buffer_length) {
-                break;
-            }
-
+                 continue;
+             }else if (0 == event_buffer_length) {
+              
+                 break;
+              
+                }   
+            
             event_handler = (void *)(event_buffer + 1);
-            event_buffer_pointer = event_buffer + (1 + HCI_EVENT_HDR_SIZE);
-
-            results = event_buffer_pointer[0];
-
+            event_buffer_pointer = event_buffer + (1 + HCI_EVENT_HDR_SIZE); 
+            results = event_buffer_pointer[0];  
+            
             switch (event_handler->evt) {
-                /* Scanned device with no RSSI value */
+             
+            /* Scanned device with no RSSI value */
             case EVT_INQUIRY_RESULT: {
+                 
                 for (results_id = 0; results_id < results; results_id++) {
                     info = (void *)event_buffer_pointer +
-                        (sizeof(*info) * results_id) + 1;
+                         (sizeof(*info) * results_id) + 1;
+                     
                     print_RSSI_value(&info->bdaddr, 0, 0);
                     track_devices(&info->bdaddr, "output.txt");
+                     
                 }
-            } break;
 
-                /* Scanned device with RSSI value; when within rangle, send
-                * message to bluetooth device. */
+            } break;    
+                
+            /* Scanned device with RSSI value; when within rangle, send
+            * message to bluetooth device. */
             case EVT_INQUIRY_RESULT_WITH_RSSI: {
-                
-                for (results_id = 0; results_id < results; results_id++) {
-
+                 
+                for (results_id = 0; results_id < results; results_id++) {  
                     info_rssi = (void *)event_buffer_pointer +
-                        (sizeof(*info_rssi) * results_id) + 1;
-                    
-                    track_devices(&info_rssi->bdaddr, "output.txt");
-                    print_RSSI_value(&info_rssi->bdaddr, 1,
-                        info_rssi->rssi);
-                    
-                    if (info_rssi->rssi > RSSI_RANGE) {
-                    
-                        send_to_push_dongle(&info_rssi->bdaddr);
-                    
-                    }
-                
-                }
+                         (sizeof(*info_rssi) * results_id) + 1;
+                     
+                     send_message_cancelled = false;
+                     track_devices(&info_rssi->bdaddr, "output.txt");
+                     print_RSSI_value(&info_rssi->bdaddr, 1,
+                         info_rssi->rssi);
+                     
+                     if (info_rssi->rssi > RSSI_RANGE) {
+                     
+                         send_to_push_dongle(&info_rssi->bdaddr);
+                     
+                     }
+                 
+                 }
+             
+            } break;    
             
-            } break;
-
             /* Stop the scanning process */
             case EVT_INQUIRY_COMPLETE: {
                 
-                scan_devices_cancelled = true;
-            
+                 keep_scanning = false;
+             
             } break;
 
-            default:
-
-                break;
+            default:    
             
+            break;
+             
             }
-        }
-    } //end while 
+         
+         }
 
-    printf("Scanning done\n");
+    } //end while 
     
+    
+
+    printf("Scanning done\n");    
     close(socket);
 
     return;
@@ -813,10 +871,11 @@ void *cleanup_scanned_list(void) {
                 
                 printf("Removed %s from scanned list\n",
                        temp_data->scanned_mac_address[0]);
+                print_list(scanned_list);
                 
                 list_remove_node(&temp->ptrs);
                 free(temp);
-                //list_remove_node(temp);
+              
             }
             else {
                 break;
@@ -825,7 +884,7 @@ void *cleanup_scanned_list(void) {
 
     }
 
-
+    pthread_exit(NULL);
     return;
 
 }
@@ -960,13 +1019,16 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
 */
 int enable_advertising(int advertising_interval, char *advertising_uuid,
     int rssi_value) {
+    
     int dongle_device_id = hci_get_route(NULL);
     int device_handle = 0;
+    
     if ((device_handle = hci_open_dev(dongle_device_id)) < 0) {
         /* Error handling */
         perror("Error opening device");
         return (1);
     }
+    
     le_set_advertising_parameters_cp advertising_parameters_copy;
     memset(&advertising_parameters_copy, 0,
         sizeof(advertising_parameters_copy));
@@ -987,11 +1049,13 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
      int return_value = hci_send_req(device_handle, &request,
                                     HCI_SEND_REQUEST_TIMEOUT);
     if (return_value < 0) {
+       
         /* Error handling */
         hci_close_dev(device_handle);
         fprintf(stderr, "Can't send request %s (%d)\n", strerror(errno),
                 errno);
         return (1);
+    
     }
 
     le_set_advertise_enable_cp advertisement_copy;
@@ -1010,11 +1074,13 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
                                 HCI_SEND_REQUEST_TIMEOUT);
 
     if (return_value < 0) {
+       
         /* Error handling */
         hci_close_dev(device_handle);
         fprintf(stderr, "Can't send request %s (%d)\n", strerror(errno),
                 errno);
         return (1);
+    
     }
 
     le_set_advertising_data_cp advertisement_data_copy;
@@ -1053,12 +1119,14 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
 
     unsigned int *uuid = uuid_str_to_data(advertising_uuid);
     int uuid_iterator;
+    
     for (uuid_iterator = 0; uuid_iterator < strlen(advertising_uuid) / 2;
         uuid_iterator++) {
         advertisement_data_copy
             .data[advertisement_data_copy.length + segment_length] =
             htobs(uuid[uuid_iterator]);
         segment_length++;
+    
     }
 
     /* RSSI calibration */
@@ -1142,17 +1210,21 @@ int disable_advertising() {
     hci_close_dev(device_handle);
 
     if (return_value < 0) {
+        
         /* Error handling */
         fprintf(stderr, "Can't set advertise mode: %s (%d)\n",
                 strerror(errno), errno);
         return (1);
+    
     }
 
     if (status) {
+        
         /* Error handling */
         fprintf(stderr, "LE set advertise enable on returned status %d\n",
             status);
         return (1);
+    
     }
 }
 
@@ -1209,15 +1281,19 @@ void startThread(pthread_t threads ,void * (*run)(void*), void *arg){
       || pthread_create(&threads, &attr, run, arg) != 0
       || pthread_attr_destroy(&attr) != 0
       || pthread_detach(threads) != 0) {
-    printf("Unable to launch a thread\n");
-    pthread_exit(NULL);
+
+    perror(strerror(errno));
+    return;
   }
+
+  return;
 
 }
 
 void cleanup_exit(){
 
     ready_to_work = false;
+    send_message_cancelled = true;
     free_list(scanned_list);
     free_list(waiting_list);
     free(g_idle_handler);
@@ -1245,8 +1321,10 @@ int main(int argc, char **argv) {
         malloc(g_config.file_path_length + g_config.file_name_length);
     
     if (g_push_file_path == NULL) {
+        
         /* Error handling */
-        perror("Failed to allocate memory");
+        perror(strerror(errno));
+        cleanup_exit();
         return -1;
     }
 
@@ -1263,8 +1341,9 @@ int main(int argc, char **argv) {
     g_idle_handler =
         malloc(maximum_number_of_devices * sizeof(ThreadStatus));
     if (g_idle_handler == NULL) {
+        
         /* Error handling */
-        perror("Failed to allocate memory");
+        perror(strerror(errno));
         cleanup_exit();
         return;
     }
@@ -1277,7 +1356,7 @@ int main(int argc, char **argv) {
         g_idle_handler[device_id].is_waiting_to_send = false;
     }
 
-    /*Create two lists for the scanned data and waiting queue*/
+    /*Initialize two lists for the scanned data and waiting queue*/
     scanned_list = (struct List_Entry*)malloc(sizeof(struct List_Entry));
     scanned_list->next = scanned_list;
     scanned_list->prev = scanned_list;
@@ -1300,8 +1379,7 @@ int main(int argc, char **argv) {
     
     startThread(ble_beacon_thread, ble_beacon, hex_c);
     
-
-    
+   
     /* Create the the cleanup_scanned_list thread */
     pthread_t cleanup_scanned_list_thread;
     
@@ -1313,6 +1391,8 @@ int main(int argc, char **argv) {
     pthread_t queue_to_array_thread;
     
     startThread(queue_to_array_thread, queue_to_array, NULL);
+
+
 
 
     int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
@@ -1335,6 +1415,7 @@ int main(int argc, char **argv) {
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
         
          if (g_idle_handler[device_id].is_waiting_to_send == true) {
+            
             /* Depending on the number of push dongles, split the threads
              * evenly and assign each thread to a push dongle device ID */
             for (push_dongle_id = 0;
@@ -1365,17 +1446,22 @@ int main(int argc, char **argv) {
       
     }
 
-
-    /* Start scanning for bluetooth devices */
-    while (ready_to_work == true) {
+   
+    while(ready_to_work = true){
         start_scanning();
+    
     }
 
+     if(ready_to_work = false){
+        cleanup_exit();
+        printf("Cleanup all threads\n");
+    }
     
     /* ready_to_work = false , shut down. 
-     * wait for send_file_thread to exit. */
+     * wait for send_file_thread to exit. */    
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
         return_value = pthread_join(send_file_thread[device_id], NULL);
+        
         if (return_value != 0) {
             perror(strerror(errno));
             exit(EXIT_FAILURE);
@@ -1400,6 +1486,9 @@ int main(int argc, char **argv) {
         perror(strerror(errno));
         exit(EXIT_FAILURE);
     }
+
+   
+    
 
     free(g_idle_handler);
     free(g_push_file_path);
