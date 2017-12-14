@@ -342,7 +342,7 @@ List_Entry *waiting_list;
 
 /* Two global flags for threads */
 bool ready_to_work = true;
-bool send_message_cancelled = false;
+bool send_message_cancelled = true;
 
 
 
@@ -359,23 +359,22 @@ extern int errno;
 
 Config get_config(char *file_name);
 long long get_system_time();
+void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
+void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
+    int rssi);
+void track_devices(bdaddr_t *bluetooth_device_address, char *file_name);
 bool check_is_in_list(List_Entry *list, char address[]);
 void print_list(List_Entry *entry);
 char *get_head_entry(List_Entry *entry);
 void free_list(List_Entry *entry);
-void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
-void *queue_to_array();
-void *send_file(void *dongle_id);
-void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
-    int rssi);
-void start_scanning();
-void *cleanup_scanned_list(void);
-void track_devices(bdaddr_t *bluetooth_device_address, char *file_name);
-char *choose_file(char *message_to_send);
 int enable_advertising(int advertising_interval, char *advertising_uuid,
     int rssi_value);
 int disable_advertising();
 void *ble_beacon(void *beacon_location);
+void *cleanup_scanned_list(void);
+void *queue_to_array();
+void *send_file(void *dongle_id);
+void start_scanning();
 void startThread(pthread_t threads, void * (*run)(void*), void *arg);
 void cleanup_exit();
 
