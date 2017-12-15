@@ -74,7 +74,7 @@ Config get_config(char *file_name) {
         
         /* Error handling */
         perror(errordesc[E_OPEN_FILE].message);
-        ready_to_work = false;
+        cleanup_exit();
         return;
     
     }
@@ -567,6 +567,8 @@ void free_list(List_Entry *entry){
 *  0 - If advertising was successfullly enabled, then the function returns 0.
 */
 int enable_advertising(int advertising_interval, char *advertising_uuid,
+    
+
     int rssi_value) {
     
     int dongle_device_id = hci_get_route(NULL);
@@ -732,8 +734,10 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
 *  0 - If advertising was successfullly disabled, 0 is returned.
 */
 int disable_advertising() {
+    
     int dongle_device_id = hci_get_route(NULL);
     int device_handle = 0;
+    
     if ((device_handle = hci_open_dev(dongle_device_id)) < 0) {
         /* Error handling */
         perror("Could not open device");
@@ -820,7 +824,16 @@ void *ble_beacon(void *beacon_location) {
         /* When signal is received, disable message advertising */
         perror("Shutting down");
         disable_advertising();
+
     }
+
+    /* Exit forcibly by main thread */
+    if(ready_to_work == false){
+
+        pthread_exit(NULL);
+        return;
+    }
+
 }
 
 
@@ -868,8 +881,10 @@ void *cleanup_scanned_list(void) {
         }
 
     }
-    printf("cleanup_scanned_list_thread ready to exit. \n");
-    pthread_exit((void *)123);
+    
+    /* Exiting this thread and sending message to main thread by using pthread
+     * exit and join. */
+    pthread_exit(NULL);
     return;
 
 }
@@ -926,11 +941,11 @@ void *queue_to_array() {
             }
         }
     }
-    printf("queue_to_array ready to exit. \n");
+  
     
     /* Exiting this thread and sending message to main thread by using pthread
      * exit and join. */
-    pthread_exit((void *) "queue_to_array_thread");
+    pthread_exit(NULL);
     return;
 
 }
@@ -1105,9 +1120,12 @@ void *send_file(void *id) {
 
     /* Exit forcibly by main thread */
     if(ready_to_work == false){
+        
         pthread_exit(NULL);
         return;
+    
     }
+
 
 }
 
@@ -1157,6 +1175,8 @@ void start_scanning() {
          
          /* Error handling */
          perror(errordesc[E_SCAN_OPEN_SOCKET].message);
+         ready_to_work = false;
+         send_message_cancelled = true;
          return;
      
     }   
@@ -1211,6 +1231,10 @@ void start_scanning() {
     output.fd = socket;
     output.events = POLLIN | POLLERR | POLLHUP; 
      
+    
+    /* An indicator for continuing to scan the devices. */ 
+    /* After the inquiring events completing, it should jump out of the while 
+     * loop for getting a new socket */
     bool keep_scanning = true;
     
     while (keep_scanning == true) {
@@ -1379,7 +1403,8 @@ int main(int argc, char **argv) {
         /* Error handling */
         perror(strerror(errno));
         cleanup_exit();
-        return -1;
+        return;
+
     }
 
     memcpy(g_push_file_path, g_config.file_path,
@@ -1400,6 +1425,7 @@ int main(int argc, char **argv) {
         perror(strerror(errno));
         cleanup_exit();
         return;
+        
     }
 
     /* Initialize each ThreadStatus struct in the array */
@@ -1429,24 +1455,19 @@ int main(int argc, char **argv) {
    
 
     /* Create the thread for message advertising to BLE bluetooth devices */
-    pthread_t ble_beacon_thread;
-    
+    pthread_t ble_beacon_thread;    
     startThread(ble_beacon_thread, ble_beacon, hex_c);
     
    
     /* Create the the cleanup_scanned_list thread */
-    pthread_t cleanup_scanned_list_thread;
-    
+    pthread_t cleanup_scanned_list_thread;    
     startThread(cleanup_scanned_list_thread,cleanup_scanned_list, NULL);
 
   
     /* Create the thread for sending MAC address in waiting list to an 
      * available thread */
     pthread_t queue_to_array_thread;
-    
     startThread(queue_to_array_thread, queue_to_array, NULL);
-
-
 
 
     int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
@@ -1512,60 +1533,52 @@ int main(int argc, char **argv) {
     
     }
 
-    
-    void *ret;
-     
     /* ready_to_work = false , shut down. 
      * wait for send_file_thread to exit. */    
     
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
-        return_value = pthread_join(send_file_thread[device_id], NULL);
-        if(return_value == 0){
-        printf("send_file_thread[%d] exits successfullly. \n", device_id);
-    }
+        
+        return_value = pthread_join(send_file_thread[device_id], NULL);        
+        
         if (return_value != 0) {
             perror(strerror(errno));
-            exit(EXIT_FAILURE);
+            cleanup_exit();
+            return;
+           
         }
     }
     
 
-  return_value = pthread_join(queue_to_array_thread, &ret);
-    if(return_value == 0){
-        printf("queue_to_array_thread exits successfullly. \n");
-    }
+    return_value = pthread_join(queue_to_array_thread, NULL);
+    
     if (return_value != 0) {
         perror(strerror(errno));
-        exit(EXIT_FAILURE);
+        cleanup_exit();
+        return;
     }
 
-    return_value = pthread_join(cleanup_scanned_list_thread, &ret);
-     if(return_value == 0){
-        printf("cleanup_scanned_list_thread \n");
-    }
+    return_value = pthread_join(cleanup_scanned_list_thread, NULL);
+     
     if (return_value != 0) {
         perror(strerror(errno));
-        exit(EXIT_FAILURE);
+        cleanup_exit();
+        return;
+        
     }
     
-     printf("All down!! \n");
 
     pthread_cancel(ble_beacon_thread);
     return_value = pthread_join(ble_beacon_thread, NULL);
+    
     if (return_value != 0) {
         perror(strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    
-
-     if(ready_to_work == false){
-        printf("Cleanup all threads\n");
         cleanup_exit();
+        return;
         
     }
+       
+    cleanup_exit();
+        
 
-    free(g_idle_handler);
-    free(g_push_file_path);
     return 0;
 }
