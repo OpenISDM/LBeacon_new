@@ -108,3 +108,13 @@ inline void list_remove_node(List_Entry *removed_node_ptrs);
 
 /* The function returns the length of the list. */
 inline int get_list_length(List_Entry *entry);
+
+/* This function returns the data of the first node in a specified list. */
+inline void *get_list_head(List_Entry *entry);
+
+/* This function returns the data of the last node in a specified list. */
+inline void *get_list_tail(List_Entry *entry);
+
+/* This function frees the resources of a specified list. */
+inline void free_list(List_Entry *entry);
+

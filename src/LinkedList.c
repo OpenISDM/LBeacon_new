@@ -198,3 +198,103 @@ inline int get_list_length(List_Entry * entry) {
 
 
 
+/*
+ *  get_list_head:
+ *
+ *  This function peeks at the head of the list. If the list is empty, it 
+ *  returns NULL because it doesn't exist. Otherwise, this function returns
+ *  the data of the node at the head of the list.
+ *
+ *  Parameters:
+ *
+ *  entry - the head of the list for determining which list is goning to be 
+ *  modified.
+ *
+ *  Return value:
+ *
+ *  return_value - data of the fist node.
+ */
+inline void *get_list_head(List_Entry *entry) {
+
+    /*Check whether the list is empty */
+    if (get_list_length(entry) == 0 ) {
+        return NULL;
+    }
+
+    struct Node *node = ListEntry(entry->next, Node, ptrs);
+    void *data;
+    data = node->data;
+    
+    return data;
+}
+
+
+
+/*
+ *  get_list_tail:
+ *
+ *  This function peeks at the tail of the list. If the list is empty, it 
+ *  returns NULL because it doesn't exist. Otherwise, this function returns
+ *  the data of the node at the tail of the list.
+ *
+ *  Parameters:
+ *
+ *  entry - the head of the list for determining which list is goning to be 
+ *  modified.
+ *
+ *  Return value:
+ *
+ *  return_value - data of the last node.
+ */
+inline void *get_list_tail(List_Entry *entry) {
+
+    /*Check whether the list is empty */
+    if (get_list_length(entry) == 0 ) {
+        return NULL;
+    }
+
+    struct Node *node = ListEntry(entry->prev, Node, ptrs);
+    void *data;
+    data = node->data;
+    
+    return data;
+}
+
+
+/*
+ *  free_list:
+ *
+ *  This function frees the resources of the list.
+ *
+ *  Parameters:
+ *
+ *  entry - the head of the list for determining which list is goning to be 
+ *  modified.
+ *
+ *  Return value:
+ *
+ *  None
+ */
+inline void free_list(List_Entry *entry){
+
+    /*Check whether the list is empty */
+    if (get_list_length(entry) == 0 ) {
+        return;
+    }
+
+    struct List_Entry *listptrs;
+    Node *temp;
+
+    list_for_each(listptrs, entry){
+        
+        temp = ListEntry(listptrs, Node, ptrs);
+        free(temp);
+        temp = NULL;
+
+    }
+
+    free(entry);
+
+}
+
+

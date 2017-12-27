@@ -392,6 +392,7 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
     }
 }
 
+
 /*
 *  check_is_in_list:
 *
@@ -479,75 +480,6 @@ void print_list(List_Entry *entry) {
 }
 
 
-/*
- *  get_head_content:
- *
- *  This function peeks at the head of the list. If the list is empty, it 
- *  returns NULL because it doesn't exist. Otherwise, this function returns
- *  the MAC address of the node at the head of the list.
- *
- *  Parameters:
- *
- *  entry - the head of the list for determining which list is goning to be 
- *  modified.
- *
- *  Return value:
- *
- *  return_value - MAC address of the fist node.
- */
-char *get_head_entry(List_Entry *entry) {
-
-    /*Check whether the list is empty */
-    if (get_list_length(entry) == 0 ) {
-        return NULL;
-    }
-
-    struct Node *node = ListEntry(entry->next, Node, ptrs);
-    ScannedDevice *data;
-    data = (struct ScannedDevice *) node->data;
-    char *address = &data->scanned_mac_address[0];
-    
-
-    return address;
-}
-
-
-/*
- *  free_list:
- *
- *  This function frees the resources of the list.
- *
- *  Parameters:
- *
- *  entry - the head of the list for determining which list is goning to be 
- *  modified.
- *
- *  Return value:
- *
- *  None
- */
-void free_list(List_Entry *entry){
-
-    /*Check whether the list is empty */
-    if (get_list_length(entry) == 0 ) {
-        return;
-    }
-
-    struct List_Entry *listptrs;
-    Node *temp;
-
-    list_for_each(listptrs, entry){
-        
-        temp = ListEntry(listptrs, Node, ptrs);
-        free(temp);
-        temp = NULL;
-
-    }
-
-    free(entry);
-
-}
-
 
 /*
 *  enable_advertising:
@@ -568,7 +500,6 @@ void free_list(List_Entry *entry){
 */
 int enable_advertising(int advertising_interval, char *advertising_uuid,
     
-
     int rssi_value) {
     
     int dongle_device_id = hci_get_route(NULL);
@@ -737,7 +668,6 @@ int disable_advertising() {
     
     int dongle_device_id = hci_get_route(NULL);
     int device_handle = 0;
-    
     if ((device_handle = hci_open_dev(dongle_device_id)) < 0) {
         /* Error handling */
         perror("Could not open device");
@@ -827,7 +757,6 @@ void *ble_beacon(void *beacon_location) {
 
     }
 
-    /* Exit forcibly by main thread */
     if(ready_to_work == false){
 
         pthread_exit(NULL);
@@ -922,7 +851,10 @@ void *queue_to_array() {
         for (device_id = 0; device_id < maximum_number_of_devices;
             device_id++) {
         
-            char *address = get_head_entry(waiting_list);
+            
+            void *data;
+            data = (struct ScannedDevice *)  get_list_head(waiting_list);
+            char *address = &data->scanned_mac_address[0];
             
             /* Remove from waiting_list and add MAC address to the array when 
              * a thread becomes available */
@@ -1120,12 +1052,9 @@ void *send_file(void *id) {
 
     /* Exit forcibly by main thread */
     if(ready_to_work == false){
-        
         pthread_exit(NULL);
         return;
-    
     }
-
 
 }
 
@@ -1425,7 +1354,7 @@ int main(int argc, char **argv) {
         perror(strerror(errno));
         cleanup_exit();
         return;
-        
+
     }
 
     /* Initialize each ThreadStatus struct in the array */
@@ -1455,18 +1384,21 @@ int main(int argc, char **argv) {
    
 
     /* Create the thread for message advertising to BLE bluetooth devices */
-    pthread_t ble_beacon_thread;    
+    pthread_t ble_beacon_thread;
+    
     startThread(ble_beacon_thread, ble_beacon, hex_c);
     
    
     /* Create the the cleanup_scanned_list thread */
-    pthread_t cleanup_scanned_list_thread;    
+    pthread_t cleanup_scanned_list_thread;
+    
     startThread(cleanup_scanned_list_thread,cleanup_scanned_list, NULL);
 
   
     /* Create the thread for sending MAC address in waiting list to an 
      * available thread */
     pthread_t queue_to_array_thread;
+    
     startThread(queue_to_array_thread, queue_to_array, NULL);
 
 
