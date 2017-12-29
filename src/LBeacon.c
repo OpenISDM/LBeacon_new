@@ -850,11 +850,20 @@ void *queue_to_array() {
         /* Go through the array of ThreadStatus */
         for (device_id = 0; device_id < maximum_number_of_devices;
             device_id++) {
-        
             
             void *data;
-            data = (struct ScannedDevice *)  get_list_head(waiting_list);
-            char *address = &data->scanned_mac_address[0];
+            data = get_list_head(waiting_list);
+            
+            /* Check whether the return value from get_list_head is NULL */ 
+            if(data == NULL){
+
+                continue;
+            
+            }
+
+            ScannedDevice *sc_data;
+            sc_data = (struct ScannedDevice *) data;
+            char *address = &sc_data->scanned_mac_address[0];
             
             /* Remove from waiting_list and add MAC address to the array when 
              * a thread becomes available */
@@ -1381,18 +1390,19 @@ int main(int argc, char **argv) {
             coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
             coordinate_Y.b[2], coordinate_Y.b[3]);
 
-   
-
+  
     /* Create the thread for message advertising to BLE bluetooth devices */
     pthread_t ble_beacon_thread;
     
     startThread(ble_beacon_thread, ble_beacon, hex_c);
     
-   
+    
+
     /* Create the the cleanup_scanned_list thread */
     pthread_t cleanup_scanned_list_thread;
     
     startThread(cleanup_scanned_list_thread,cleanup_scanned_list, NULL);
+
 
   
     /* Create the thread for sending MAC address in waiting list to an 
@@ -1400,6 +1410,7 @@ int main(int argc, char **argv) {
     pthread_t queue_to_array_thread;
     
     startThread(queue_to_array_thread, queue_to_array, NULL);
+
 
 
     int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
