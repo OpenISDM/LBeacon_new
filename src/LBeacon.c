@@ -439,7 +439,20 @@ bool check_is_in_list(List_Entry *list, char address[]) {
 }
 
 
-/* Function for printing the MAC_Address */
+/*
+*  print_MACaddress:
+*
+*  This helper function prints the MAC addresses which is used with the 
+*  function of print_list defined in LinkedList.h.
+*
+*  Parameters:
+*
+*  sc - anytype of data which will be printed 
+*
+*  Return value:
+*
+*  None
+*/
 void print_MACaddress(void *sc){
 
     ScannedDevice *temp_data = (struct ScannedDevice *)sc;
