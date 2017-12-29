@@ -233,7 +233,6 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
         list_insert_first(&node_w->ptrs, waiting_list);
         node_s->data = &data;
         node_w->data = &data;
-        print_list(scanned_list, print_MACaddress);
         
     }
 }
@@ -260,6 +259,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 */
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi) {
+    
     /* Scanned MAC address */
     char address[LENGTH_OF_MAC_ADDRESS];
 
@@ -301,6 +301,7 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 *  None
 */
 void track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
+    
     /* Scanned MAC address */
     char address[LENGTH_OF_MAC_ADDRESS];
 
@@ -511,6 +512,7 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
 
      int return_value = hci_send_req(device_handle, &request,
                                     HCI_SEND_REQUEST_TIMEOUT);
+    
     if (return_value < 0) {
        
         /* Error handling */
@@ -740,7 +742,6 @@ void *ble_beacon(void *beacon_location) {
 
     if(ready_to_work == false){
 
-        pthread_exit(NULL);
         return;
     }
 
@@ -792,9 +793,7 @@ void *cleanup_scanned_list(void) {
 
     }
     
-    /* Exiting this thread and sending message to main thread by using pthread
-     * exit and join. */
-    pthread_exit(NULL);
+   
     return;
 
 }
@@ -865,9 +864,7 @@ void *queue_to_array() {
     }
   
     
-    /* Exiting this thread and sending message to main thread by using pthread
-     * exit and join. */
-    pthread_exit(NULL);
+   
     return;
 
 }
@@ -1042,7 +1039,6 @@ void *send_file(void *id) {
 
     /* Exit forcibly by main thread */
     if(ready_to_work == false){
-        pthread_exit(NULL);
         return;
     }
 
