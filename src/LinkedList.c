@@ -261,6 +261,45 @@ inline void *get_list_tail(List_Entry *entry) {
 }
 
 
+
+/*
+ *  print_list:
+ *
+ *  This function prints the data in the specified list in the order of head 
+ *  to tail. fpitr is used to access the function to be used for printing 
+ *  current node data.
+ *  Note that different data types need different specifier in printf().
+ *
+ *  Parameters:
+ *
+ *  entry - the head of the list for determining which list is goning to be 
+ *  modified.
+ *
+ *  Return value:
+ *
+ *  None
+ */
+
+
+inline void print_list(List_Entry *entry, void (*fptr)(void *)){
+
+    /*Check whether the list is empty */
+    if (get_list_length(entry) == 0 ) {
+        return;
+    }
+
+    struct List_Entry *listptrs;
+    struct Node *node;
+
+    list_for_each(listptrs, entry){
+
+        node = ListEntry(listptrs, Node, ptrs);
+        (*fptr)(node->data);
+
+    }
+
+}
+
 /*
  *  free_list:
  *

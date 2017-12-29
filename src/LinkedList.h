@@ -115,6 +115,9 @@ inline void *get_list_head(List_Entry *entry);
 /* This function returns the data of the last node in a specified list. */
 inline void *get_list_tail(List_Entry *entry);
 
+/* This function prints the data in the specified list. */
+inline void print_list(List_Entry *entry, void (*fptr)(void *));
+
 /* This function frees the resources of a specified list. */
 inline void free_list(List_Entry *entry);
 

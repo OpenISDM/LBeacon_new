@@ -364,7 +364,7 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi);
 void track_devices(bdaddr_t *bluetooth_device_address, char *file_name);
 bool check_is_in_list(List_Entry *list, char address[]);
-void print_list(List_Entry *entry);
+void print_MACaddress(void *sc);
 int enable_advertising(int advertising_interval, char *advertising_uuid,
     int rssi_value);
 int disable_advertising();

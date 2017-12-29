@@ -233,6 +233,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
         list_insert_first(&node_w->ptrs, waiting_list);
         node_s->data = &data;
         node_w->data = &data;
+        print_list(scanned_list, print_MACaddress);
         
     }
 }
@@ -438,44 +439,11 @@ bool check_is_in_list(List_Entry *list, char address[]) {
 }
 
 
+/* Function for printing the MAC_Address */
+void print_MACaddress(void *sc){
 
-/*
- *  print_linked_list:
- *
- *  This function prints all the MAC addresses in the list. When printing, 
- *  the MAC addresses will be in the order of starting from the first node
- *  to the last in the list.
- *
- *  Parameters:
- *
- *  entry - the head of the list for determining which list is goning to be
- *  printed.
- *
- *  Return value:
- *
- *  None
- */
-void print_list(List_Entry *entry) {
-
-    /*Check whether the list is empty */
-    if (get_list_length(entry) == 0 ) {
-        return;
-    }
-
-    struct List_Entry *listptrs = NULL;
-    struct Node *node;
-    
-    for (listptrs = (entry)->next; listptrs != (entry);
-        listptrs = listptrs->next) {
-        
-        node = ListEntry(listptrs, Node, ptrs);
-        ScannedDevice *data;
-        data = (struct ScannedDevice *)node->data;
-        printf("%s ", &data->scanned_mac_address[0]);
-    
-    }
-    
-    printf("\n");
+    ScannedDevice *temp_data = (struct ScannedDevice *)sc;
+    printf(" %s \t", &temp_data->scanned_mac_address[0]);
 
 }
 
