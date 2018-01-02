@@ -52,9 +52,9 @@
 /*
 *  get_config:
 *
-*  This function goes through the config file, reads line by line until the
-*  end of file, and stores the data into the global variable of a Config 
-*  struct.
+*  This function reads the specified config file line by line until the
+*  end of file, and stores the data in the lines into the global variable of a 
+*  Config struct.
 *
 *  Parameters:
 *
@@ -81,7 +81,7 @@ Config get_config(char *file_name) {
     else {
     /* Create spaces for storing the string of the current line being read */
     char config_setting[CONFIG_BUFFER_SIZE];
-    char *config_message[11];
+    char *config_message[ConFIG_FILE_LENGTH];
 
      /* Keep reading each line and store into the config struct */
     fgets(config_setting, sizeof(config_setting), file);
@@ -164,6 +164,7 @@ Config get_config(char *file_name) {
     return config;
 }
 
+
 /*
 *  get_system_time:
 *
@@ -185,7 +186,7 @@ long long get_system_time() {
     /* Return value as a long long type */
     long long system_time;
 
-    /* Convert time from Epoch to time in milliseconds as a long long type */
+    /* Convert time from Epoch to time in milliseconds of a long long type */
     ftime(&t);
     system_time = 1000 * t.time + t.millitm;
 
@@ -196,12 +197,14 @@ long long get_system_time() {
 /*
 *  send_to_push_dongle:
 *
-*  For each newly scanned bluetooth device, this function adds the Scanned 
-*  Device struct of the device to the scanned list of ScannedDevice struct 
-*  that stores  its scanned timestamp and MAC address and to the waiting list 
-*  of MAC addresses  waiting for an available thread to send a message to the 
-*  device with the address.
-*
+*  When called, this functions constructs a ScannedDevice struct using the 
+*  input bluetooth_device_address as MAC address and current time as timestamp. 
+*  It then checks whether there is a ScannedDevice struct in the scanned list 
+*  with MAC address matching the input MAC address. If there is no such 
+*  ScannedDevice struct, the function inserts the newly constructed struct at  
+*  the head of the waiting list. It inserts new struct at the head of the 
+*  scanned list regarded as the results of above mentioned test. 
+* 
 *  Parameters:
 *
 *  bluetooth_device_address - bluetooth device address
@@ -218,23 +221,26 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     /* Converts the bluetooth device address to a string */
     ba2str(bluetooth_device_address, address);
     strcat(address, "\0");
+
+    ScannedDevice data;
+    data.initial_scanned_time = get_system_time();
+    strncpy(data.scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS); 
+    struct Node *node_s, *node_w;
+    node_s = (struct Node*)malloc(sizeof(struct Node));
     
-    /* Add newly scanned devices to the scanned list and waiting list for new
-     * scanned devices */
+    /* Add newly scanned devices to the waiting list for new scanned devices */
     if (check_is_in_list(scanned_list, address) == false) {       
-        
-        ScannedDevice data;
-        data.initial_scanned_time = get_system_time();
-        strncpy(data.scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS); 
-        struct Node *node_s, *node_w;
-        node_s = (struct Node*)malloc(sizeof(struct Node));
-        node_w = (struct Node*)malloc(sizeof(struct Node));
-        list_insert_first(&node_s->ptrs, scanned_list);
+            
+        node_w = (struct Node*)malloc(sizeof(struct Node));        
         list_insert_first(&node_w->ptrs, waiting_list);
-        node_s->data = &data;
+        
         node_w->data = &data;
         
     }
+
+    list_insert_first(&node_s->ptrs, scanned_list);
+    node_s->data = &data;
+
 }
 
 
@@ -399,13 +405,13 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
 *  check_is_in_list:
 *
 *  This helper function checks whether the specified MAC address given as 
-*  input is in the scanned list with recently scanned bluetooth devices. If 
-*  it is, the function returns true, else the function returns false.
+*  input is in the specified list of ScannedDevice struct of bluetooth devices. 
+*  If it is, the function returns true, else the function returns false.
 *
 *  Parameters:
 *
-*  list - the list is goning to check 
-*  address - scanned MAC address of bluetooth device
+*  list - the list is going to be checked 
+*  address - scanned MAC address of a bluetooth device
 * 
 *  Return value:
 *

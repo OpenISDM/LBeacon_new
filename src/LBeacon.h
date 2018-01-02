@@ -92,6 +92,9 @@
 /* File path of the config file */
 #define CONFIG_FILE_NAME "../config/config.conf"
 
+/* Number of lines in the config file */
+#define ConFIG_FILE_LENGTH 11
+
 /* Parameter that determines the start of the config file */
 #define DELIMITER "="
 
@@ -140,6 +143,7 @@
 
 /* RSSI value of the bluetooth device */
 #define RSSI_VALUE 20
+
 
 
 
