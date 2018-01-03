@@ -298,6 +298,8 @@ inline void print_list(List_Entry *entry, void (*fptr)(void *)){
 
     }
 
+    printf("\n");
+
 }
 
 /*

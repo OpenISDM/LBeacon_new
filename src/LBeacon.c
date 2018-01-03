@@ -217,29 +217,31 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     
     /* Stores the MAC address as a string */
     char address[LENGTH_OF_MAC_ADDRESS];
-    
+   
     /* Converts the bluetooth device address to a string */
     ba2str(bluetooth_device_address, address);
     strcat(address, "\0");
 
+
     ScannedDevice data;
-    data.initial_scanned_time = get_system_time();
+    data.initial_scanned_time = get_system_time();  
     strncpy(data.scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS); 
     struct Node *node_s, *node_w;
-    node_s = (struct Node*)malloc(sizeof(struct Node));
-    
-    /* Add newly scanned devices to the waiting list for new scanned devices */
-    if (check_is_in_list(scanned_list, address) == false) {       
-            
-        node_w = (struct Node*)malloc(sizeof(struct Node));        
-        list_insert_first(&node_w->ptrs, waiting_list);
+    node_s = (struct Node*)malloc(sizeof(struct Node));   
         
-        node_w->data = &data;
-        
-    }
 
+    /* Add newly scanned devices to the waiting list for new scanned devices */
+    if (check_is_in_list(scanned_list, address) == NULL) {       
+        
+        node_w = (struct Node*)malloc(sizeof(struct Node));    
+        list_insert_first(&node_w->ptrs, waiting_list);        
+        node_w->data = &data;      
+
+    }
+    
     list_insert_first(&node_s->ptrs, scanned_list);
     node_s->data = &data;
+   
 
 }
 
@@ -415,10 +417,11 @@ void track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
 * 
 *  Return value:
 *
-*  true - used MAC address
-*  false - new MAC address
+*  temp - the node which its MAC address matched with the input address   
+*  NULL - there is no matched address in the list 
+*
 */
-bool check_is_in_list(List_Entry *list, char address[]) {
+struct Node *check_is_in_list(List_Entry *list, char address[]) {
     
     /* Create a temporary node and set as the head */
     struct List_Entry *listptrs;
@@ -433,16 +436,17 @@ bool check_is_in_list(List_Entry *list, char address[]) {
         ScannedDevice *temp_data; 
         temp_data = (struct ScannedDevice *)temp->data;
         
-        if (strcmp(address, &temp_data->scanned_mac_address[len + 10]) > 0) {
-        
-            return true;
+        if (strcmp(address, 
+            &temp_data->scanned_mac_address[len + NUMBER_CHAR_CHECKED]) > 0) {
+
+            return temp;
         
         }
                
     }
 
-    /* Input MAC address is new and unused */
-    return false;
+    /* Input MAC address is new */
+    return NULL;
 }
 
 
@@ -467,6 +471,12 @@ void print_MACaddress(void *sc){
 
 }
 
+void print_Timestamp(void *sc){
+
+    ScannedDevice *temp_data = (struct ScannedDevice *)sc;
+    printf(" %lld \t", &temp_data->initial_scanned_time);
+
+}
 
 
 /*
@@ -775,25 +785,32 @@ void *cleanup_scanned_list(void) {
     
 
     while (ready_to_work == true) {
-        
+
+
+        if(get_list_length(scanned_list) == 0){
+            continue;
+        } 
+
         struct List_Entry *listptrs;
-        Node *temp;        
+        Node *temp;
+  
         /* Go through list */
         list_for_each(listptrs, scanned_list){
-            
+
             temp = ListEntry(listptrs, Node, ptrs);
             ScannedDevice *temp_data;
             temp_data = (struct ScannedDevice *)temp->data;
+        
            
             /* Device has been in the scanned list for at least 30 seconds */
             if (get_system_time() - temp_data->initial_scanned_time > TIMEOUT) {
-                
+               
                 list_remove_node(&temp->ptrs);
                 free(temp);
               
             }
             else {
-                break;
+                continue;
             }
         }
 
@@ -1314,6 +1331,14 @@ int main(int argc, char **argv) {
     /* Return value of pthread_create used to check for errors */
     int return_value;   
 
+    /*Initialize two lists for the scanned data and waiting queue*/
+    scanned_list = (struct List_Entry *)malloc(sizeof(struct List_Entry));
+    scanned_list->next = scanned_list;
+    scanned_list->prev = scanned_list;
+    waiting_list = (struct List_Entry *)malloc(sizeof(struct List_Entry));
+    waiting_list->next = waiting_list;
+    waiting_list->prev = waiting_list;
+
     /* Load config struct */
     g_config = get_config(CONFIG_FILE_NAME);
     g_push_file_path =
@@ -1357,13 +1382,7 @@ int main(int argc, char **argv) {
         g_idle_handler[device_id].is_waiting_to_send = false;
     }
 
-    /*Initialize two lists for the scanned data and waiting queue*/
-    scanned_list = (struct List_Entry*)malloc(sizeof(struct List_Entry));
-    scanned_list->next = scanned_list;
-    scanned_list->prev = scanned_list;
-    waiting_list = (struct List_Entry*)malloc(sizeof(struct List_Entry));
-    waiting_list->next = waiting_list;
-    waiting_list->prev = waiting_list;
+   
     
 
     /* Store coordinates of the beacon location */

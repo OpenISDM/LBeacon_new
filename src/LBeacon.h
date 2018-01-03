@@ -129,6 +129,9 @@
  * scanned devices */
 #define TRACKING_FILE_LINE_LENGTH 1024
 
+/* The number of char has been checked */
+#define NUMBER_CHAR_CHECKED 10
+
 /* Length of a Bluetooth MAC address */
 #define LENGTH_OF_MAC_ADDRESS 18
 
@@ -367,7 +370,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi);
 void track_devices(bdaddr_t *bluetooth_device_address, char *file_name);
-bool check_is_in_list(List_Entry *list, char address[]);
+struct Node *check_is_in_list(List_Entry *list, char address[]);
 void print_MACaddress(void *sc);
 int enable_advertising(int advertising_interval, char *advertising_uuid,
     int rssi_value);
