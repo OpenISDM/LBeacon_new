@@ -23,13 +23,13 @@
 * Abstract:
 *
 *      BeDIPS uses LBeacons to deliver 3D coordinates and textual
-*      descriptions of their locations to users' devices. Basically, a 
-*      LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D 
-*      coordinates and location description of every LBeacon are retrieved 
-*      from BeDIS (Building/environment Data and Information System) and 
-*      stored locally during deployment and maintenance times. Once 
-*      initialized, each LBeacon broadcasts its coordinates and location 
-*      description to Bluetooth enabled user devices within its coverage 
+*      descriptions of their locations to users' devices. Basically, a
+*      LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
+*      coordinates and location description of every LBeacon are retrieved
+*      from BeDIS (Building/environment Data and Information System) and
+*      stored locally during deployment and maintenance times. Once
+*      initialized, each LBeacon broadcasts its coordinates and location
+*      description to Bluetooth enabled user devices within its coverage
 *      area.
 *
 * Authors:
@@ -95,7 +95,7 @@
 /* Number of lines in the config file */
 #define ConFIG_FILE_LENGTH 11
 
-/* Parameter that determines the start of the config file */
+/* Parameter that makes the start of the config file */
 #define DELIMITER "="
 
 /* BlueZ bluetooth extended inquiry response protocol: flags */
@@ -121,7 +121,7 @@
  * to connect */
 #define RSSI_RANGE -60
 
-/* Time interval,maximum length of time in milliseconds, a bluetooth device
+/* Maximum length of time in milliseconds, a bluetooth device
 * stays in the push list */
 #define TIMEOUT 30000
 
@@ -132,13 +132,13 @@
 /* The number of char has been checked */
 #define NUMBER_CHAR_CHECKED 10
 
-/* Length of a Bluetooth MAC address */
+/* Number of characters in a Bluetooth MAC address */
 #define LENGTH_OF_MAC_ADDRESS 18
 
 /* Timeout of hci_send_req  */
 #define HCI_SEND_REQUEST_TIMEOUT 1000
 
-/* Time interval in seconds for Send to gateway */
+/* Maximum length of time interval in seconds for Send to gateway */
 #define TIME_INTERVAL_OF_SEND_TO_GATEWAY 300
 
 /* Time interval for which the LBeacon can */
@@ -179,71 +179,71 @@ union {
 */
 
 typedef struct Config {
-    /* A string representation of the X coordinate of the beacon location */
+    /* String representation of the X coordinate of the beacon location */
     char coordinate_X[CONFIG_BUFFER_SIZE];
 
-    /* A string representation of the Y coordinate of the beacon location */
+    /* String representation of the Y coordinate of the beacon location */
     char coordinate_Y[CONFIG_BUFFER_SIZE];
 
-    /* A string representation of the Z coordinate of the beacon location */
+    /* String representation of the Z coordinate of the beacon location */
     char coordinate_Z[CONFIG_BUFFER_SIZE];
 
-    /* A string representation of the message file name */
+    /* String representation of the message file name */
     char file_name[CONFIG_BUFFER_SIZE];
 
-    /* A string representation of the message file name's file path */
+    /* String representation of the message file name's file path */
     char file_path[CONFIG_BUFFER_SIZE];
 
-    /* A string representation of the maximum number of devices to be
+    /* String representation of the maximum number of devices to be
     handled by all push dongles */
     char maximum_number_of_devices[CONFIG_BUFFER_SIZE];
 
-    /* A string representation of number of message groups */
+    /* String representation of number of message groups */
     char number_of_groups[CONFIG_BUFFER_SIZE];
 
-    /* A string representation of the number of messages */
+    /* String representation of the number of messages */
     char number_of_messages[CONFIG_BUFFER_SIZE];
 
-    /* A string representation of the number of push dongles */
+    /* String representation of the number of push dongles */
     char number_of_push_dongles[CONFIG_BUFFER_SIZE];
 
-    /* A string representation of the required signal strength */
+    /* String representation of the required signal strength */
     char rssi_coverage[CONFIG_BUFFER_SIZE];
 
-    /* A string representation of the universally unique identifer */
+    /* String representation of the universally unique identifer */
     char uuid[CONFIG_BUFFER_SIZE];
 
-    /* The string length needed to store coordinate_X */
+    /* String length needed to store coordinate_X */
     int coordinate_X_length;
 
-    /* The string length needed to store coordinate_Y */
+    /* String length needed to store coordinate_Y */
     int coordinate_Y_length;
 
-    /* The string length needed to store coordinate_Z */
+    /* String length needed to store coordinate_Z */
     int coordinate_Z_length;
 
-    /* The string length needed to store file name */
+    /* String length needed to store file name */
     int file_name_length;
 
-    /* The string length needed to store file path */
+    /* String length needed to store file path */
     int file_path_length;
 
-    /* The string length needed to store maximum_number_of_devices */
+    /* String length needed to store maximum_number_of_devices */
     int maximum_number_of_devices_length;
 
-    /* The string length needed to store number_of_groups */
+    /* String length needed to store number_of_groups */
     int number_of_groups_length;
 
-    /* The string length needed to store number_of_messages */
+    /* String length needed to store number_of_messages */
     int number_of_messages_length;
 
-    /* The string length needed to store number_of_push_dongles */
+    /* String length needed to store number_of_push_dongles */
     int number_of_push_dongles_length;
 
-    /* The string length needed to store rssi_coverage */
+    /* String length needed to store rssi_coverage */
     int rssi_coverage_length;
 
-    /* The string length needed to store uuid */
+    /* TString length needed to store uuid */
     int uuid_length;
 } Config;
 
@@ -255,8 +255,8 @@ typedef struct ThreadStatus {
 } ThreadStatus;
 
 
-/* Struct for storing scanned timestamp and MAC address of the user's
-*  device */
+/* Struct for storing scanned MAC address of the user's
+*  device and the time instant at when the address is scanned*/
 typedef struct ScannedDevice {
     long long initial_scanned_time;
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
@@ -280,7 +280,7 @@ enum Error_code {
     E_SCAN_SET_HCI_FILTER = 7,
     E_SCAN_SET_INQUIRY_MODE = 8,
     E_SCAN_START_INQUIRY = 9
-  
+
 };
 
 typedef enum Error_code error_t;
@@ -322,14 +322,14 @@ extern struct hci_filter;
 * GLOBAL VARIABLES
 */
 
-/* The path of the object push file */
+/* Path of the object push file */
 char *g_push_file_path;
 
-/* The first timestamp of the output file used for tracking scanned
+/* First timestamp of the output file used for tracking scanned
 * devices */
 unsigned g_initial_timestamp_of_tracking_file = 0;
 
-/* The most recent time of the output file used for tracking scanned
+/* The most recent timestamp in the output file used for tracking scanned
 * devices */
 unsigned g_most_recent_timestamp_of_tracking_file = 0;
 
@@ -343,13 +343,29 @@ Config g_config;
 /* An array of struct for storing information and status of each thread */
 ThreadStatus *g_idle_handler;
 
-/*Two list of struct for recording scanned devices */
+/* Three list of struct for recording scanned devices */
+/* Head of scanned_list that holds the scanned device structs of devices found in recent scan.
+* Some of the structs in this list may be duplicated.*/
 List_Entry *scanned_list;
+/* Head of waiting_list that holds the scanned device structs of devices
+* waiting for an available thread to send messages to their address.*/
 List_Entry *waiting_list;
+/* Head of tracking_object_list that holds the scanned device structs of devices
+* to be processed for each device in the list, a line contain of it's MAC
+* address and time at which the address is found in placed to a tracked object
+* buffer to be send the gateway and search.*/
+List_Entry *tracked_object_list;
 
-/* Two global flags for threads */
+/* Global flags for communication among threads */
+/* A global flag that in initially set to true by main thread. It is set to false
+* by any thread when the thread encounters a fatal error, indicating that it is about to exit.*/
 bool ready_to_work = true;
+/* A global flag that will be set to true be the main thread to inform all of the thread that
+* scanning operation have been canceled. The flag set by main thread.*/
 bool send_message_cancelled = true;
+/* A global flag that in initially set to true by main thread. It is set to false
+* by track_devices thread when the tracked_objects_list's data has write in a text file.*/
+bool ready_to_track = true;
 
 
 
@@ -363,24 +379,292 @@ extern int errno;
 /*
 * FUNCTIONS
 */
-
+/*
+*  get_config:
+*
+*  This function reads the specified config file line by line until the
+*  end of file, and stores the data in the lines into the global variable of a
+*  Config struct.
+*
+*  Parameters:
+*
+*  file_name - the name of the config file that stores all the beacon data
+*
+*  Return value:
+*
+*  config - Config struct including file path, coordinates, etc.
+*/
 Config get_config(char *file_name);
+/*
+*  get_system_time:
+*
+*  This helper function fetches the current time according to the system
+*  clock in terms of the number of milliseconds since January 1, 1970.
+*
+*  Parameters:
+*
+*  None
+*
+*  Return value:
+*
+*  system_time - system time in milliseconds
+*/
 long long get_system_time();
+/*
+*  send_to_push_dongle:
+*
+*  When called, this functions constructs a ScannedDevice struct using the
+*  input bluetooth_device_address as MAC address and current time as timestamp.
+*  It then checks whether there is a ScannedDevice struct in the scanned list
+*  with MAC address matching the input MAC address. If there is no such
+*  ScannedDevice struct, the function inserts the newly constructed struct at
+*  the head of the waiting list. It inserts new struct at the head of the
+*  scanned list regarded as the results of above mentioned test.
+*
+*  Parameters:
+*
+*  bluetooth_device_address - bluetooth device address
+*
+*  Return value:
+*
+*  None
+*/
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
+/*
+*  print_RSSI_value:
+*
+*  This function prints the RSSI value along with the MAC address of the
+*  user's scanned bluetooth device. When the LBeacon is running, we will
+*  continuously see a list of scanned bluetooth devices running in the
+*  console.
+*
+*  Parameters:
+*
+*  bluetooth_device_address - bluetooth device address
+*  has_rssi - whether the bluetooth device has an RSSI value or not
+*  rssi - RSSI value of bluetooth device
+*
+*  Return value:
+*
+*  None
+*/
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi);
-void track_devices(bdaddr_t *bluetooth_device_address, char *file_name);
+/*
+*  track_devices:
+*
+*  This function tracks the MAC addresses of scanned bluetooth devices under
+*  the beacon. An output file will contain for each timestamp and the MAC
+*  addresses of the scanned bluetooth devices at the given timestamp.
+*
+*  Parameters:
+*
+*  file_name - name of the file where all the data will be stored
+*
+*  Return value:
+*
+*  None
+*/
+void *track_devices(bdaddr_t *bluetooth_device_address, char *file_name);
+/*
+*  check_is_in_list:
+*
+*  This helper function checks whether the specified MAC address given as
+*  input is in the specified list of ScannedDevice struct of bluetooth devices.
+*  If it is, the function returns true, else the function returns false.
+*
+*  Parameters:
+*
+*  list - the list is going to be checked
+*  address - scanned MAC address of a bluetooth device
+*
+*  Return value:
+*
+*  temp - the node which its MAC address matched with the input address
+*  NULL - there is no matched address in the list
+*
+*/
 struct Node *check_is_in_list(List_Entry *list, char address[]);
+/*
+*  print_MACaddress:
+*
+*  This helper function prints the MAC addresses which is used with the
+*  function of print_list defined in LinkedList.h.
+*
+*  Parameters:
+*
+*  sc - anytype of data which will be printed
+*
+*  Return value:
+*
+*  None
+*/
 void print_MACaddress(void *sc);
+/*
+*  print_Timestamp:
+*
+*  This helper function prints the timestamp which is used with the
+*  function of print_list defined in LinkedList.h.
+*
+*  Parameters:
+*
+*  sc - anytype of data which will be printed
+*
+*  Return value:
+*
+*  None
+*/
+void print_Timestamp(void *sc);
+/*
+*  enable_advertising:
+*
+*  This function enables the LBeacon to start advertising, sets the time
+*  interval for advertising, and calibrates the RSSI value.
+*
+*  Parameters:
+*
+*  advertising_interval - the time interval for which the LBeacon can
+*  advertise advertising_uuid - universally unique identifier for advertising
+*  rssi_value - RSSI value of the bluetooth device
+*
+*  Return value:
+*
+*  1 - If there is an error, 1 is returned.
+*  0 - If advertising was successfullly enabled, then the function returns 0.
+*/
 int enable_advertising(int advertising_interval, char *advertising_uuid,
     int rssi_value);
+/*
+*  disable_advertising:
+*
+*  This function disables the advertising capabilities of the beacon.
+*
+*  Parameters:
+*
+*  None
+*
+*  Return value:
+*
+*  1 - If there is an error, 1 is returned.
+*  0 - If advertising was successfullly disabled, 0 is returned.
+*/
 int disable_advertising();
+/*
+*  ble_beacon:
+*
+*  This function allows avertising to be stopped with ctrl-c if
+*  enable_advertising was a success.
+*
+*  Parameters:
+*
+*  beacon_location - advertising uuid
+*
+*  Return value:
+*
+*  None
+*/
 void *ble_beacon(void *beacon_location);
+/*
+*  cleanup_scanned_list:
+*
+*  This function determines when scernned Device struct of each discovered
+*  device remains in the seanned list for at most TIME_IN_SCANNED_LIST sec
+*  scanned data of device in the scanned list. In the background, This work
+*  thread continuously check the scanned list. If so, the ScannedDevice
+*  struct will be removed.
+*
+*  Parameters:
+*
+*  None
+*
+*  Return value:
+*
+*  None
+*/
 void *cleanup_scanned_list(void);
+/*
+*  queue_to_array:
+*
+*  This function continuously looks through the ThreadStatus array that
+*  contains all the send_file thread status. When a thread becomes available
+*  and the waiting list is not empty, the first MAC address in the waiting
+*  list will be added to the ThreadStatus array and removed from the waiting
+*  list.
+*
+*  Parameters:
+*
+*  None
+*
+*  Return value:
+*
+*  None
+*/
 void *queue_to_array();
+/*
+*  send_file:
+*
+*  This function enables the caller to send the push message asynchronously
+*  using the specified thread.
+*
+*  [N.B. The beacon may still be scanning for other bluetooth devices.]
+*
+*  Parameters:
+*
+*  id - ID of the thread used to send the push message
+*
+*  Return value:
+*
+*  None
+*/
 void *send_file(void *dongle_id);
+/*
+*  start_scanning:
+*
+*  This function scans continuously for bluetooth devices under the coverage
+*  of the  beacon until there is a need to cancel scanning. Each scanned
+*  device will fall under one of three cases: a bluetooth device with no RSSI
+*  value and a bluetooth device with a RSSI value, When the device is within
+*  RSSI value, the bluetooth device will  be added to the linked list so a
+*  message can be sent to the device.
+*
+*  Parameters:
+*
+*  None
+*
+*  Return value:
+*
+*  None
+*/
 void start_scanning();
+/*
+*  startThread:
+*
+*  This function initializes the threads.
+*
+*  Parameters:
+*
+*  threads - name of the thread
+*  run - the function for thread to do
+*  arg - the argument for thread's function
+*
+*  Return value:
+*
+*  None
+*/
 void startThread(pthread_t threads, void * (*run)(void*), void *arg);
+/*
+*  clean_exit:
+*
+*  This function releases all the resources and set the flag.
+*
+*  Parameters:
+*
+*  None
+*
+*  Return value:
+*
+*  None
+*/
 void cleanup_exit();
 
 
@@ -388,65 +672,60 @@ void cleanup_exit();
 * EXTERNAL FUNCTIONS
 */
 
-/* The function calls the function of list_insert_ to add a new node at the
-* first of the list.*/
+/* This function is called to insert a node at the head of the list.*/
 extern void list_insert_head(List_Entry *new_node, List_Entry *head);
 
-/* The function calls the function of remove_node__ to delete a node in the
-* list.*/
+/* This function is called to remove a node from the list.*/
 extern void list_remove_node(List_Entry *removed_node_ptrs);
 
-/* The function returns the length of the list. */
+/* This function is called to get the length of the specified list. */
 extern int get_list_length(List_Entry *entry);
 
-/*In dirent.h, Open a directory stream corresponding */
+/* This function is called to open a specified directory */
 extern DIR *opendir(const char *dirname);
 
-/*In obexftp/client.h, Create an obexftp client.*/
+/* This function is called to create an obexftp client.*/
 extern obexftp_client_t * obexftp_open(int transport, obex_ctrans_t *ctrans,
     obexftp_info_cb_t infocb, void *infocb_data);
 
-/*In strung.h, Fill block of memory*/
+/* This function is called to fill block of memory*/
 extern void * memset(void * ptr, int value, size_t num);
 
-/* In stdlib.h, Allocate memory block.*/
+/* This function is called to allocate memory block.*/
 extern void* malloc(size_t size);
 
-/* In stdlib.h, Deallocate memory block.*/
+/* This function is called to deallocate memory block.*/
 extern void free(void* ptr);
 
-/* In bluetooth.h,  Opens a Bluetooth socket with the specified resource
+/* This function is called to open a Bluetooth socket with the specified resource
 *  number*/
 extern int hci_open_dev(int dev_id);
 
-/*In bluetooth/hci_lib.h, Clear filter*/
+/* This function is called to clear filter */
 extern void hci_filter_clear(struct hci_filter *    f);
 
-/*In bluetooth/hci_lib.h, Filter set ptype */
+/* This function is called to let filter set ptype */
 extern void hci_filter_set_ptype(int t, struct hci_filter *f);
 
-/*In bluetooth/hci_lib.h, Filter set event */
+/* This function is called to let filter set event */
 extern void hci_filter_set_event(int e, struct hci_filter *f);
 
-/*In bluetooth/hci_lib.h, Configure inquiry mode */
+/* This function is called to configure inquiry mode */
 extern int hci_write_inquiry_mode(int dd, uint8_t mode, int to);
 
-/*In bluetooth/hci_lib.h, Send cmd */
+/* This function is called to send cmd */
 extern int  hci_send_cmd(int dd, uint16_t ogf, uint16_t ocf, uint8_t plen,
     void *param);
 
-/*In pthread.h, Initialize thread attributes object*/
+/* This function is called to initialize thread attributes object*/
 extern int pthread_attr_init(pthread_attr_t *attr);
 
-/*In pthread.h, Destroy thread attributes object*/
+/* This function is called to destroy thread attributes object*/
 extern int pthread_attr_destroy(pthread_attr_t *attr);
 
-/*In pthread.h, Detach a thread*/
+/* This function is called to detach a thread*/
 extern int pthread_detach(pthread_t thread);
 
-/*In pthread.h, Create a new thread*/
+/* This function is called to create a new thread*/
 extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     void *(*start_routine) (void *), void *arg);
-
-
-
