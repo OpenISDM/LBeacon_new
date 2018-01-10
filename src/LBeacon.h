@@ -344,12 +344,15 @@ Config g_config;
 ThreadStatus *g_idle_handler;
 
 /* Three list of struct for recording scanned devices */
+
 /* Head of scanned_list that holds the scanned device structs of devices found in recent scan.
 * Some of the structs in this list may be duplicated.*/
 List_Entry *scanned_list;
+
 /* Head of waiting_list that holds the scanned device structs of devices
 * waiting for an available thread to send messages to their address.*/
 List_Entry *waiting_list;
+
 /* Head of tracking_object_list that holds the scanned device structs of devices
 * to be processed for each device in the list, a line contain of it's MAC
 * address and time at which the address is found in placed to a tracked object
@@ -363,9 +366,7 @@ bool ready_to_work = true;
 /* A global flag that will be set to true be the main thread to inform all of the thread that
 * scanning operation have been canceled. The flag set by main thread.*/
 bool send_message_cancelled = true;
-/* A global flag that in initially set to true by main thread. It is set to false
-* by track_devices thread when the tracked_objects_list's data has write in a text file.*/
-bool ready_to_track = true;
+
 
 
 
@@ -465,7 +466,7 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 *
 *  None
 */
-void *track_devices(bdaddr_t *bluetooth_device_address, char *file_name);
+void *track_devices(char *file_name);
 /*
 *  check_is_in_list:
 *

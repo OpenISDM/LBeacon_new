@@ -179,8 +179,9 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     ScannedDevice data;
     data.initial_scanned_time = get_system_time();
     strncpy(data.scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS);
-    struct Node *node_s, *node_w;
+    struct Node *node_s, *node_w, *node_t;
     node_s = (struct Node*)malloc(sizeof(struct Node));
+    node_t = (struct Node*)malloc(sizeof(struct Node));
 
 
     /* Add newly scanned devices to the waiting list for new scanned devices */
@@ -193,7 +194,9 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     }
 
     list_insert_first(&node_s->ptrs, scanned_list);
+    list_insert_first(&node_t->ptrs, tracked_object_list);
     node_s->data = &data;
+    node_t->data = &data;
 
 
 }
@@ -225,41 +228,58 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 }
 
 
-void *track_devices(bdaddr_t *bluetooth_device_address, char *file_name) {
 
-    /* Create a temporary node and set as the head */
-    struct List_Entry *lisptrs;
-    Node *temp;
-    /* Go through list*/
-    list_for_each(lisptrs, tracked_object_list){
+void *track_devices(char *file_name) {
 
-        temp = ListEntry(lisptrs, Node, ptrs);
-        ScannedDevice *temp_data;
-        temp_data = (struct ScannedDevice *)temp->data;
+    while(ready_to_work == true){
+
+        /*Check whether the list is empty */
+        if(get_list_length(tracked_object_list) == 0){
+
+            continue;
+
+        }
+              
+        /* Create a temporary node and set as the head */
+        struct List_Entry *lisptrs;
+        Node *temp;
+        char timestamp_str[LENGTH_OF_TIME];
+
         /* Create a new file with tracked_object_list's data*/
-            FILE *output = fopen(file_name, "w+");
-            if(output == NULL){
-                perror(errordesc[E_OPEN_FILE].message);
-                return;
-            }
+        FILE *output = fopen(file_name, "a+");
+        
+        if(output == NULL){
+                    
+            perror(errordesc[E_OPEN_FILE].message);
+            return;
+        }   
+    
+        /* Go through list*/
+        list_for_each(lisptrs, tracked_object_list){    
+
+            temp = ListEntry(lisptrs, Node, ptrs);
+            ScannedDevice *temp_data;
+            temp_data = (struct ScannedDevice *)temp->data;
+
+            /* Convert the timestamp from list to string */
+            unsigned timestamp = (unsigned)&temp_data->initial_scanned_time;
+            sprintf(timestamp_str, "%u", timestamp);
+
             fputs("MAC address: ",output);
-            fputs(temp_data->scanned_mac_address, output);
+            fputs(&temp_data->scanned_mac_address[0], output);
             fputs("/n", output);
             fputs("Timestamp: ", output);
-            fputs(temp_data->initial_scanned_time, output);
-            fclose(output);
-
-            ready_to_track = false;
-
+            fputs(timestamp_str, output);
+            fputs("\n", output);
+                
             /* Clean up the tracked_object_list */
-            while(ready_to_track == false){
-                list_remove_node(&temp->ptrs);
-                free(temp);
-                ready_to_track = true;
-            }
+            list_remove_node(&temp->ptrs);
+            free(temp); 
 
+        }
+        fclose(output);
+    
     }
-
 
 }
 
@@ -551,12 +571,13 @@ void *ble_beacon(void *beacon_location) {
 }
 
 
+
 void *cleanup_scanned_list(void) {
 
 
     while (ready_to_work == true) {
 
-
+        /*Check whether the list is empty */
         if(get_list_length(scanned_list) == 0){
             continue;
         }
@@ -574,13 +595,6 @@ void *cleanup_scanned_list(void) {
 
             /* Device has been in the scanned list for at least 30 seconds */
             if (get_system_time() - temp_data->initial_scanned_time > TIMEOUT) {
-
-                /* Add this scanned devices to the tracked_object_list */
-                struct Node *node_t;
-                node_t = (struct Node*)malloc(sizeof(struct Node));
-                node_t = temp;
-                list_insert_first(&node_t->ptrs, tracked_object_list);
-
                 /* Remove this scanned devices from the scanned list*/
                 list_remove_node(&temp->ptrs);
                 free(temp);
@@ -597,6 +611,7 @@ void *cleanup_scanned_list(void) {
     return;
 
 }
+
 
 
 void *queue_to_array() {
@@ -934,7 +949,7 @@ void start_scanning() {
                          (sizeof(*info) * results_id) + 1;
 
                     print_RSSI_value(&info->bdaddr, 0, 0);
-                    track_devices(&info->bdaddr, "output.txt");
+                    
 
                 }
 
@@ -948,7 +963,7 @@ void start_scanning() {
                     info_rssi = (void *)event_buffer_pointer +
                          (sizeof(*info_rssi) * results_id) + 1;
 
-                     track_devices(&info_rssi->bdaddr, "output.txt");
+                    
                      print_RSSI_value(&info_rssi->bdaddr, 1,
                          info_rssi->rssi);
 
@@ -1122,7 +1137,7 @@ int main(int argc, char **argv) {
     /* Create the thread for track device */
     pthread_t track_devices_thread;
 
-    startThread(track_devices_thread, track_devices, NULL);
+    startThread(track_devices_thread, track_devices, "output.txt");
 
 
 
