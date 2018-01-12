@@ -636,7 +636,7 @@ void *queue_to_array() {
             device_id++) {
 
             void *data;
-            data = get_list_head(waiting_list);
+            data = get_list_tail(waiting_list);
 
             /* Check whether the return value from get_list_head is NULL */
             if(data == NULL){

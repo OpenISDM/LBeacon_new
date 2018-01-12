@@ -597,10 +597,10 @@ void *cleanup_scanned_list(void);
 *  queue_to_array:
 *
 *  This function continuously looks through the ThreadStatus array that
-*  contains all the send_file thread status. When a thread becomes available
-*  and the waiting list is not empty, the first MAC address in the waiting
-*  list will be added to the ThreadStatus array and removed from the waiting
-*  list.
+*  contains the status of all the send_file thread. When the function finds the
+*  ThreadStatus of available thread and the waiting list is not empty, the 
+*  function removes the last node from the waiting list and copies the  MAC 
+*  address in the removed node to the ThreadStatus.
 *
 *  Parameters:
 *
@@ -614,8 +614,8 @@ void *queue_to_array();
 /*
 *  send_file:
 *
-*  This function enables the caller to send the push message asynchronously
-*  using the specified thread.
+*  This function pushes a message asynchronously to devices. It is the thread
+*  function of the specified thread.
 *
 *  [N.B. The beacon may still be scanning for other bluetooth devices.]
 *
