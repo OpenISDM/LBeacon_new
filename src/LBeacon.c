@@ -329,7 +329,7 @@ void print_Timestamp(void *sc){
 }
 
 
-int enable_advertising(int advertising_interval, char *advertising_uuid,
+Error_code enable_advertising(int advertising_interval, char *advertising_uuid,
 
     int rssi_value) {
 
@@ -338,8 +338,8 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
 
     if ((device_handle = hci_open_dev(dongle_device_id)) < 0) {
         /* Error handling */
-        perror("Error opening device");
-        return (1);
+        perror(errordesc[E_OPEN_DEVICE].message);
+        return E_OPEN_DEVICE;
     }
 
     le_set_advertising_parameters_cp advertising_parameters_copy;
@@ -368,7 +368,7 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
         hci_close_dev(device_handle);
         fprintf(stderr, "Can't send request %s (%d)\n", strerror(errno),
                 errno);
-        return (1);
+        return E_SEND_REQUEST_TIMEOUT;
 
     }
 
@@ -393,7 +393,7 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
         hci_close_dev(device_handle);
         fprintf(stderr, "Can't send request %s (%d)\n", strerror(errno),
                 errno);
-        return (1);
+        return E_SEND_REQUEST_TIMEOUT;
 
     }
 
@@ -471,26 +471,28 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
         /* Error handling */
         fprintf(stderr, "Can't send request %s (%d)\n", strerror(errno),
                 errno);
-        return (1);
+        return E_SEND_REQUEST_TIMEOUT;
     }
 
     if (status) {
         /* Error handling */
         fprintf(stderr, "LE set advertise returned status %d\n", status);
-        return (1);
+        return E_ADVERTISE_STATUS;
     }
+
+    return WORK_SCUCESSFULLY;
 }
 
 
 
-int disable_advertising() {
+Error_code disable_advertising() {
 
     int dongle_device_id = hci_get_route(NULL);
     int device_handle = 0;
     if ((device_handle = hci_open_dev(dongle_device_id)) < 0) {
         /* Error handling */
-        perror("Could not open device");
-        return (1);
+        perror(errordesc[E_OPEN_FILE].message);
+        return E_OPEN_FILE;
     }
 
     le_set_advertise_enable_cp advertisement_copy;
@@ -517,7 +519,7 @@ int disable_advertising() {
         /* Error handling */
         fprintf(stderr, "Can't set advertise mode: %s (%d)\n",
                 strerror(errno), errno);
-        return (1);
+        return E_ADVERTISE_MODE;
 
     }
 
@@ -526,13 +528,17 @@ int disable_advertising() {
         /* Error handling */
         fprintf(stderr, "LE set advertise enable on returned status %d\n",
             status);
-        return (1);
+        return E_ADVERTISE_STATUS;
 
     }
+
+
+    return WORK_SCUCESSFULLY;
+
 }
 
 
-void *ble_beacon(void *beacon_location) {
+void *stop_ble_beacon(void *beacon_location) {
 
     int enable_advertising_success =
         enable_advertising(ADVERTISING_INTERVAL, beacon_location,
@@ -1114,9 +1120,9 @@ int main(int argc, char **argv) {
 
 
     /* Create the thread for message advertising to BLE bluetooth devices */
-    pthread_t ble_beacon_thread;
+    pthread_t stop_ble_beacon_thread;
 
-    startThread(ble_beacon_thread, ble_beacon, hex_c);
+    startThread(stop_ble_beacon_thread, stop_ble_beacon, hex_c);
 
 
 
@@ -1238,8 +1244,8 @@ int main(int argc, char **argv) {
     }
 
 
-    pthread_cancel(ble_beacon_thread);
-    return_value = pthread_join(ble_beacon_thread, NULL);
+    pthread_cancel(stop_ble_beacon_thread);
+    return_value = pthread_join(stop_ble_beacon_thread, NULL);
 
     if (return_value != 0) {
         perror(strerror(errno));

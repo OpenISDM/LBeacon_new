@@ -95,7 +95,7 @@
 /* Number of lines in the config file */
 #define ConFIG_FILE_LENGTH 11
 
-/* Parameter that makes the start of the config file */
+/* Parameter that marks the start of the config file */
 #define DELIMITER "="
 
 /* BlueZ bluetooth extended inquiry response protocol: flags */
@@ -255,8 +255,8 @@ typedef struct ThreadStatus {
 } ThreadStatus;
 
 
-/* Struct for storing scanned MAC address of the user's
-*  device and the time instant at when the address is scanned*/
+/* Struct for storing MAC address of the user's device and the time instant 
+ * at when the address is scanned */
 typedef struct ScannedDevice {
     long long initial_scanned_time;
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
@@ -268,20 +268,25 @@ typedef struct ScannedDevice {
 * ERROR CODE
 */
 
-enum Error_code {
+typedef enum Error_code {
 
-    E_OPEN_FILE = 0,
-    E_SEND_OPEN_SOCKET = 1,
-    E_SEND_OBEXFTP_CLIENT = 2,
-    E_SEND_CONNECT_DEVICE = 3,
-    E_SEND_PUT_FILE = 4,
-    E_SEND_DISCONNECT_CLIENT = 5,
-    E_SCAN_OPEN_SOCKET = 6,
-    E_SCAN_SET_HCI_FILTER = 7,
-    E_SCAN_SET_INQUIRY_MODE = 8,
-    E_SCAN_START_INQUIRY = 9
+    WORK_SCUCESSFULLY = 0,
+    E_OPEN_FILE = 1,
+    E_OPEN_DEVICE = 2,
+    E_SEND_OPEN_SOCKET = 3,
+    E_SEND_OBEXFTP_CLIENT = 4,
+    E_SEND_CONNECT_DEVICE = 5,
+    E_SEND_PUT_FILE = 6,
+    E_SEND_DISCONNECT_CLIENT = 7,
+    E_SCAN_OPEN_SOCKET = 8,
+    E_SCAN_SET_HCI_FILTER = 9,
+    E_SCAN_SET_INQUIRY_MODE = 10,
+    E_SCAN_START_INQUIRY = 11,
+    E_SEND_REQUEST_TIMEOUT = 12,
+    E_ADVERTISE_STATUS = 13,
+    E_ADVERTISE_MODE = 14
 
-};
+}Error_code;
 
 typedef enum Error_code error_t;
 
@@ -290,7 +295,9 @@ struct _errordesc {
     char *message;
 }errordesc[] = {
 
+    {WORK_SCUCESSFULLY, "The code works successfullly"},
     {E_OPEN_FILE, "Error with opening file"},
+    {E_OPEN_DEVICE, "Error with opening the dvice"},
     {E_SEND_OPEN_SOCKET, "Error with opening socket"},
     {E_SEND_OBEXFTP_CLIENT, "Error opening obexftp client"},
     {E_SEND_CONNECT_DEVICE, "Error connecting to obexftp device"},
@@ -300,6 +307,9 @@ struct _errordesc {
     {E_SCAN_SET_HCI_FILTER, "Error with setting HCI filter"},
     {E_SCAN_SET_INQUIRY_MODE, "Error with settnig inquiry mode"},
     {E_SCAN_START_INQUIRY, "Error with starting inquiry"},
+    {E_SEND_REQUEST_TIMEOUT, "Timeout for sending request"},
+    {E_ADVERTISE_STATUS, "LE set advertise returned status"},
+    {E_ADVERTISE_MODE, "Error with setting advertise mode"},
 
 };
 
@@ -533,7 +543,7 @@ void print_Timestamp(void *sc);
 *  1 - If there is an error, 1 is returned.
 *  0 - If advertising was successfullly enabled, then the function returns 0.
 */
-int enable_advertising(int advertising_interval, char *advertising_uuid,
+Error_code enable_advertising(int advertising_interval, char *advertising_uuid,
     int rssi_value);
 /*
 *  disable_advertising:
@@ -549,7 +559,7 @@ int enable_advertising(int advertising_interval, char *advertising_uuid,
 *  1 - If there is an error, 1 is returned.
 *  0 - If advertising was successfullly disabled, 0 is returned.
 */
-int disable_advertising();
+Error_code disable_advertising();
 /*
 *  ble_beacon:
 *
@@ -564,7 +574,7 @@ int disable_advertising();
 *
 *  None
 */
-void *ble_beacon(void *beacon_location);
+void *stop_ble_beacon(void *beacon_location);
 /*
 *  cleanup_scanned_list:
 *
