@@ -1,7 +1,7 @@
 # LBeacon
 #---------------------------------------------------------------------------
 CC = gcc
-OBJS = LBeacon.o Utilities.o LinkedList.o Queue.o
+OBJS = LBeacon.o Utilities.o LinkedList.o 
 CFLAGS = -g
 LIB = -L/usr/local/lib
 
@@ -15,7 +15,5 @@ Utilities.o: Utilities.c Utilities.h
 	$(CC) Utilities.c $(CFLAGS) $(LIB) -c
 LinkedList.o: LinkedList.c LinkedList.h
 	$(CC) LinkedList.c $(CFLAGS) $(LIB) -c
-Queue.o: Queue.c Queue.h
-	$(CC) Queue.c $(CFLAGS) $(LIB) -c
 clean:
 	@rm -rf *.o
