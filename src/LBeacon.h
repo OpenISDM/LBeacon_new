@@ -392,6 +392,7 @@ extern int errno;
 /*
 * FUNCTIONS
 */
+
 /*
 *  get_config:
 *
@@ -408,6 +409,7 @@ extern int errno;
 *  config - Config struct including file path, coordinates, etc.
 */
 Config get_config(char *file_name);
+
 /*
 *  get_system_time:
 *
@@ -423,6 +425,7 @@ Config get_config(char *file_name);
 *  system_time - system time in milliseconds
 */
 long long get_system_time();
+
 /*
 *  send_to_push_dongle:
 *
@@ -443,6 +446,7 @@ long long get_system_time();
 *  None
 */
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
+
 /*
 *  print_RSSI_value:
 *
@@ -463,6 +467,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
 */
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi);
+
 /*
 *  track_devices:
 *
@@ -479,6 +484,7 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 *  None
 */
 void *track_devices(char *file_name);
+
 /*
 *  check_is_in_list:
 *
@@ -498,6 +504,7 @@ void *track_devices(char *file_name);
 *
 */
 struct Node *check_is_in_list(List_Entry *list, char address[]);
+
 /*
 *  print_MACaddress:
 *
@@ -513,6 +520,7 @@ struct Node *check_is_in_list(List_Entry *list, char address[]);
 *  None
 */
 void print_MACaddress(void *sc);
+
 /*
 *  print_Timestamp:
 *
@@ -528,6 +536,7 @@ void print_MACaddress(void *sc);
 *  None
 */
 void print_Timestamp(void *sc);
+
 /*
 *  enable_advertising:
 *
@@ -547,6 +556,7 @@ void print_Timestamp(void *sc);
 */
 Error_code enable_advertising(int advertising_interval, char *advertising_uuid,
     int rssi_value);
+
 /*
 *  disable_advertising:
 *
@@ -562,6 +572,7 @@ Error_code enable_advertising(int advertising_interval, char *advertising_uuid,
 *  
 */
 Error_code disable_advertising();
+
 /*
 *  ble_beacon:
 *
@@ -577,6 +588,7 @@ Error_code disable_advertising();
 *  Error_code: The error code for the corresponding error 
 */
 void *stop_ble_beacon(void *beacon_location);
+
 /*
 *  cleanup_scanned_list:
 *
@@ -595,6 +607,7 @@ void *stop_ble_beacon(void *beacon_location);
 *  None
 */
 void *cleanup_scanned_list(void);
+
 /*
 *  queue_to_array:
 *
@@ -613,6 +626,7 @@ void *cleanup_scanned_list(void);
 *  None
 */
 void *queue_to_array();
+
 /*
 *  send_file:
 *
@@ -630,6 +644,7 @@ void *queue_to_array();
 *  None
 */
 void *send_file(void *dongle_id);
+
 /*
 *  start_scanning:
 *
@@ -651,6 +666,7 @@ void *send_file(void *dongle_id);
 *  None
 */
 void start_scanning();
+
 /*
 *  startThread:
 *
@@ -667,6 +683,7 @@ void start_scanning();
 *  Error_code: The error code for the corresponding error 
 */
 Error_code startThread(pthread_t threads, void * (*thfunct)(void*), void *arg);
+
 /*
 *  cleanup_exit:
 *
