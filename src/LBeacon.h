@@ -284,7 +284,8 @@ typedef enum Error_code {
     E_SCAN_START_INQUIRY = 11,
     E_SEND_REQUEST_TIMEOUT = 12,
     E_ADVERTISE_STATUS = 13,
-    E_ADVERTISE_MODE = 14
+    E_ADVERTISE_MODE = 14,
+    E_START_THREAD = 15
 
 }Error_code;
 
@@ -310,6 +311,7 @@ struct _errordesc {
     {E_SEND_REQUEST_TIMEOUT, "Timeout for sending request"},
     {E_ADVERTISE_STATUS, "LE set advertise returned status"},
     {E_ADVERTISE_MODE, "Error with setting advertise mode"},
+    {E_START_THREAD, "Error with creating thread"},
 
 };
 
@@ -556,8 +558,8 @@ Error_code enable_advertising(int advertising_interval, char *advertising_uuid,
 *
 *  Return value:
 *
-*  1 - If there is an error, 1 is returned.
-*  0 - If advertising was successfullly disabled, 0 is returned.
+*  Error_code: The error code for the corresponding error 
+*  
 */
 Error_code disable_advertising();
 /*
@@ -572,7 +574,7 @@ Error_code disable_advertising();
 *
 *  Return value:
 *
-*  None
+*  Error_code: The error code for the corresponding error 
 */
 void *stop_ble_beacon(void *beacon_location);
 /*
@@ -632,11 +634,13 @@ void *send_file(void *dongle_id);
 *  start_scanning:
 *
 *  This function scans continuously for bluetooth devices under the coverage
-*  of the  beacon until there is a need to cancel scanning. Each scanned
-*  device will fall under one of three cases: a bluetooth device with no RSSI
-*  value and a bluetooth device with a RSSI value, When the device is within
-*  RSSI value, the bluetooth device will  be added to the linked list so a
-*  message can be sent to the device.
+*  of the  beacon until scanning is cancelled. Each scanned device fall under 
+*  one of three cases: a bluetooth device with no RSSI value and a bluetooth 
+*  device with a RSSI value, When the RSSI value of the device is within the 
+*  threshold, the ScannedDevice struct of the device is be added to the linked 
+*  list of devices to which messages will be sent.
+*
+*  [N.B. This function is extented by the main thread. ]
 *
 *  Parameters:
 *
@@ -655,16 +659,16 @@ void start_scanning();
 *  Parameters:
 *
 *  threads - name of the thread
-*  run - the function for thread to do
+*  thfunct - the function for thread to do
 *  arg - the argument for thread's function
 *
 *  Return value:
 *
-*  None
+*  Error_code: The error code for the corresponding error 
 */
-void startThread(pthread_t threads, void * (*run)(void*), void *arg);
+Error_code startThread(pthread_t threads, void * (*thfunct)(void*), void *arg);
 /*
-*  clean_exit:
+*  cleanup_exit:
 *
 *  This function releases all the resources and set the flag.
 *

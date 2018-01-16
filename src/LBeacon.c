@@ -1011,19 +1011,19 @@ void start_scanning() {
 }
 
 
-void startThread(pthread_t threads ,void * (*run)(void*), void *arg){
+Error_code startThread(pthread_t threads ,void * (*thfunct)(void*), void *arg){
 
     pthread_attr_t attr;
     if (pthread_attr_init(&attr) != 0
-      || pthread_create(&threads, &attr, run, arg) != 0
+      || pthread_create(&threads, &attr, thfunct, arg) != 0
       || pthread_attr_destroy(&attr) != 0
       || pthread_detach(threads) != 0) {
 
-    perror(strerror(errno));
-    return;
+   
+    return E_START_THREAD;
   }
 
-  return;
+  return WORK_SCUCESSFULLY;
 
 }
 
@@ -1122,14 +1122,24 @@ int main(int argc, char **argv) {
     /* Create the thread for message advertising to BLE bluetooth devices */
     pthread_t stop_ble_beacon_thread;
 
-    startThread(stop_ble_beacon_thread, stop_ble_beacon, hex_c);
+    return_value = startThread(stop_ble_beacon_thread, stop_ble_beacon, hex_c);
+    
+    if(return_value != WORK_SCUCESSFULLY){
+         perror(errordesc[E_START_THREAD].message);
+        cleanup_exit();
+    }
 
 
 
     /* Create the the cleanup_scanned_list thread */
     pthread_t cleanup_scanned_list_thread;
 
-    startThread(cleanup_scanned_list_thread,cleanup_scanned_list, NULL);
+    return_value = startThread(cleanup_scanned_list_thread,cleanup_scanned_list, NULL);
+
+    if(return_value != WORK_SCUCESSFULLY){
+         perror(errordesc[E_START_THREAD].message);
+        cleanup_exit();
+    }
 
 
 
@@ -1137,13 +1147,23 @@ int main(int argc, char **argv) {
      * available thread */
     pthread_t queue_to_array_thread;
 
-    startThread(queue_to_array_thread, queue_to_array, NULL);
+    return_value = startThread(queue_to_array_thread, queue_to_array, NULL);
+    
+    if(return_value != WORK_SCUCESSFULLY){
+         perror(errordesc[E_START_THREAD].message);
+        cleanup_exit();
+    }
 
 
     /* Create the thread for track device */
     pthread_t track_devices_thread;
 
-    startThread(track_devices_thread, track_devices, "output.txt");
+    return_value = startThread(track_devices_thread, track_devices, "output.txt");
+
+    if(return_value != WORK_SCUCESSFULLY){
+         perror(errordesc[E_START_THREAD].message);
+        cleanup_exit();
+    }
 
 
 
@@ -1197,8 +1217,15 @@ int main(int argc, char **argv) {
 
             }
 
-        startThread(send_file_thread[device_id], send_file,
+        return_value =  startThread(send_file_thread[device_id], send_file,
                     (void *)dongle_device_id);
+
+        if(return_value != WORK_SCUCESSFULLY){
+            perror(errordesc[E_START_THREAD].message);
+            cleanup_exit();
+        }
+    
+
 
     }
 
