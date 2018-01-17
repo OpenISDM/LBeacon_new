@@ -6,43 +6,43 @@ Alpha version of LBeacon was demonstrated during Academia Sinica open house and 
 
 ### Installing LBeacon on Raspberry Pi
 
-[Download](https://www.raspberrypi.org/downloads/raspbian/) Raspbian Jessie Lite for the Raspberry Pi operating system and follow its installation guide.
+[Download](https://www.raspberrypi.org/downloads/raspbian/) Raspbian stretch lite for the Raspberry Pi operating system and follow its installation guide.
 
 In Raspberry Pi, install packages by running the following command:
 ```sh
-$ sudo apt-get update
-$ sudo apt-get upgrade
-$ sudo apt-get install -y git bluez libbluetooth-dev fuse libfuse-dev libexpat1-dev swig python-dev ruby ruby-dev libusb-1.0-0-dev default-jdk xsltproc libxml2-utils cmake doxygen
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt-get install -y git bluez libbluetooth-dev fuse libfuse-dev libexpat1-dev swig python-dev ruby ruby-dev libusb-1.0-0-dev default-jdk xsltproc libxml2-utils cmake doxygen
 ```
 Download open source code for obexftp and openobex libraries:
 ```sh
-$ git clone https://gitlab.com/openobex/mainline openobex
-$ git clone https://gitlab.com/obexftp/mainline obexftp
+git clone https://gitlab.com/openobex/mainline openobex
+git clone https://gitlab.com/obexftp/mainline obexftp
 ```
 To compile and install openobex and openftp libraries:
 ```sh
-$ cd openobex
-$ mkdir build
-$ cd build
-$ cmake ..
-$ sudo make
-$ sudo make install
-$ cd ../../
-$ cd obexftp
-$ mkdir build
-$ cd build
-$ cmake ..
-$ sudo make
-$ sudo make install
+cd openobex
+mkdir build
+cd build
+cmake ..
+sudo make
+sudo make install
+cd ../../
+cd obexftp
+mkdir build
+cd build
+cmake ..
+sudo make
+sudo make install
 ```
 Update the links/cache the dynamic loader uses:
 ```sh
-$ sudo ldconfig -v
+sudo ldconfig -v
 ```
 
 ### Compiling and Running LBeacon
 ```sh
-$ cd LBeacon/src
-$ gcc LBeacon.c Utilities.c LinkedList.c Queue.c -g -o LBeacon -L/usr/local/lib -lrt -lpthread -lmulticobex -lbfb -lbluetooth -lobexftp -lopenobex
-$ sudo ./LBeacon
+cd LBeacon/src
+gcc LBeacon.c Utilities.c LinkedList.c Queue.c -g -o LBeacon -L/usr/local/lib -lrt -lpthread -lmulticobex -lbfb -lbluetooth -lobexftp -lopenobex
+sudo ./LBeacon
 ```
