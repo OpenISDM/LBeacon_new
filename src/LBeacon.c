@@ -1045,14 +1045,18 @@ void cleanup_exit(){
 
 int main(int argc, char **argv) {
 
-    /* An iterator through the array of ScannedDevice struct */
+    /* An iterator through the list of ScannedDevice structs */
     int device_id;
 
-    /* Buffer that contains the location of the beacon */
+    /* Buffer that contains the hexadecimal location of the beacon */
     char hex_c[CONFIG_BUFFER_SIZE];
 
     /* Return value of pthread_create used to check for errors */
     int return_value;
+
+    /*Initialize the global flags */
+    send_message_cancelled == true;
+    ready_to_work = true;
 
     /*Initialize the lists */
     scanned_list = (struct List_Entry *)malloc(sizeof(struct List_Entry));
@@ -1070,13 +1074,14 @@ int main(int argc, char **argv) {
     g_push_file_path =
         malloc(g_config.file_path_length + g_config.file_name_length);
 
+    
     if (g_push_file_path == NULL) {
 
-        /* Error handling */
-        perror(strerror(errno));
+         /* Error handling */
+        perror(errordesc[E_MALLOC].message);
         cleanup_exit();
-        return;
-
+        return E_MALLOC;
+    
     }
 
     memcpy(g_push_file_path, g_config.file_path,
@@ -1091,21 +1096,24 @@ int main(int argc, char **argv) {
     int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
     g_idle_handler =
         malloc(maximum_number_of_devices * sizeof(ThreadStatus));
+    
     if (g_idle_handler == NULL) {
 
         /* Error handling */
-        perror(strerror(errno));
+        perror(errordesc[E_MALLOC].message);
         cleanup_exit();
-        return;
+        return E_MALLOC;
 
     }
 
     /* Initialize each ThreadStatus struct in the array */
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
+         
          strncpy(g_idle_handler[device_id].scanned_mac_address, "0",
          LENGTH_OF_MAC_ADDRESS);
         g_idle_handler[device_id].idle = true;
         g_idle_handler[device_id].is_waiting_to_send = false;
+    
     }
 
 
@@ -1229,8 +1237,10 @@ int main(int argc, char **argv) {
 
     }
 
+    /*Set send_message_cancelled flag to false now. All the thread are ready.*/
+    send_message_cancelled = false;
 
-
+    
     while(ready_to_work == true){
 
         start_scanning();

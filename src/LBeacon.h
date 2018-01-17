@@ -271,21 +271,22 @@ typedef struct ScannedDevice {
 typedef enum Error_code {
 
     WORK_SCUCESSFULLY = 0,
-    E_OPEN_FILE = 1,
-    E_OPEN_DEVICE = 2,
-    E_SEND_OPEN_SOCKET = 3,
-    E_SEND_OBEXFTP_CLIENT = 4,
-    E_SEND_CONNECT_DEVICE = 5,
-    E_SEND_PUT_FILE = 6,
-    E_SEND_DISCONNECT_CLIENT = 7,
-    E_SCAN_OPEN_SOCKET = 8,
-    E_SCAN_SET_HCI_FILTER = 9,
-    E_SCAN_SET_INQUIRY_MODE = 10,
-    E_SCAN_START_INQUIRY = 11,
-    E_SEND_REQUEST_TIMEOUT = 12,
-    E_ADVERTISE_STATUS = 13,
-    E_ADVERTISE_MODE = 14,
-    E_START_THREAD = 15
+    E_MALLOC = 1,
+    E_OPEN_FILE = 2,
+    E_OPEN_DEVICE = 3,
+    E_SEND_OPEN_SOCKET = 4,
+    E_SEND_OBEXFTP_CLIENT = 5,
+    E_SEND_CONNECT_DEVICE = 6,
+    E_SEND_PUT_FILE = 7,
+    E_SEND_DISCONNECT_CLIENT = 8,
+    E_SCAN_OPEN_SOCKET = 9,
+    E_SCAN_SET_HCI_FILTER = 10,
+    E_SCAN_SET_INQUIRY_MODE = 11,
+    E_SCAN_START_INQUIRY = 12,
+    E_SEND_REQUEST_TIMEOUT = 13,
+    E_ADVERTISE_STATUS = 14,
+    E_ADVERTISE_MODE = 15,
+    E_START_THREAD = 16
 
 }Error_code;
 
@@ -297,6 +298,7 @@ struct _errordesc {
 }errordesc[] = {
 
     {WORK_SCUCESSFULLY, "The code works successfullly"},
+    {E_MALLOC, "Error with allocating memory"},
     {E_OPEN_FILE, "Error with opening file"},
     {E_OPEN_DEVICE, "Error with opening the dvice"},
     {E_SEND_OPEN_SOCKET, "Error with opening socket"},
@@ -372,12 +374,14 @@ List_Entry *waiting_list;
 List_Entry *tracked_object_list;
 
 /* Global flags for communication among threads */
+
 /* A global flag that in initially set to true by main thread. It is set to false
 * by any thread when the thread encounters a fatal error, indicating that it is about to exit.*/
-bool ready_to_work = true;
+bool ready_to_work;
+
 /* A global flag that will be set to true be the main thread to inform all of the thread that
 * scanning operation have been canceled. The flag set by main thread.*/
-bool send_message_cancelled = true;
+bool send_message_cancelled;
 
 
 
