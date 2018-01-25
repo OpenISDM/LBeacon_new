@@ -76,7 +76,7 @@
 #include <unistd.h>
 #include "LinkedList.h"
 #include "Utilities.h"
-
+#include <sched.h>
 
 
 /*
@@ -255,7 +255,7 @@ typedef struct ThreadStatus {
 } ThreadStatus;
 
 
-/* Struct for storing MAC address of the user's device and the time instant 
+/* Struct for storing MAC address of the user's device and the time instant
  * at when the address is scanned */
 typedef struct ScannedDevice {
     long long initial_scanned_time;
@@ -572,8 +572,8 @@ Error_code enable_advertising(int advertising_interval, char *advertising_uuid,
 *
 *  Return value:
 *
-*  Error_code: The error code for the corresponding error 
-*  
+*  Error_code: The error code for the corresponding error
+*
 */
 Error_code disable_advertising();
 
@@ -589,7 +589,7 @@ Error_code disable_advertising();
 *
 *  Return value:
 *
-*  Error_code: The error code for the corresponding error 
+*  Error_code: The error code for the corresponding error
 */
 void *stop_ble_beacon(void *beacon_location);
 
@@ -617,8 +617,8 @@ void *cleanup_scanned_list(void);
 *
 *  This function continuously looks through the ThreadStatus array that
 *  contains the status of all the send_file thread. When the function finds the
-*  ThreadStatus of available thread and the waiting list is not empty, the 
-*  function removes the last node from the waiting list and copies the  MAC 
+*  ThreadStatus of available thread and the waiting list is not empty, the
+*  function removes the last node from the waiting list and copies the  MAC
 *  address in the removed node to the ThreadStatus.
 *
 *  Parameters:
@@ -653,10 +653,10 @@ void *send_file(void *dongle_id);
 *  start_scanning:
 *
 *  This function scans continuously for bluetooth devices under the coverage
-*  of the  beacon until scanning is cancelled. Each scanned device fall under 
-*  one of three cases: a bluetooth device with no RSSI value and a bluetooth 
-*  device with a RSSI value, When the RSSI value of the device is within the 
-*  threshold, the ScannedDevice struct of the device is be added to the linked 
+*  of the  beacon until scanning is cancelled. Each scanned device fall under
+*  one of three cases: a bluetooth device with no RSSI value and a bluetooth
+*  device with a RSSI value, When the RSSI value of the device is within the
+*  threshold, the ScannedDevice struct of the device is be added to the linked
 *  list of devices to which messages will be sent.
 *
 *  [N.B. This function is extented by the main thread. ]
@@ -684,7 +684,7 @@ void start_scanning();
 *
 *  Return value:
 *
-*  Error_code: The error code for the corresponding error 
+*  Error_code: The error code for the corresponding error
 */
 Error_code startThread(pthread_t threads, void * (*thfunct)(void*), void *arg);
 
@@ -702,7 +702,20 @@ Error_code startThread(pthread_t threads, void * (*thfunct)(void*), void *arg);
 *  None
 */
 void cleanup_exit();
-
+/*
+*  setminprio:
+*
+*  This function is call to set specified thread's minimum priority.
+*
+*  Parameters:
+*
+*  None
+*
+*  Return value:
+*
+*  None
+*/
+void setminprio(pthread_t threads);
 
 /*
 * EXTERNAL FUNCTIONS
@@ -765,3 +778,9 @@ extern int pthread_detach(pthread_t thread);
 /* This function is called to create a new thread*/
 extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     void *(*start_routine) (void *), void *arg);
+
+/*This function is called to set specified thread's priority*/
+extern int pthread_setschedprio(pthread_t thread, int prio);
+
+/*This function is called to get the minimum priority in current policy*/
+extern int sched_get_priority_min(int policy);

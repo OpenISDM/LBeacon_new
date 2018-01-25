@@ -239,7 +239,7 @@ void *track_devices(char *file_name) {
             continue;
 
         }
-              
+
         /* Create a temporary node and set as the head */
         struct List_Entry *lisptrs;
         Node *temp;
@@ -247,19 +247,23 @@ void *track_devices(char *file_name) {
 
         /* Create a new file with tracked_object_list's data*/
         FILE *output = fopen(file_name, "a+");
-        
+
         if(output == NULL){
-                    
+
             perror(errordesc[E_OPEN_FILE].message);
             return;
-        }   
-    
+        }
+
         /* Go through list*/
-        list_for_each(lisptrs, tracked_object_list){    
+        list_for_each(lisptrs, tracked_object_list){
 
             temp = ListEntry(lisptrs, Node, ptrs);
             ScannedDevice *temp_data;
             temp_data = (struct ScannedDevice *)temp->data;
+
+            if(temp == NULL){
+                sleep(30);
+            }
 
             /* Convert the timestamp from list to string */
             unsigned timestamp = (unsigned)&temp_data->initial_scanned_time;
@@ -267,18 +271,18 @@ void *track_devices(char *file_name) {
 
             fputs("MAC address: ",output);
             fputs(&temp_data->scanned_mac_address[0], output);
-            fputs("/n", output);
+            fputs(" ", output);
             fputs("Timestamp: ", output);
             fputs(timestamp_str, output);
             fputs("\n", output);
-                
+
             /* Clean up the tracked_object_list */
             list_remove_node(&temp->ptrs);
-            free(temp); 
+            free(temp);
 
         }
         fclose(output);
-    
+
     }
 
 }
@@ -955,7 +959,7 @@ void start_scanning() {
                          (sizeof(*info) * results_id) + 1;
 
                     print_RSSI_value(&info->bdaddr, 0, 0);
-                    
+
 
                 }
 
@@ -969,7 +973,7 @@ void start_scanning() {
                     info_rssi = (void *)event_buffer_pointer +
                          (sizeof(*info_rssi) * results_id) + 1;
 
-                    
+
                      print_RSSI_value(&info_rssi->bdaddr, 1,
                          info_rssi->rssi);
 
@@ -1014,12 +1018,12 @@ void start_scanning() {
 Error_code startThread(pthread_t threads ,void * (*thfunct)(void*), void *arg){
 
     pthread_attr_t attr;
-    if (pthread_attr_init(&attr) != 0
+
+    if ( pthread_attr_init(&attr) != 0
       || pthread_create(&threads, &attr, thfunct, arg) != 0
       || pthread_attr_destroy(&attr) != 0
       || pthread_detach(threads) != 0) {
 
-   
     return E_START_THREAD;
   }
 
@@ -1041,7 +1045,21 @@ void cleanup_exit(){
 
 }
 
+void setminprio(pthread_t threads){
+    pthread_attr_t attr;
+    int policy = 0;
+    int min_prio_for_policy = 0;
 
+    pthread_attr_init(&attr);
+    pthread_attr_getschedpolicy(&attr, &policy);
+    min_prio_for_policy = sched_get_priority_min(policy);
+
+
+    pthread_setschedprio(&threads, min_prio_for_policy);
+    pthread_attr_destroy(&attr);
+
+    return;
+}
 
 int main(int argc, char **argv) {
 
@@ -1074,14 +1092,14 @@ int main(int argc, char **argv) {
     g_push_file_path =
         malloc(g_config.file_path_length + g_config.file_name_length);
 
-    
+
     if (g_push_file_path == NULL) {
 
          /* Error handling */
         perror(errordesc[E_MALLOC].message);
         cleanup_exit();
         return E_MALLOC;
-    
+
     }
 
     memcpy(g_push_file_path, g_config.file_path,
@@ -1096,7 +1114,7 @@ int main(int argc, char **argv) {
     int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
     g_idle_handler =
         malloc(maximum_number_of_devices * sizeof(ThreadStatus));
-    
+
     if (g_idle_handler == NULL) {
 
         /* Error handling */
@@ -1108,12 +1126,12 @@ int main(int argc, char **argv) {
 
     /* Initialize each ThreadStatus struct in the array */
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
-         
+
          strncpy(g_idle_handler[device_id].scanned_mac_address, "0",
          LENGTH_OF_MAC_ADDRESS);
         g_idle_handler[device_id].idle = true;
         g_idle_handler[device_id].is_waiting_to_send = false;
-    
+
     }
 
 
@@ -1131,12 +1149,11 @@ int main(int argc, char **argv) {
     pthread_t stop_ble_beacon_thread;
 
     return_value = startThread(stop_ble_beacon_thread, stop_ble_beacon, hex_c);
-    
+
     if(return_value != WORK_SCUCESSFULLY){
          perror(errordesc[E_START_THREAD].message);
         cleanup_exit();
     }
-
 
 
     /* Create the the cleanup_scanned_list thread */
@@ -1156,12 +1173,11 @@ int main(int argc, char **argv) {
     pthread_t queue_to_array_thread;
 
     return_value = startThread(queue_to_array_thread, queue_to_array, NULL);
-    
+
     if(return_value != WORK_SCUCESSFULLY){
          perror(errordesc[E_START_THREAD].message);
         cleanup_exit();
     }
-
 
     /* Create the thread for track device */
     pthread_t track_devices_thread;
@@ -1173,7 +1189,7 @@ int main(int argc, char **argv) {
         cleanup_exit();
     }
 
-
+    setminprio(track_devices_thread);
 
     int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
     int maximum_number_of_devices_per_dongle =
@@ -1232,7 +1248,6 @@ int main(int argc, char **argv) {
             perror(errordesc[E_START_THREAD].message);
             cleanup_exit();
         }
-    
 
 
     }
@@ -1240,7 +1255,7 @@ int main(int argc, char **argv) {
     /*Set send_message_cancelled flag to false now. All the thread are ready.*/
     send_message_cancelled = false;
 
-    
+
     while(ready_to_work == true){
 
         start_scanning();
