@@ -76,7 +76,7 @@
 #include <unistd.h>
 #include "LinkedList.h"
 #include "Utilities.h"
-#include <sched.h>
+
 
 
 /*
@@ -778,9 +778,3 @@ extern int pthread_detach(pthread_t thread);
 /* This function is called to create a new thread*/
 extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     void *(*start_routine) (void *), void *arg);
-
-/*This function is called to set specified thread's priority*/
-extern int pthread_setschedprio(pthread_t thread, int prio);
-
-/*This function is called to get the minimum priority in current policy*/
-extern int sched_get_priority_min(int policy);

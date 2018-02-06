@@ -262,7 +262,7 @@ void *track_devices(char *file_name) {
             temp_data = (struct ScannedDevice *)temp->data;
 
             if(temp == NULL){
-                sleep(30);
+                sleep(10);
             }
 
             /* Convert the timestamp from list to string */
@@ -1045,21 +1045,7 @@ void cleanup_exit(){
 
 }
 
-void setminprio(pthread_t threads){
-    pthread_attr_t attr;
-    int policy = 0;
-    int min_prio_for_policy = 0;
 
-    pthread_attr_init(&attr);
-    pthread_attr_getschedpolicy(&attr, &policy);
-    min_prio_for_policy = sched_get_priority_min(policy);
-
-
-    pthread_setschedprio(&threads, min_prio_for_policy);
-    pthread_attr_destroy(&attr);
-
-    return;
-}
 
 int main(int argc, char **argv) {
 
@@ -1189,7 +1175,6 @@ int main(int argc, char **argv) {
         cleanup_exit();
     }
 
-    setminprio(track_devices_thread);
 
     int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
     int maximum_number_of_devices_per_dongle =
