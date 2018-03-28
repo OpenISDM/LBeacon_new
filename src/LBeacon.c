@@ -143,6 +143,12 @@ Config get_config(char *file_name) {
     memcpy(config.uuid, config_message[10], strlen(config_message[10]));
     config.uuid_length = strlen(config_message[10]);
 
+    fgets(config_setting, sizeof(config_setting), file);
+    config_message[11] = strstr((char *)config_setting, DELIMITER);
+    config_message[11] = config_message[11] + strlen(DELIMITER);
+    memcpy(config.beacon_init, config_message[11], strlen(config_message[11]));
+    config.beacon_initialized_length = strlen(config_message[11]);
+
     fclose(file);
     }
 
@@ -1092,9 +1098,33 @@ int main(int argc, char **argv) {
            g_config.file_path_length - 1);
     memcpy(g_push_file_path + g_config.file_path_length - 1,
            g_config.file_name, g_config.file_name_length - 1);
-    coordinate_X.f = (float)atof(g_config.coordinate_X);
-    coordinate_Y.f = (float)atof(g_config.coordinate_Y);
-    coordinate_Z.f = (float)atof(g_config.coordinate_Z);
+
+
+    /* Check whether the beacon has been initilizatized, If not, Generate a
+     * random coordinate */
+    
+    int init_becaon = atoi(g_config.beacon_init);
+    if(init_becaon == 0){
+
+         srand( (unsigned)time(NULL) );
+         float x_low = 21.000000,  x_up = 24.000000, x_result;
+         float y_low = 120.000000, y_up = 122.000000, y_result;
+         x_result = (x_up - x_low) * rand() / (RAND_MAX + 1.0) + x_low;
+         coordinate_X.f = x_result;
+         y_result = (y_up - y_low) * rand() / (RAND_MAX + 1.0) + y_low;
+         coordinate_Y.f = y_result;
+         coordinate_Z.f = (float)atof(g_config.coordinate_Z);
+
+    }else{
+      
+     /* If the beacon has been assigned a coordinate, get the specified 
+      * coordinate. */
+
+        coordinate_X.f = (float)atof(g_config.coordinate_X);
+        coordinate_Y.f = (float)atof(g_config.coordinate_Y);
+        coordinate_Z.f = (float)atof(g_config.coordinate_Z);
+    }
+
 
     /* Allocate an array with the size of maximum number of devices */
     int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);

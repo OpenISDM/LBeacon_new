@@ -213,6 +213,9 @@ typedef struct Config {
     /* String representation of the universally unique identifer */
     char uuid[CONFIG_BUFFER_SIZE];
 
+    /* The indicator for checking the beacon whether is initialized */
+    char beacon_init[CONFIG_BUFFER_SIZE];
+
     /* String length needed to store coordinate_X */
     int coordinate_X_length;
 
@@ -245,6 +248,10 @@ typedef struct Config {
 
     /* TString length needed to store uuid */
     int uuid_length;
+
+    /* The length of the indicator for initialization */
+    int beacon_initialized_length;
+
 } Config;
 
 
