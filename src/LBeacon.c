@@ -181,29 +181,75 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     ba2str(bluetooth_device_address, address);
     strcat(address, "\0");
 
-
+   
     ScannedDevice data;
+    
     data.initial_scanned_time = get_system_time();
+
     strncpy(data.scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS);
+   
     struct Node *node_s, *node_w, *node_t;
     node_s = (struct Node*)malloc(sizeof(struct Node));
     node_t = (struct Node*)malloc(sizeof(struct Node));
-
-
+    
+    //struct Node *node_s = add_node(scanned_list);
+    //struct Node *node_t = add_node(tracked_object_list);
+    
+    
     /* Add newly scanned devices to the waiting list for new scanned devices */
     if (check_is_in_list(scanned_list, address) == NULL) {
 
         node_w = (struct Node*)malloc(sizeof(struct Node));
         list_insert_first(&node_w->ptrs, waiting_list);
+        
+        //struct Node *node_w = add_node(waiting_list);
         node_w->data = &data;
+        
 
     }
 
     list_insert_first(&node_s->ptrs, scanned_list);
     list_insert_first(&node_t->ptrs, tracked_object_list);
+    
     node_s->data = &data;
     node_t->data = &data;
+    
+/* 
+    ScannedDevice *temps = (ScannedDevice *) node_t->data;
+    printf("Node: %s\n", &temps->scanned_mac_address);
 
+
+    if(get_list_length(tracked_object_list) != 0){
+        struct List_Entry *lisptrs;
+        Node *temp;
+        int count = 0;
+        list_for_each(lisptrs, tracked_object_list){
+            
+            temp = ListEntry(lisptrs, Node, ptrs);
+
+
+            ScannedDevice *temp_data;
+            temp_data = (struct ScannedDevice *)temp->data;
+            printf("Git it \n");
+            printf("count: %d, MAC: %s \n", count, &temp_data->scanned_mac_address[0]);
+            count++;
+        }
+    }
+ 
+ */   
+    
+
+    print_list(tracked_object_list, print_MACaddress);
+
+
+}
+
+Node *add_node(List_Entry *entry){
+
+    struct Node *tempnode; 
+    tempnode = (struct Node*)malloc(sizeof(struct Node));
+    list_insert_first(&tempnode->ptrs, entry);
+    return tempnode;
 
 }
 
@@ -239,13 +285,15 @@ void *track_devices(char *file_name) {
 
     while(ready_to_work == true){
 
-        /*Check whether the list is empty */
-        if(get_list_length(tracked_object_list) == 0){
 
+        /*Check whether the list is empty */
+        if(get_list_length(tracked_object_list) == 0){  
+            printf("Here is no data. \n");
+            sleep(30);
             continue;
 
         }
-
+        printf("Keep doing the tracking \n");
         /* Create a temporary node and set as the head */
         struct List_Entry *lisptrs;
         Node *temp;
@@ -979,11 +1027,13 @@ void start_scanning() {
                     info_rssi = (void *)event_buffer_pointer +
                          (sizeof(*info_rssi) * results_id) + 1;
 
-
-                     print_RSSI_value(&info_rssi->bdaddr, 1,
-                         info_rssi->rssi);
+                   
 
                      if (info_rssi->rssi > RSSI_RANGE) {
+
+                         
+                         print_RSSI_value(&info_rssi->bdaddr, 1,
+                         info_rssi->rssi);
 
                          send_to_push_dongle(&info_rssi->bdaddr);
 
@@ -1068,16 +1118,16 @@ int main(int argc, char **argv) {
     send_message_cancelled == true;
     ready_to_work = true;
 
+
     /*Initialize the lists */
+    
     scanned_list = (struct List_Entry *)malloc(sizeof(struct List_Entry));
-    scanned_list->next = scanned_list;
-    scanned_list->prev = scanned_list;
+    init_list(scanned_list);
     waiting_list = (struct List_Entry *)malloc(sizeof(struct List_Entry));
-    waiting_list->next = waiting_list;
-    waiting_list->prev = waiting_list;
+    init_list(waiting_list);
     tracked_object_list = (struct List_Entry*)malloc(sizeof(struct List_Entry));
-    tracked_object_list->next = tracked_object_list;
-    tracked_object_list->prev = tracked_object_list;
+    init_list(tracked_object_list);
+    
 
     /* Load config struct */
     g_config = get_config(CONFIG_FILE_NAME);

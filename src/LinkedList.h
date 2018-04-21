@@ -33,13 +33,14 @@
 *
 * Authors:
 *
-*      Jake Lee, jakelee@iis.sinica.edu.tw
+*      Han Wang, hollywang@iis.sinica.edu.tw
+*	   Jake Lee, jakelee@iis.sinica.edu.tw
 *      Johnson Su, johnsonsu@iis.sinica.edu.tw
 *      Shirley Huang, shirley.huang.93@gmail.com
 *      Han Hu, hhu14@illinois.edu
 *      Jeffrey Lin, lin.jeff03@gmail.com
 *      Howard Hsu, haohsu0823@gmail.com
-*	   Han Wang, hollywang@iis.sinica.edu.tw
+*	   
 */
 
 #include <stdbool.h>
@@ -54,6 +55,8 @@
 
 /*Macro for calculating the offset of two addresses*/
 #define offsetof(type, member) ((size_t) &((type *)0)->member)
+
+
 
 /*Macro for geting the master struct from the sub struct */
 #define ListEntry(ptr,type,member)	\
@@ -81,9 +84,27 @@ typedef struct Node {
 }Node;
 
 
+
+
 /*
 * FUNCTIONS
 */
+
+/*
+*  init_list:
+*
+*  This function initializes the list.
+*
+*  Parameters:
+*
+*  entry - the head of the list for determining which list is goning to be 
+*  initialized.
+*   
+*  Return value:
+*
+*  None
+*/
+inline void init_list(List_Entry *entry);
 
 /*
 *  list_insert_:
@@ -119,7 +140,7 @@ inline void list_insert_(List_Entry *new_node, List_Entry *prev,
 *
 *  None
 */
-inline void list_insert_head(List_Entry *new_node, List_Entry *head);
+inline void list_insert_first(List_Entry *new_node, List_Entry *head);
 
 /*
 *  list_insert_tail:

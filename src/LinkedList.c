@@ -36,18 +36,26 @@
 *
 * Authors:
 *
+*      Han Wang, hollywang@iis.sinica.edu.tw 
 *      Jake Lee, jakelee@iis.sinica.edu.tw
 *      Johnson Su, johnsonsu@iis.sinica.edu.tw
 *      Shirley Huang, shirley.huang.93@gmail.com
 *      Han Hu, hhu14@illinois.edu
 *      Jeffrey Lin, lin.jeff03@gmail.com
 *      Howard Hsu, haohsu0823@gmail.com
-*      Han Wang, hollywang@iis.sinica.edu.tw 
+*      
 */
 
 #include "LinkedList.h"
 
 
+
+inline void init_list(List_Entry *entry){
+        
+        entry->next = entry;
+        entry->prev = entry;
+
+}
 
 
 inline void list_insert_(List_Entry *new_node, List_Entry *prev, 
@@ -59,7 +67,6 @@ inline void list_insert_(List_Entry *new_node, List_Entry *prev,
     prev->next = new_node;
 
 }
-
 
 
 inline void list_insert_first(List_Entry *new_node, List_Entry *head) {
@@ -109,6 +116,7 @@ inline int get_list_length(List_Entry * entry) {
 
 
 
+
 inline void *get_list_head(List_Entry *entry) {
 
     /*Check whether the list is empty */
@@ -139,6 +147,9 @@ inline void *get_list_tail(List_Entry *entry) {
     
     return data;
 }
+
+
+
 
 
 

@@ -374,6 +374,7 @@ List_Entry *scanned_list;
 * waiting for an available thread to send messages to their address.*/
 List_Entry *waiting_list;
 
+
 /* Head of tracking_object_list that holds the scanned device structs of devices
 * to be processed for each device in the list, a line contain of it's MAC
 * address and time at which the address is found in placed to a tracked object
@@ -727,6 +728,8 @@ void setminprio(pthread_t threads);
 /*
 * EXTERNAL FUNCTIONS
 */
+
+//Node *add_node(struct List_Entry *entry);
 
 /* This function is called to insert a node at the head of the list.*/
 extern void list_insert_head(List_Entry *new_node, List_Entry *head);
