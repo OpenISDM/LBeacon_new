@@ -13,7 +13,7 @@
 *
 * File Description:
 *
-*      This is the header file containing the function declarations and
+*      This header file contains function declarations and
 *      variables used in the LBeacon.c file.
 *
 * File Name:
@@ -86,11 +86,12 @@
 /* Command opcode pack/unpack from HCI library */
 #define cmd_opcode_pack(ogf, ocf) (uint16_t)((ocf & 0x03ff) | (ogf << 10))
 
+/* File path of the config file */
+#define CONFIG_FILE_NAME "../config/config.conf"
+
 /* Maximum number of characters in each line of config file */
 #define CONFIG_BUFFER_SIZE 64
 
-/* File path of the config file */
-#define CONFIG_FILE_NAME "../config/config.conf"
 
 /* Number of lines in the config file */
 #define ConFIG_FILE_LENGTH 11
@@ -108,17 +109,17 @@
 /* BlueZ bluetooth extended inquiry response protocol: complete local name */
 #define EIR_NAME_COMPLETE 0x09
 
-/* BlueZ bluetooth extended inquiry response protocol: shorten local name */
+/* BlueZ bluetooth extended inquiry response protocol: short local name */
 #define EIR_NAME_SHORT 0x08
 
-/* Maximum number of characters in message file names */
-#define FILE_NAME_BUFFER 256
+/* Maximum number of characters in message file name */
+#define FILE_NAME_BUFFER 64
 
 /* Length of time in Epoch */
 #define LENGTH_OF_TIME 10
 
 /* Transmission range limited. Only devices in this RSSI range are allowed
- * to connect */
+ * to be discovered and sent */
 #define RSSI_RANGE -60
 
 /* Maximum length of time in milliseconds, a bluetooth device
@@ -129,23 +130,25 @@
  * scanned devices */
 #define TRACKING_FILE_LINE_LENGTH 1024
 
-/* The number of char has been checked */
+/* The number of char in MAC address checked to determine matched or not */
 #define NUMBER_CHAR_CHECKED 10
 
 /* Number of characters in a Bluetooth MAC address */
 #define LENGTH_OF_MAC_ADDRESS 18
 
-/* Timeout of hci_send_req  */
+/* Timeout in millisecond of hci_send_req  */
 #define HCI_SEND_REQUEST_TIMEOUT 1000
 
-/* Maximum length of time interval in seconds for Send to gateway */
-#define TIME_INTERVAL_OF_SEND_TO_GATEWAY 300
-
-/* Time interval for which the LBeacon can */
+/* Time interval for the LBeacon to advertise*/
 #define ADVERTISING_INTERVAL 300
 
-/* RSSI value of the bluetooth device */
+/* RSSI value for the calibration */
 #define RSSI_VALUE 20
+
+/* Timeout interval */
+#define A_LONG_TIME 30000
+#define A_SHORT_TIME 300
+#define A_VERY_SHORT_TIME 30
 
 
 
@@ -157,19 +160,25 @@
 /* This union will convert floats into Hex code used for the beacon
 * location */
 union {
+    
     float f;
     unsigned char b[sizeof(float)];
     int d[2];
+
 } coordinate_X;
 
 union {
+    
     float f;
     unsigned char b[sizeof(float)];
+
 } coordinate_Y;
 
 union {
+    
     float f;
     unsigned char b[sizeof(float)];
+
 } coordinate_Z;
 
 
@@ -179,78 +188,81 @@ union {
 */
 
 typedef struct Config {
+   
     /* String representation of the X coordinate of the beacon location */
     char coordinate_X[CONFIG_BUFFER_SIZE];
+
+    /* String length needed to store coordinate_X */
+    int coordinate_X_length;
 
     /* String representation of the Y coordinate of the beacon location */
     char coordinate_Y[CONFIG_BUFFER_SIZE];
 
+    /* String length needed to store coordinate_Y */
+    int coordinate_Y_length;
+
     /* String representation of the Z coordinate of the beacon location */
     char coordinate_Z[CONFIG_BUFFER_SIZE];
+
+       /* String length needed to store coordinate_Z */
+    int coordinate_Z_length;
 
     /* String representation of the message file name */
     char file_name[CONFIG_BUFFER_SIZE];
 
+    /* String length needed to store file name */
+    int file_name_length;
+
     /* String representation of the message file name's file path */
     char file_path[CONFIG_BUFFER_SIZE];
+
+    /* String length needed to store file path */
+    int file_path_length;
 
     /* String representation of the maximum number of devices to be
     handled by all push dongles */
     char maximum_number_of_devices[CONFIG_BUFFER_SIZE];
 
-    /* String representation of number of message groups */
-    char number_of_groups[CONFIG_BUFFER_SIZE];
-
-    /* String representation of the number of messages */
-    char number_of_messages[CONFIG_BUFFER_SIZE];
-
-    /* String representation of the number of push dongles */
-    char number_of_push_dongles[CONFIG_BUFFER_SIZE];
-
-    /* String representation of the required signal strength */
-    char rssi_coverage[CONFIG_BUFFER_SIZE];
-
-    /* String representation of the universally unique identifer */
-    char uuid[CONFIG_BUFFER_SIZE];
-
-    /* The indicator for checking the beacon whether is initialized */
-    char beacon_init[CONFIG_BUFFER_SIZE];
-
-    /* String length needed to store coordinate_X */
-    int coordinate_X_length;
-
-    /* String length needed to store coordinate_Y */
-    int coordinate_Y_length;
-
-    /* String length needed to store coordinate_Z */
-    int coordinate_Z_length;
-
-    /* String length needed to store file name */
-    int file_name_length;
-
-    /* String length needed to store file path */
-    int file_path_length;
-
     /* String length needed to store maximum_number_of_devices */
     int maximum_number_of_devices_length;
+
+    /* String representation of number of message groups */
+    char number_of_groups[CONFIG_BUFFER_SIZE];
 
     /* String length needed to store number_of_groups */
     int number_of_groups_length;
 
+    /* String representation of the number of messages */
+    char number_of_messages[CONFIG_BUFFER_SIZE];
+
     /* String length needed to store number_of_messages */
     int number_of_messages_length;
+
+    /* String representation of the number of push dongles */
+    char number_of_push_dongles[CONFIG_BUFFER_SIZE];
 
     /* String length needed to store number_of_push_dongles */
     int number_of_push_dongles_length;
 
+    /* String representation of the required signal strength */
+    char rssi_coverage[CONFIG_BUFFER_SIZE];
+
     /* String length needed to store rssi_coverage */
     int rssi_coverage_length;
+
+    /* String representation of the universally unique identifer */
+    char uuid[CONFIG_BUFFER_SIZE];
 
     /* TString length needed to store uuid */
     int uuid_length;
 
+    /* The indicator for checking the beacon whether is initialized */
+    char beacon_init[CONFIG_BUFFER_SIZE];
+
     /* The length of the indicator for initialization */
     int beacon_initialized_length;
+
+
 
 } Config;
 
@@ -275,7 +287,7 @@ typedef struct ScannedDevice {
 * ERROR CODE
 */
 
-typedef enum Error_code {
+typedef enum ErrorCode {
 
     WORK_SCUCESSFULLY = 0,
     E_MALLOC = 1,
@@ -293,11 +305,12 @@ typedef enum Error_code {
     E_SEND_REQUEST_TIMEOUT = 13,
     E_ADVERTISE_STATUS = 14,
     E_ADVERTISE_MODE = 15,
-    E_START_THREAD = 16
+    E_START_THREAD = 16,
+    MAX_ERROR_CODE = 17
 
-}Error_code;
+}ErrorCode;
 
-typedef enum Error_code error_t;
+typedef enum ErrorCode error_t;
 
 struct _errordesc {
     int code;
@@ -321,6 +334,7 @@ struct _errordesc {
     {E_ADVERTISE_STATUS, "LE set advertise returned status"},
     {E_ADVERTISE_MODE, "Error with setting advertise mode"},
     {E_START_THREAD, "Error with creating thread"},
+    {MAX_ERROR_CODE, "The element is invalid"},
 
 };
 
@@ -366,29 +380,31 @@ ThreadStatus *g_idle_handler;
 
 /* Three list of struct for recording scanned devices */
 
-/* Head of scanned_list that holds the scanned device structs of devices found in recent scan.
-* Some of the structs in this list may be duplicated.*/
-List_Entry *scanned_list;
+/* Head of scanned_list that holds the scanned device structs of devices found
+ * in recent scan. Some of the structs in this list may be duplicated.*/
+List_Entry *scanned_list_head;
 
 /* Head of waiting_list that holds the scanned device structs of devices
 * waiting for an available thread to send messages to their address.*/
-List_Entry *waiting_list;
+List_Entry *waiting_list_head;
 
 
-/* Head of tracking_object_list that holds the scanned device structs of devices
-* to be processed for each device in the list, a line contain of it's MAC
-* address and time at which the address is found in placed to a tracked object
-* buffer to be send the gateway and search.*/
-List_Entry *tracked_object_list;
+/* Head of tracking_object_list that holds the scanned device structs of 
+* devices to be processed for each device in the list, a line contain of it's 
+* MAC address and time at which the address is found in placed to a tracked 
+* object buffer to be send the gateway and search.*/
+List_Entry *tracked_object_list_head;
 
 /* Global flags for communication among threads */
 
 /* A global flag that in initially set to true by main thread. It is set to false
-* by any thread when the thread encounters a fatal error, indicating that it is about to exit.*/
+* by any thread when the thread encounters a fatal error, indicating that it is
+* about to exit.*/
 bool ready_to_work;
 
-/* A global flag that will be set to true be the main thread to inform all of the thread that
-* scanning operation have been canceled. The flag set by main thread.*/
+/* A global flag that will be set to true be the main thread to inform all of 
+* the thread that scanning operation have been canceled. The flag set by main
+* thread.*/
 bool send_message_cancelled;
 
 
@@ -420,7 +436,9 @@ extern int errno;
 *
 *  config - Config struct including file path, coordinates, etc.
 */
+
 Config get_config(char *file_name);
+
 
 /*
 *  get_system_time:
@@ -436,7 +454,9 @@ Config get_config(char *file_name);
 *
 *  system_time - system time in milliseconds
 */
+
 long long get_system_time();
+
 
 /*
 *  send_to_push_dongle:
@@ -457,7 +477,9 @@ long long get_system_time();
 *
 *  None
 */
+
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
+
 
 /*
 *  print_RSSI_value:
@@ -477,8 +499,10 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
 *
 *  None
 */
+
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi);
+
 
 /*
 *  track_devices:
@@ -495,7 +519,9 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 *
 *  None
 */
+
 void *track_devices(char *file_name);
+
 
 /*
 *  check_is_in_list:
@@ -515,7 +541,9 @@ void *track_devices(char *file_name);
 *  NULL - there is no matched address in the list
 *
 */
+
 struct Node *check_is_in_list(List_Entry *list, char address[]);
+
 
 /*
 *  print_MACaddress:
@@ -531,7 +559,9 @@ struct Node *check_is_in_list(List_Entry *list, char address[]);
 *
 *  None
 */
+
 void print_MACaddress(void *sc);
+
 
 /*
 *  print_Timestamp:
@@ -547,7 +577,9 @@ void print_MACaddress(void *sc);
 *
 *  None
 */
+
 void print_Timestamp(void *sc);
+
 
 /*
 *  enable_advertising:
@@ -563,11 +595,13 @@ void print_Timestamp(void *sc);
 *
 *  Return value:
 *
-*  1 - If there is an error, 1 is returned.
-*  0 - If advertising was successfullly enabled, then the function returns 0.
+*  ErrorCode: The error code for the corresponding error
+*
 */
-Error_code enable_advertising(int advertising_interval, char *advertising_uuid,
+
+ErrorCode enable_advertising(int advertising_interval, char *advertising_uuid,
     int rssi_value);
+
 
 /*
 *  disable_advertising:
@@ -580,10 +614,12 @@ Error_code enable_advertising(int advertising_interval, char *advertising_uuid,
 *
 *  Return value:
 *
-*  Error_code: The error code for the corresponding error
+*  ErrorCode: The error code for the corresponding error
 *
 */
-Error_code disable_advertising();
+
+ErrorCode disable_advertising();
+
 
 /*
 *  ble_beacon:
@@ -597,9 +633,11 @@ Error_code disable_advertising();
 *
 *  Return value:
 *
-*  Error_code: The error code for the corresponding error
+*  None
 */
+
 void *stop_ble_beacon(void *beacon_location);
+
 
 /*
 *  cleanup_scanned_list:
@@ -618,7 +656,9 @@ void *stop_ble_beacon(void *beacon_location);
 *
 *  None
 */
+
 void *cleanup_scanned_list(void);
+
 
 /*
 *  queue_to_array:
@@ -637,7 +677,9 @@ void *cleanup_scanned_list(void);
 *
 *  None
 */
+
 void *queue_to_array();
+
 
 /*
 *  send_file:
@@ -655,7 +697,9 @@ void *queue_to_array();
 *
 *  None
 */
+
 void *send_file(void *dongle_id);
+
 
 /*
 *  start_scanning:
@@ -677,7 +721,9 @@ void *send_file(void *dongle_id);
 *
 *  None
 */
+
 void start_scanning();
+
 
 /*
 *  startThread:
@@ -692,9 +738,11 @@ void start_scanning();
 *
 *  Return value:
 *
-*  Error_code: The error code for the corresponding error
+*  ErrorCode: The error code for the corresponding error
 */
-Error_code startThread(pthread_t threads, void * (*thfunct)(void*), void *arg);
+
+ErrorCode startThread(pthread_t threads, void * (*thfunct)(void*), void *arg);
+
 
 /*
 *  cleanup_exit:
@@ -709,7 +757,10 @@ Error_code startThread(pthread_t threads, void * (*thfunct)(void*), void *arg);
 *
 *  None
 */
+
 void cleanup_exit();
+
+
 /*
 *  setminprio:
 *
@@ -723,7 +774,10 @@ void cleanup_exit();
 *
 *  None
 */
+
 void setminprio(pthread_t threads);
+
+
 
 /*
 * EXTERNAL FUNCTIONS

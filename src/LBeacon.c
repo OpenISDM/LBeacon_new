@@ -192,24 +192,24 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     node_s = (struct Node*)malloc(sizeof(struct Node));
     node_t = (struct Node*)malloc(sizeof(struct Node));
     
-    //struct Node *node_s = add_node(scanned_list);
-    //struct Node *node_t = add_node(tracked_object_list);
+    //struct Node *node_s = add_node(scanned_list_head);
+    //struct Node *node_t = add_node(tracked_object_list_head);
     
     
     /* Add newly scanned devices to the waiting list for new scanned devices */
-    if (check_is_in_list(scanned_list, address) == NULL) {
+    if (check_is_in_list(scanned_list_head, address) == NULL) {
 
         node_w = (struct Node*)malloc(sizeof(struct Node));
-        list_insert_first(&node_w->ptrs, waiting_list);
+        list_insert_first(&node_w->ptrs, waiting_list_head);
         
-        //struct Node *node_w = add_node(waiting_list);
+        //struct Node *node_w = add_node(waiting_list_head);
         node_w->data = &data;
         
 
     }
 
-    list_insert_first(&node_s->ptrs, scanned_list);
-    list_insert_first(&node_t->ptrs, tracked_object_list);
+    list_insert_first(&node_s->ptrs, scanned_list_head);
+    list_insert_first(&node_t->ptrs, tracked_object_list_head);
     
     node_s->data = &data;
     node_t->data = &data;
@@ -219,11 +219,11 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     printf("Node: %s\n", &temps->scanned_mac_address);
 
 
-    if(get_list_length(tracked_object_list) != 0){
+    if(get_list_length(tracked_object_list_head) != 0){
         struct List_Entry *lisptrs;
         Node *temp;
         int count = 0;
-        list_for_each(lisptrs, tracked_object_list){
+        list_for_each(lisptrs, tracked_object_list_head){
             
             temp = ListEntry(lisptrs, Node, ptrs);
 
@@ -239,7 +239,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
  */   
     
 
-    print_list(tracked_object_list, print_MACaddress);
+    //print_list(tracked_object_list_head, print_MACaddress);
 
 
 }
@@ -287,7 +287,7 @@ void *track_devices(char *file_name) {
 
 
         /*Check whether the list is empty */
-        if(get_list_length(tracked_object_list) == 0){  
+        if(get_list_length(tracked_object_list_head) == 0){  
             printf("Here is no data. \n");
             sleep(30);
             continue;
@@ -309,7 +309,7 @@ void *track_devices(char *file_name) {
         }
 
         /* Go through list*/
-        list_for_each(lisptrs, tracked_object_list){
+        list_for_each(lisptrs, tracked_object_list_head){
 
             temp = ListEntry(lisptrs, Node, ptrs);
             ScannedDevice *temp_data;
@@ -387,7 +387,7 @@ void print_Timestamp(void *sc){
 }
 
 
-Error_code enable_advertising(int advertising_interval, char *advertising_uuid,
+ErrorCode enable_advertising(int advertising_interval, char *advertising_uuid,
 
     int rssi_value) {
 
@@ -543,7 +543,7 @@ Error_code enable_advertising(int advertising_interval, char *advertising_uuid,
 
 
 
-Error_code disable_advertising() {
+ErrorCode disable_advertising() {
 
     int dongle_device_id = hci_get_route(NULL);
     int device_handle = 0;
@@ -642,7 +642,7 @@ void *cleanup_scanned_list(void) {
     while (ready_to_work == true) {
 
         /*Check whether the list is empty */
-        if(get_list_length(scanned_list) == 0){
+        if(get_list_length(scanned_list_head) == 0){
             continue;
         }
 
@@ -650,7 +650,7 @@ void *cleanup_scanned_list(void) {
         Node *temp;
 
         /* Go through list */
-        list_for_each(listptrs, scanned_list){
+        list_for_each(listptrs, scanned_list_head){
 
             temp = ListEntry(listptrs, Node, ptrs);
             ScannedDevice *temp_data;
@@ -694,7 +694,7 @@ void *queue_to_array() {
             device_id++) {
 
             void *data;
-            data = get_list_tail(waiting_list);
+            data = get_list_tail(waiting_list_head);
 
             /* Check whether the return value from get_list_head is NULL */
             if(data == NULL){
@@ -714,10 +714,10 @@ void *queue_to_array() {
                         address,
                         LENGTH_OF_MAC_ADDRESS);
 
-                struct Node *node = ListEntry(waiting_list->next, Node,
+                struct Node *node = ListEntry(waiting_list_head->next, Node,
                                               ptrs);
 
-                list_remove_node(waiting_list->next);
+                list_remove_node(waiting_list_head->next);
                 free(node);
                 g_idle_handler[device_id].idle = false;
                 g_idle_handler[device_id].is_waiting_to_send = true;
@@ -1071,7 +1071,7 @@ void start_scanning() {
 }
 
 
-Error_code startThread(pthread_t threads ,void * (*thfunct)(void*), void *arg){
+ErrorCode startThread(pthread_t threads ,void * (*thfunct)(void*), void *arg){
 
     pthread_attr_t attr;
 
@@ -1092,9 +1092,9 @@ void cleanup_exit(){
 
     ready_to_work = false;
     send_message_cancelled = true;
-    free_list(scanned_list);
-    free_list(waiting_list);
-    free_list(tracked_object_list);
+    free_list(scanned_list_head);
+    free_list(waiting_list_head);
+    free_list(tracked_object_list_head);
     free(g_idle_handler);
     free(g_push_file_path);
     return;
@@ -1121,12 +1121,12 @@ int main(int argc, char **argv) {
 
     /*Initialize the lists */
     
-    scanned_list = (struct List_Entry *)malloc(sizeof(struct List_Entry));
-    init_list(scanned_list);
-    waiting_list = (struct List_Entry *)malloc(sizeof(struct List_Entry));
-    init_list(waiting_list);
-    tracked_object_list = (struct List_Entry*)malloc(sizeof(struct List_Entry));
-    init_list(tracked_object_list);
+    scanned_list_head = (struct List_Entry *)malloc(sizeof(struct List_Entry));
+    init_list(scanned_list_head);
+    waiting_list_head = (struct List_Entry *)malloc(sizeof(struct List_Entry));
+    init_list(waiting_list_head);
+    tracked_object_list_head = (struct List_Entry*)malloc(sizeof(struct List_Entry));
+    init_list(tracked_object_list_head);
     
 
     /* Load config struct */
