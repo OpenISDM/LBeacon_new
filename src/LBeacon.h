@@ -402,9 +402,8 @@ List_Entry *tracked_object_list_head;
 * about to exit.*/
 bool ready_to_work;
 
-/* A global flag that will be set to true be the main thread to inform all of 
-* the thread that scanning operation have been canceled. The flag set by main
-* thread.*/
+/* A global flag that is false initially set to true be the main thread to
+ * inform all of the thread that scanning operation have been canceled. */
 bool send_message_cancelled;
 
 
