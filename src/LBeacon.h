@@ -397,9 +397,9 @@ List_Entry *tracked_object_list_head;
 
 /* Global flags for communication among threads */
 
-/* A global flag that in initially set to true by main thread. It is set to false
-* by any thread when the thread encounters a fatal error, indicating that it is
-* about to exit.*/
+/* A global flag that in initially set to true by main thread. It is set to 
+false by any thread when the thread encounters a fatal error, indicating that 
+it is about to exit.*/
 bool ready_to_work;
 
 /* A global flag that is false initially set to true be the main thread to
@@ -525,9 +525,11 @@ void *track_devices(char *file_name);
 /*
 *  check_is_in_list:
 *
-*  This helper function checks whether the specified MAC address given as
-*  input is in the specified list of ScannedDevice struct of bluetooth devices.
-*  If it is, the function returns true, else the function returns false.
+*  This function checks whether the specified MAC address given as
+*  input is in the specified list.
+*  If a node with MAC address match up with the input address is found in the 
+*  list specified by the input parameter, return the pointer to the node with 
+*  maching address, otherwise it returns NULL.
 *
 *  Parameters:
 *
@@ -536,8 +538,8 @@ void *track_devices(char *file_name);
 *
 *  Return value:
 *
-*  temp - the node which its MAC address matched with the input address
-*  NULL - there is no matched address in the list
+*  match_node - The node found that is matched up with the input address
+*  
 *
 */
 

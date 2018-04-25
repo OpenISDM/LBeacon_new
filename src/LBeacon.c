@@ -347,21 +347,21 @@ struct Node *check_is_in_list(List_Entry *list, char address[]) {
 
     /* Create a temporary node and set as the head */
     struct List_Entry *listptrs;
-    Node *temp;
+    Node *match_node;
 
     /* Go through list */
     list_for_each(listptrs, list) {
 
         /* Input MAC address exists in the linked list */
-        temp = ListEntry(listptrs, Node, ptrs);
+        match_node = ListEntry(listptrs, Node, ptrs);
         int len = strlen(address);
         ScannedDevice *temp_data;
-        temp_data = (struct ScannedDevice *)temp->data;
+        temp_data = (struct ScannedDevice *)match_node->data;
 
         if (strcmp(address,
             &temp_data->scanned_mac_address[len + NUMBER_CHAR_CHECKED]) > 0) {
 
-            return temp;
+            return match_node;
 
         }
 
