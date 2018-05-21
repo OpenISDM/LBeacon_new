@@ -762,22 +762,6 @@ ErrorCode startThread(pthread_t threads, void * (*thfunct)(void*), void *arg);
 void cleanup_exit();
 
 
-/*
-*  setminprio:
-*
-*  This function is call to set specified thread's minimum priority.
-*
-*  Parameters:
-*
-*  None
-*
-*  Return value:
-*
-*  None
-*/
-
-void setminprio(pthread_t threads);
-
 
 
 /*
