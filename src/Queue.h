@@ -14,11 +14,11 @@
  * File Description:
  *
  *      This is the header file containing the function declarations and
- *      variables used in the Utilities.c file.
+ *      variables used in the Queue.c file.
  *
  * File Name:
  *
- *      Utilities.h
+ *      Queue.h
  *
  * Abstract:
  *
@@ -41,20 +41,29 @@
  *      Howard Hsu, haohsu0823@gmail.com
  */
 
-#include <ctype.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
-/* A flag that is used to check if CTRL-C is pressed */
-extern bool g_done;
+/* Length of a Bluetooth MAC address*/
+#define LENGTH_OF_MAC_ADDRESS 18
+
+/* Struct for each node in the queue; data is the MAC address */
+typedef struct QueueNode {
+    char data[LENGTH_OF_MAC_ADDRESS];
+    struct QueueNode *next;
+} QueueNode;
+
+/* Pointer to the QueueNode at the head of the queue */
+extern QueueNode *queue_head;
+
+/* Pointer to the QueueNode at the tail of the queue */
+extern QueueNode *queue_tail;
 
 /*
  * FUNCTIONS
  */
 
-unsigned int *uuid_str_to_data(char *uuid);
-unsigned int twoc(int in, int t);
-extern void ctrlc_handler(int stop);
+void enqueue(char data[]);
+void dequeue();
+char *peek();
+void print_queue();
