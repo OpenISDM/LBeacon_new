@@ -104,7 +104,7 @@ typedef struct Node {
 *
 *  None
 */
-inline void init_list(List_Entry *entry);
+void init_list(List_Entry *entry);
 
 /*
 *  list_insert_:

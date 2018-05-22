@@ -37,13 +37,14 @@
 *
 * Authors:
 *
-*      Jake Lee, jakelee@iis.sinica.edu.tw
+*      Han Wang, hollywang@iis.sinica.edu.tw
+       Jake Lee, jakelee@iis.sinica.edu.tw
 *      Johnson Su, johnsonsu@iis.sinica.edu.tw
 *      Shirley Huang, shirley.huang.93@gmail.com
 *      Han Hu, hhu14@illinois.edu
 *      Jeffrey Lin, lin.jeff03@gmail.com
 *      Howard Hsu, haohsu0823@gmail.com
-*      Han Wang, hollywang@iis.sinica.edu.tw
+*      
 */
 
 #include "LBeacon.h"
@@ -891,6 +892,105 @@ void *send_file(void *id) {
 
 }
 
+void *zigbee_connection(){
+
+    char* xbee_mode;
+
+    char* xbee_device;
+
+    int xbee_baudrate;
+
+    int LogLevel;
+
+    xbee_mode = "xbeeZB";
+
+    xbee_device = "/dev/ttyAMA0";
+
+    xbee_baudrate = 9600;
+
+    LogLevel = 100;
+
+    struct xbee *xbee;
+
+    struct xbee_con *con;
+
+    pkt_ptr pkt_Queue = malloc(sizeof(spkt_ptr));
+
+    xbee_initial(xbee_mode, xbee_device, xbee_baudrate
+                            , LogLevel, &xbee, pkt_Queue);
+
+    printf("Start establishing Connection to xbee\n");
+
+
+    /*--------------Configuration for connection in Data mode----------------*/
+    /* In this mode we aim to get Data.                                      */
+    /*-----------------------------------------------------------------------*/
+
+    printf("Establishing Connection...\n");
+
+    xbee_connector(&xbee, &con, pkt_Queue);
+
+    printf("Connection Successfully Established\n");
+
+    /* Start the chain reaction!                                             */
+
+    if((ret = xbee_conValidate(con)) != XBEE_ENONE){
+        xbee_log(xbee, 1, "con unvalidate ret : %d", ret);
+        return;
+    }
+
+    while(1) {
+        /* Pointer point_to_CallBack will store the callback function.       */
+        /* If pointer point_to_CallBack is NULL, break the Loop              */
+        void *point_to_CallBack;
+
+        if ((ret = xbee_conCallbackGet(con, (xbee_t_conCallback*)
+            &point_to_CallBack))!= XBEE_ENONE) {
+            xbee_log(xbee, -1, "xbee_conCallbackGet() returned: %d", ret);
+            return;
+        }
+
+    if (point_to_CallBack == NULL){
+            printf("Stop Xbee...\n");
+            break;
+        }
+
+
+        addpkt(pkt_Queue, Data, Gateway, "AAAAA");
+
+    /* If there are remain some packet need to send in the Queue,            */
+        /* send the packet                                                   */
+        if(pkt_Queue->front->next != NULL){
+
+            xbee_conTx(con, NULL, pkt_Queue->front->next->content);
+
+            delpkt(pkt_Queue);
+        }
+        else{
+            xbee_log(xbee, -1, "xbee packet Queue is NULL.");
+        }
+        usleep(2000000);
+    }
+
+    printf("Jump out while\n");
+
+    Free_Packet_Queue(pkt_Queue);
+
+    /* Close connection                                                      */
+    if ((ret = xbee_conEnd(con)) != XBEE_ENONE) {
+        xbee_log(xbee, 10, "xbee_conEnd() returned: %d", ret);
+        return;
+    }
+
+    printf("Stop connection Succeeded\n");
+
+    /* Close xbee                                                            */
+    xbee_shutdown(xbee);
+    printf("Shutdown Xbee Succeeded\n");
+
+    return;
+}
+
 
 void start_scanning() {
 
@@ -1211,6 +1311,7 @@ int main(int argc, char **argv) {
             coordinate_Y.b[2], coordinate_Y.b[3]);
 
 
+
     /* Create the thread for message advertising to BLE bluetooth devices */
     pthread_t stop_ble_beacon_thread;
 
@@ -1249,6 +1350,16 @@ int main(int argc, char **argv) {
     pthread_t track_devices_thread;
 
     return_value = startThread(track_devices_thread, track_devices, "output.txt");
+
+    if(return_value != WORK_SCUCESSFULLY){
+         perror(errordesc[E_START_THREAD].message);
+        cleanup_exit();
+    }
+
+
+    pthread_t zigbee_connection_thread;
+
+    return_value = startThread(zigbee_connection_thread, zigbee_connection, NULL);
 
     if(return_value != WORK_SCUCESSFULLY){
          perror(errordesc[E_START_THREAD].message);
@@ -1360,6 +1471,14 @@ int main(int argc, char **argv) {
 
     }
 
+     return_value = pthread_join(zigbee_connection_thread, NULL);
+
+    if (return_value != 0) {
+        perror(strerror(errno));
+        cleanup_exit();
+        return;
+
+    }
 
     pthread_cancel(stop_ble_beacon_thread);
     return_value = pthread_join(stop_ble_beacon_thread, NULL);
