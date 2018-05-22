@@ -37,14 +37,13 @@
 *
 * Authors:
 *
-*      Han Wang, hollywang@iis.sinica.edu.tw
-       Jake Lee, jakelee@iis.sinica.edu.tw
+*      Jake Lee, jakelee@iis.sinica.edu.tw
 *      Johnson Su, johnsonsu@iis.sinica.edu.tw
 *      Shirley Huang, shirley.huang.93@gmail.com
 *      Han Hu, hhu14@illinois.edu
 *      Jeffrey Lin, lin.jeff03@gmail.com
 *      Howard Hsu, haohsu0823@gmail.com
-*      
+*      Han Wang, hollywang@iis.sinica.edu.tw
 */
 
 #include "LBeacon.h"
@@ -215,33 +214,6 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     node_s->data = &data;
     node_t->data = &data;
     
-/* 
-    ScannedDevice *temps = (ScannedDevice *) node_t->data;
-    printf("Node: %s\n", &temps->scanned_mac_address);
-
-
-    if(get_list_length(tracked_object_list_head) != 0){
-        struct List_Entry *lisptrs;
-        Node *temp;
-        int count = 0;
-        list_for_each(lisptrs, tracked_object_list_head){
-            
-            temp = ListEntry(lisptrs, Node, ptrs);
-
-
-            ScannedDevice *temp_data;
-            temp_data = (struct ScannedDevice *)temp->data;
-            printf("Git it \n");
-            printf("count: %d, MAC: %s \n", count, &temp_data->scanned_mac_address[0]);
-            count++;
-        }
-    }
- 
- */   
-    
-
-    //print_list(tracked_object_list_head, print_MACaddress);
-
 
 }
 
@@ -892,61 +864,18 @@ void *send_file(void *id) {
 
 }
 
-void *zigbee_connection(){
+void *zigbee_connection(Zigbee *zigbee){
 
-    char* xbee_mode;
+    
 
-    char* xbee_device;
-
-    int xbee_baudrate;
-
-    int LogLevel;
-
-    xbee_mode = "xbeeZB";
-
-    xbee_device = "/dev/ttyAMA0";
-
-    xbee_baudrate = 9600;
-
-    LogLevel = 100;
-
-    struct xbee *xbee;
-
-    struct xbee_con *con;
-
-    pkt_ptr pkt_Queue = malloc(sizeof(spkt_ptr));
-
-    xbee_initial(xbee_mode, xbee_device, xbee_baudrate
-                            , LogLevel, &xbee, pkt_Queue);
-
-    printf("Start establishing Connection to xbee\n");
-
-
-    /*--------------Configuration for connection in Data mode----------------*/
-    /* In this mode we aim to get Data.                                      */
-    /*-----------------------------------------------------------------------*/
-
-    printf("Establishing Connection...\n");
-
-    xbee_connector(&xbee, &con, pkt_Queue);
-
-    printf("Connection Successfully Established\n");
-
-    /* Start the chain reaction!                                             */
-
-    if((ret = xbee_conValidate(con)) != XBEE_ENONE){
-        xbee_log(xbee, 1, "con unvalidate ret : %d", ret);
-        return;
-    }
-
-    while(1) {
+    while(ready_to_work == true ) {
         /* Pointer point_to_CallBack will store the callback function.       */
         /* If pointer point_to_CallBack is NULL, break the Loop              */
         void *point_to_CallBack;
 
-        if ((ret = xbee_conCallbackGet(con, (xbee_t_conCallback*)
+        if ((ret = xbee_conCallbackGet(zigbee->con, (xbee_t_conCallback*)
             &point_to_CallBack))!= XBEE_ENONE) {
-            xbee_log(xbee, -1, "xbee_conCallbackGet() returned: %d", ret);
+            xbee_log(zigbee->xbee, -1, "xbee_conCallbackGet() returned: %d", ret);
             return;
         }
 
@@ -956,36 +885,36 @@ void *zigbee_connection(){
         }
 
 
-        addpkt(pkt_Queue, Data, Gateway, "AAAAA");
+        addpkt(zigbee->pkt_Queue, Data, Gateway, "AAAAA");
 
-    /* If there are remain some packet need to send in the Queue,            */
+        /* If there are remain some packet need to send in the Queue,            */
         /* send the packet                                                   */
-        if(pkt_Queue->front->next != NULL){
+        if(zigbee->pkt_Queue->front->next != NULL){
 
-            xbee_conTx(con, NULL, pkt_Queue->front->next->content);
+            xbee_conTx(zigbee->con, NULL, zigbee->pkt_Queue->front->next->content);
 
-            delpkt(pkt_Queue);
+            delpkt(zigbee->pkt_Queue);
         }
         else{
-            xbee_log(xbee, -1, "xbee packet Queue is NULL.");
+            xbee_log(zigbee->xbee, -1, "xbee packet Queue is NULL.");
         }
         usleep(2000000);
     }
 
     printf("Jump out while\n");
 
-    Free_Packet_Queue(pkt_Queue);
+    Free_Packet_Queue(zigbee->pkt_Queue);
 
     /* Close connection                                                      */
-    if ((ret = xbee_conEnd(con)) != XBEE_ENONE) {
-        xbee_log(xbee, 10, "xbee_conEnd() returned: %d", ret);
+    if ((ret = xbee_conEnd(zigbee->con)) != XBEE_ENONE) {
+        xbee_log(zigbee->xbee, 10, "xbee_conEnd() returned: %d", ret);
         return;
     }
 
     printf("Stop connection Succeeded\n");
 
     /* Close xbee                                                            */
-    xbee_shutdown(xbee);
+    xbee_shutdown(zigbee->xbee);
     printf("Shutdown Xbee Succeeded\n");
 
     return;
@@ -1357,9 +1286,48 @@ int main(int argc, char **argv) {
     }
 
 
+    /* Parameters for zigbee initialization */
+    char* xbee_mode  = "xbeeZB";
+
+    char* xbee_device = "/dev/ttyAMA0";
+    
+    int xbee_baudrate = 9600;
+
+    int LogLevel = 100;
+
+
+    Zigbee *zigbee;
+    zigbee = (struct Zigbee*)malloc(sizeof(struct Zigbee));
+    
+    zigbee->pkt_Queue = malloc(sizeof(spkt_ptr));
+
+    xbee_initial(xbee_mode, xbee_device, xbee_baudrate
+                            , LogLevel, &(zigbee->xbee), zigbee->pkt_Queue);
+    
+    printf("Start establishing Connection to xbee\n");
+
+
+    /*--------------Configuration for connection in Data mode----------------*/
+    /* In this mode we aim to get Data.                                      */
+    /*-----------------------------------------------------------------------*/
+
+    printf("Establishing Connection...\n");
+
+    xbee_connector(&(zigbee->xbee), &(zigbee->con), zigbee->pkt_Queue);
+
+    printf("Connection Successfully Established\n");
+
+    /* Start the chain reaction!                                             */
+
+    if((ret = xbee_conValidate(zigbee->con)) != XBEE_ENONE){
+        xbee_log(zigbee->xbee, 1, "con unvalidate ret : %d", ret);
+        return;
+    }
+
+
     pthread_t zigbee_connection_thread;
 
-    return_value = startThread(zigbee_connection_thread, zigbee_connection, NULL);
+    return_value = startThread(zigbee_connection_thread, zigbee_connection, zigbee);
 
     if(return_value != WORK_SCUCESSFULLY){
          perror(errordesc[E_START_THREAD].message);

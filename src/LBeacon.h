@@ -34,14 +34,13 @@
 *
 * Authors:
 *
-*      Han Wang, hollywang@iis.sinica.edu.tw
-       Jake Lee, jakelee@iis.sinica.edu.tw
+*      Jake Lee, jakelee@iis.sinica.edu.tw
 *      Johnson Su, johnsonsu@iis.sinica.edu.tw
 *      Shirley Huang, shirley.huang.93@gmail.com
 *      Han Hu, hhu14@illinois.edu
 *      Jeffrey Lin, lin.jeff03@gmail.com
 *      Howard Hsu, haohsu0823@gmail.com
-*      
+*      Han Wang, hollywang@iis.sinica.edu.tw
 */
 
 
@@ -270,18 +269,36 @@ typedef struct Config {
 
 
 typedef struct ThreadStatus {
+    
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
+    
     bool idle;
+    
     bool is_waiting_to_send;
+
 } ThreadStatus;
 
 
 /* Struct for storing MAC address of the user's device and the time instant
  * at when the address is scanned */
 typedef struct ScannedDevice {
+    
     long long initial_scanned_time;
+    
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
+
 } ScannedDevice;
+
+/* Struct for necessary parameters for Zigbee Initialization */
+typedef struct Zigbee {
+
+    struct xbee *xbee;
+
+    struct xbee_con *con;
+
+    pkt_ptr pkt_Queue;
+    
+}Zigbee;
 
 
 
@@ -339,6 +356,7 @@ struct _errordesc {
     {MAX_ERROR_CODE, "The element is invalid"},
 
 };
+
 
 
 
@@ -407,7 +425,6 @@ bool ready_to_work;
 /* A global flag that is false initially set to true be the main thread to
  * inform all of the thread that scanning operation have been canceled. */
 bool send_message_cancelled;
-
 
 
 
