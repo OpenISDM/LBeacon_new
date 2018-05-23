@@ -1053,8 +1053,6 @@ void *track_devices(char *file_name) {
 
             perror(errordesc[E_OPEN_FILE].message);
             return;
-        }else{
-            printf("Open file sucessfully\n");
         }
 
         /* Go through list*/
@@ -1064,9 +1062,6 @@ void *track_devices(char *file_name) {
             ScannedDevice *temp_data;
             temp_data = (struct ScannedDevice *)temp->data;
 
-            if(temp == NULL){
-                sleep(10);
-            }
 
             /* Convert the timestamp from list to string */
             unsigned timestamp = (unsigned)&temp_data->initial_scanned_time;
@@ -1079,12 +1074,21 @@ void *track_devices(char *file_name) {
             fputs(timestamp_str, output);
             fputs("\n", output);
 
+            char *zig_message[80];
+            strcpy(zig_message, &temp_data->scanned_mac_address[0]);
+            strcat(zig_message, timestamp_str);
+           
+            /* Send tracking content to the gateway */        
+            zigbee_connection(zigbee, zig_message);
+
+
             /* Clean up the tracked_object_list */
             list_remove_node(&temp->ptrs);
             free(temp);
 
         }
-        
+
+       
 
     }
 
@@ -1109,20 +1113,10 @@ void *track_devices(char *file_name) {
 *  None
 */
 
-void *zigbee_connection(Zigbee *zigbee){
+void zigbee_connection(Zigbee *zigbee, char *message){
     
 
-    while(ready_to_work == true ) {
-
-        /*Check whether there is any message to be sent via zigbee.
-         * If not, sleep for 30 sec. If yes, go through the loop for actions */
-        if(zigbee_transmission == false){  
-            
-            sleep(30);
-            continue;
-
-        }
-        
+   
         /* Pointer point_to_CallBack will store the callback function.       */
         /* If pointer point_to_CallBack is NULL, break the Loop              */
         
@@ -1139,12 +1133,12 @@ void *zigbee_connection(Zigbee *zigbee){
         if (point_to_CallBack == NULL){
             
             printf("Stop Xbee...\n");
-            break;
+            return;
         
         }
 
 
-        addpkt(zigbee->pkt_Queue, Data, Gateway, "AAAAA");
+        addpkt(zigbee->pkt_Queue, Data, Gateway, message);
 
         /* If there are remain some packet need to send in the Queue,            */
         /* send the packet                                                   */
@@ -1163,12 +1157,9 @@ void *zigbee_connection(Zigbee *zigbee){
         
         usleep(2000000);
     
-    }
+       
 
-    printf("Jump out while\n");
-   
-
-    return;
+   return;
 }
 
 
@@ -1423,7 +1414,6 @@ void cleanup_exit(){
 
     ready_to_work = false;
     send_message_cancelled = true;
-    zigbee_transmission = false;
     
     /* Release the space for the lists */
     free_list(scanned_list_head);
@@ -1473,7 +1463,7 @@ int main(int argc, char **argv) {
     /*Initialize the global flags */
     send_message_cancelled == true;
     ready_to_work = true;
-    zigbee_transmission = false;
+    
 
 
     /*Initialize the lists */
@@ -1653,15 +1643,7 @@ int main(int argc, char **argv) {
     }
 
 
-    pthread_t zigbee_connection_thread;
-
-    return_value = startThread(zigbee_connection_thread, zigbee_connection, zigbee);
-
-    if(return_value != WORK_SCUCESSFULLY){
-         perror(errordesc[E_START_THREAD].message);
-        cleanup_exit();
-    }
-
+  
 
     int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
     int maximum_number_of_devices_per_dongle =
@@ -1767,14 +1749,6 @@ int main(int argc, char **argv) {
 
     }
 
-     return_value = pthread_join(zigbee_connection_thread, NULL);
-
-    if (return_value != 0) {
-        perror(strerror(errno));
-        cleanup_exit();
-        return;
-
-    }
 
     pthread_cancel(stop_ble_beacon_thread);
     return_value = pthread_join(stop_ble_beacon_thread, NULL);

@@ -433,10 +433,6 @@ bool ready_to_work;
  * inform all of the thread that scanning operation have been canceled. */
 bool send_message_cancelled;
 
-/* Agloable flag that is false initially and set to true by the tracking thread
-* to infrom there is a message to be sent by xbee module */
-bool zigbee_transmission;
-
 
 
 
@@ -752,7 +748,7 @@ void *track_devices(char *file_name);
 *  None
 */
 
-void *zigbee_connection(Zigbee *zigbee);
+void zigbee_connection(Zigbee *zigbee, char *message);
 
 
 /*
