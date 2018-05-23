@@ -398,9 +398,12 @@ int g_size_of_file = 0;
 /* Struct for storing config information from the input file */
 Config g_config;
 
-
 /* An array of struct for storing information and status of each thread */
 ThreadStatus *g_idle_handler;
+
+/* Struct for storing necessary objects for zigbee connection */
+Zigbee *zigbee;
+
 
 /* Three list of struct for recording scanned devices */
 
@@ -412,12 +415,12 @@ List_Entry *scanned_list_head;
 * waiting for an available thread to send messages to their address.*/
 List_Entry *waiting_list_head;
 
-
 /* Head of tracking_object_list that holds the scanned device structs of 
 * devices to be processed for each device in the list, a line contain of it's 
 * MAC address and time at which the address is found in placed to a tracked 
 * object buffer to be send the gateway and search.*/
 List_Entry *tracked_object_list_head;
+
 
 /* Global flags for communication among threads */
 
@@ -426,9 +429,15 @@ false by any thread when the thread encounters a fatal error, indicating that
 it is about to exit.*/
 bool ready_to_work;
 
-/* A global flag that is false initially set to true be the main thread to
+/* A global flag that is false initially and set to true by the main thread to
  * inform all of the thread that scanning operation have been canceled. */
 bool send_message_cancelled;
+
+/* Agloable flag that is false initially and set to true by the tracking thread
+* to infrom there is a message to be sent by xbee module */
+bool zigbee_transmission;
+
+
 
 
 
@@ -526,23 +535,6 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi);
 
 
-/*
-*  track_devices:
-*
-*  This function tracks the MAC addresses of scanned bluetooth devices under
-*  the beacon. An output file will contain for each timestamp and the MAC
-*  addresses of the scanned bluetooth devices at the given timestamp.
-*
-*  Parameters:
-*
-*  file_name - name of the file where all the data will be stored
-*
-*  Return value:
-*
-*  None
-*/
-
-void *track_devices(char *file_name);
 
 
 /*
@@ -723,6 +715,26 @@ void *waitinglist_to_array();
 */
 
 void *send_file(void *dongle_id);
+
+
+
+/*
+*  track_devices:
+*
+*  This function tracks the MAC addresses of scanned bluetooth devices under
+*  the beacon. An output file will contain for each timestamp and the MAC
+*  addresses of the scanned bluetooth devices at the given timestamp.
+*
+*  Parameters:
+*
+*  file_name - name of the file where all the data will be stored
+*
+*  Return value:
+*
+*  None
+*/
+
+void *track_devices(char *file_name);
 
 
 /*

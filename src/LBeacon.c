@@ -237,29 +237,29 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 
     strncpy(data.scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS);
    
-    struct Node *node_s, *node_w, *node_t;
-    node_s = (struct Node*)malloc(sizeof(struct Node));
-    node_t = (struct Node*)malloc(sizeof(struct Node));
+    struct Node *node_scanned, *node_wait, *node_track;
+    node_scanned = (struct Node*)malloc(sizeof(struct Node));
+    node_track = (struct Node*)malloc(sizeof(struct Node));
     
     
     
     /* Add newly scanned devices to the waiting list for new scanned devices */
     if (check_is_in_list(scanned_list_head, address) == NULL) {
 
-        node_w = (struct Node*)malloc(sizeof(struct Node));
-        list_insert_first(&node_w->ptrs, waiting_list_head);
+        node_wait = (struct Node*)malloc(sizeof(struct Node));
+        list_insert_first(&node_wait->ptrs, waiting_list_head);
         
       
-        node_w->data = &data;
+        node_wait->data = &data;
         
 
     }
 
-    list_insert_first(&node_s->ptrs, scanned_list_head);
-    list_insert_first(&node_t->ptrs, tracked_object_list_head);
+    list_insert_first(&node_scanned->ptrs, scanned_list_head);
+    list_insert_first(&node_track->ptrs, tracked_object_list_head);
     
-    node_s->data = &data;
-    node_t->data = &data;
+    node_scanned->data = &data;
+    node_track->data = &data;
     
 
 }
@@ -310,81 +310,6 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 }
 
 
-/*
-*  track_devices:
-*
-*  This function tracks the MAC addresses of scanned bluetooth devices under
-*  the beacon. An output file will contain for each timestamp and the MAC
-*  addresses of the scanned bluetooth devices at the given timestamp.
-*
-*  Parameters:
-*
-*  file_name - name of the file where all the data will be stored
-*
-*  Return value:
-*
-*  None
-*/
-
-void *track_devices(char *file_name) {
-
-    while(ready_to_work == true){
-
-
-        /*Check whether the list is empty */
-        if(get_list_length(tracked_object_list_head) == 0){  
-            printf("Here is no data. \n");
-            sleep(30);
-            continue;
-
-        }
-        printf("Keep doing the tracking \n");
-        /* Create a temporary node and set as the head */
-        struct List_Entry *lisptrs;
-        Node *temp;
-        char timestamp_str[LENGTH_OF_TIME];
-
-        /* Create a new file with tracked_object_list's data*/
-        FILE *output = fopen(file_name, "a+");
-
-        if(output == NULL){
-
-            perror(errordesc[E_OPEN_FILE].message);
-            return;
-        }
-
-        /* Go through list*/
-        list_for_each(lisptrs, tracked_object_list_head){
-
-            temp = ListEntry(lisptrs, Node, ptrs);
-            ScannedDevice *temp_data;
-            temp_data = (struct ScannedDevice *)temp->data;
-
-            if(temp == NULL){
-                sleep(10);
-            }
-
-            /* Convert the timestamp from list to string */
-            unsigned timestamp = (unsigned)&temp_data->initial_scanned_time;
-            sprintf(timestamp_str, "%u", timestamp);
-
-            fputs("MAC address: ",output);
-            fputs(&temp_data->scanned_mac_address[0], output);
-            fputs(" ", output);
-            fputs("Timestamp: ", output);
-            fputs(timestamp_str, output);
-            fputs("\n", output);
-
-            /* Clean up the tracked_object_list */
-            list_remove_node(&temp->ptrs);
-            free(temp);
-
-        }
-        fclose(output);
-
-    }
-
-}
 
 
 /*
@@ -1086,6 +1011,90 @@ void *send_file(void *id) {
 
 
 /*
+*  track_devices:
+*
+*  This function tracks the MAC addresses of scanned bluetooth devices under
+*  the beacon. An output file will contain for each timestamp and the MAC
+*  addresses of the scanned bluetooth devices at the given timestamp.
+*
+*  Parameters:
+*
+*  file_name - name of the file where all the data will be stored
+*
+*  Return value:
+*
+*  None
+*/
+
+void *track_devices(char *file_name) {
+
+    FILE *output;
+
+    while(ready_to_work == true){
+
+
+        /*Check whether the list is empty */
+        if(get_list_length(tracked_object_list_head) == 0){  
+            
+            sleep(30);
+            continue;
+
+        }
+        
+        /* Create a temporary node and set as the head */
+        struct List_Entry *lisptrs;
+        Node *temp;
+        char timestamp_str[LENGTH_OF_TIME];
+
+        /* Create a new file with tracked_object_list's data*/
+        output = fopen(file_name, "a+");
+
+        if(output == NULL){
+
+            perror(errordesc[E_OPEN_FILE].message);
+            return;
+        }else{
+            printf("Open file sucessfully\n");
+        }
+
+        /* Go through list*/
+        list_for_each(lisptrs, tracked_object_list_head){
+
+            temp = ListEntry(lisptrs, Node, ptrs);
+            ScannedDevice *temp_data;
+            temp_data = (struct ScannedDevice *)temp->data;
+
+            if(temp == NULL){
+                sleep(10);
+            }
+
+            /* Convert the timestamp from list to string */
+            unsigned timestamp = (unsigned)&temp_data->initial_scanned_time;
+            sprintf(timestamp_str, "%u", timestamp);
+
+            fputs("MAC address: ",output);
+            fputs(&temp_data->scanned_mac_address[0], output);
+            fputs(" ", output);
+            fputs("Timestamp: ", output);
+            fputs(timestamp_str, output);
+            fputs("\n", output);
+
+            /* Clean up the tracked_object_list */
+            list_remove_node(&temp->ptrs);
+            free(temp);
+
+        }
+        
+
+    }
+
+    /* Close the file for tracking */
+    fclose(output);
+
+}
+
+
+/*
 *  zigbee_connection:
 *
 *  This function is respondsible for sending packet to gateway via xbee module
@@ -1104,21 +1113,34 @@ void *zigbee_connection(Zigbee *zigbee){
     
 
     while(ready_to_work == true ) {
+
+        /*Check whether there is any message to be sent via zigbee.
+         * If not, sleep for 30 sec. If yes, go through the loop for actions */
+        if(zigbee_transmission == false){  
+            
+            sleep(30);
+            continue;
+
+        }
         
         /* Pointer point_to_CallBack will store the callback function.       */
         /* If pointer point_to_CallBack is NULL, break the Loop              */
         
         void *point_to_CallBack;
 
-        if ((ret = xbee_conCallbackGet(zigbee->con, (xbee_t_conCallback*)
+        if ((ret = xbee_conCallbackGet(zigbee->con, (xbee_t_conCallback*)            
             &point_to_CallBack))!= XBEE_ENONE) {
+
             xbee_log(zigbee->xbee, -1, "xbee_conCallbackGet() returned: %d", ret);
             return;
+        
         }
 
-    if (point_to_CallBack == NULL){
+        if (point_to_CallBack == NULL){
+            
             printf("Stop Xbee...\n");
             break;
+        
         }
 
 
@@ -1131,28 +1153,20 @@ void *zigbee_connection(Zigbee *zigbee){
             xbee_conTx(zigbee->con, NULL, zigbee->pkt_Queue->front->next->content);
 
             delpkt(zigbee->pkt_Queue);
+        
         }
         else{
+        
             xbee_log(zigbee->xbee, -1, "xbee packet Queue is NULL.");
+        
         }
+        
         usleep(2000000);
+    
     }
 
     printf("Jump out while\n");
-
-    Free_Packet_Queue(zigbee->pkt_Queue);
-
-    /* Close connection                                                      */
-    if ((ret = xbee_conEnd(zigbee->con)) != XBEE_ENONE) {
-        xbee_log(zigbee->xbee, 10, "xbee_conEnd() returned: %d", ret);
-        return;
-    }
-
-    printf("Stop connection Succeeded\n");
-
-    /* Close xbee                                                            */
-    xbee_shutdown(zigbee->xbee);
-    printf("Shutdown Xbee Succeeded\n");
+   
 
     return;
 }
@@ -1409,11 +1423,36 @@ void cleanup_exit(){
 
     ready_to_work = false;
     send_message_cancelled = true;
+    zigbee_transmission = false;
+    
+    /* Release the space for the lists */
     free_list(scanned_list_head);
     free_list(waiting_list_head);
     free_list(tracked_object_list_head);
+    
+    /* Release the handler for Bluetooth */
     free(g_idle_handler);
     free(g_push_file_path);
+    
+    
+
+    /* Free Packet Queue for zigbee connection */
+    Free_Packet_Queue(zigbee->pkt_Queue);
+
+    /* Close connection  */
+    if ((ret = xbee_conEnd(zigbee->con)) != XBEE_ENONE) {
+        xbee_log(zigbee->xbee, 10, "xbee_conEnd() returned: %d", ret);
+        return;
+    }
+    printf("Stop connection Succeeded\n");
+
+    /* Close xbee                                                            */
+    xbee_shutdown(zigbee->xbee);
+    printf("Shutdown Xbee Succeeded\n");
+
+    /* Free the struct of zigbee */
+    free(zigbee);
+    
     return;
 
 }
@@ -1434,6 +1473,7 @@ int main(int argc, char **argv) {
     /*Initialize the global flags */
     send_message_cancelled == true;
     ready_to_work = true;
+    zigbee_transmission = false;
 
 
     /*Initialize the lists */
@@ -1562,6 +1602,8 @@ int main(int argc, char **argv) {
         cleanup_exit();
     }
 
+    
+
     /* Create the thread for track device */
     pthread_t track_devices_thread;
 
@@ -1582,8 +1624,7 @@ int main(int argc, char **argv) {
 
     int LogLevel = 100;
 
-
-    Zigbee *zigbee;
+    
     zigbee = (struct Zigbee*)malloc(sizeof(struct Zigbee));
     
     zigbee->pkt_Queue = malloc(sizeof(spkt_ptr));
