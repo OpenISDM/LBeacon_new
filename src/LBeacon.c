@@ -37,17 +37,33 @@
 *
 * Authors:
 *
+*      Han Wang, hollywang@iis.sinica.edu.tw
 *      Jake Lee, jakelee@iis.sinica.edu.tw
 *      Johnson Su, johnsonsu@iis.sinica.edu.tw
 *      Shirley Huang, shirley.huang.93@gmail.com
 *      Han Hu, hhu14@illinois.edu
 *      Jeffrey Lin, lin.jeff03@gmail.com
 *      Howard Hsu, haohsu0823@gmail.com
-*      Han Wang, hollywang@iis.sinica.edu.tw
+*      
 */
 
 #include "LBeacon.h"
 
+/*
+*  get_config:
+*
+*  This function reads the specified config file line by line until the
+*  end of file, and stores the data in the lines into the global variable of a
+*  Config struct.
+*
+*  Parameters:
+*
+*  file_name - the name of the config file that stores all the beacon data
+*
+*  Return value:
+*
+*  config - Config struct including file path, coordinates, etc.
+*/
 
 Config get_config(char *file_name) {
 
@@ -155,7 +171,20 @@ Config get_config(char *file_name) {
     return config;
 }
 
-
+/*
+*  get_system_time:
+*
+*  This helper function fetches the current time according to the system
+*  clock in terms of the number of milliseconds since January 1, 1970.
+*
+*  Parameters:
+*
+*  None
+*
+*  Return value:
+*
+*  system_time - system time in milliseconds
+*/
 
 long long get_system_time() {
     /* A struct that stores the time */
@@ -171,6 +200,26 @@ long long get_system_time() {
     return system_time;
 }
 
+
+/*
+*  send_to_push_dongle:
+*
+*  When called, this functions constructs a ScannedDevice struct using the
+*  input bluetooth_device_address as MAC address and current time as timestamp.
+*  It then checks whether there is a ScannedDevice struct in the scanned list
+*  with MAC address matching the input MAC address. If there is no such
+*  ScannedDevice struct, the function inserts the newly constructed struct at
+*  the head of the waiting list. It inserts new struct at the head of the
+*  scanned list regarded as the results of above mentioned test.
+*
+*  Parameters:
+*
+*  bluetooth_device_address - bluetooth device address
+*
+*  Return value:
+*
+*  None
+*/
 
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 
@@ -192,8 +241,6 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     node_s = (struct Node*)malloc(sizeof(struct Node));
     node_t = (struct Node*)malloc(sizeof(struct Node));
     
-    //struct Node *node_s = add_node(scanned_list_head);
-    //struct Node *node_t = add_node(tracked_object_list_head);
     
     
     /* Add newly scanned devices to the waiting list for new scanned devices */
@@ -202,7 +249,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
         node_w = (struct Node*)malloc(sizeof(struct Node));
         list_insert_first(&node_w->ptrs, waiting_list_head);
         
-        //struct Node *node_w = add_node(waiting_list_head);
+      
         node_w->data = &data;
         
 
@@ -217,15 +264,25 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 
 }
 
-Node *add_node(List_Entry *entry){
 
-    struct Node *tempnode; 
-    tempnode = (struct Node*)malloc(sizeof(struct Node));
-    list_insert_first(&tempnode->ptrs, entry);
-    return tempnode;
-
-}
-
+/*
+*  print_RSSI_value:
+*
+*  This function prints the RSSI value along with the MAC address of the
+*  user's scanned bluetooth device. When the LBeacon is running, we will
+*  continuously see a list of scanned bluetooth devices running in the
+*  console.
+*
+*  Parameters:
+*
+*  bluetooth_device_address - bluetooth device address
+*  has_rssi - whether the bluetooth device has an RSSI value or not
+*  rssi - RSSI value of bluetooth device
+*
+*  Return value:
+*
+*  None
+*/
 
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi) {
@@ -253,6 +310,21 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 }
 
 
+/*
+*  track_devices:
+*
+*  This function tracks the MAC addresses of scanned bluetooth devices under
+*  the beacon. An output file will contain for each timestamp and the MAC
+*  addresses of the scanned bluetooth devices at the given timestamp.
+*
+*  Parameters:
+*
+*  file_name - name of the file where all the data will be stored
+*
+*  Return value:
+*
+*  None
+*/
 
 void *track_devices(char *file_name) {
 
@@ -315,6 +387,26 @@ void *track_devices(char *file_name) {
 }
 
 
+/*
+*  check_is_in_list:
+*
+*  This function checks whether the specified MAC address given as
+*  input is in the specified list.
+*  If a node with MAC address match up with the input address is found in the 
+*  list specified by the input parameter, return the pointer to the node with 
+*  maching address, otherwise it returns NULL.
+*
+*  Parameters:
+*
+*  list - the list is going to be checked
+*  address - scanned MAC address of a bluetooth device
+*
+*  Return value:
+*
+*  match_node - The node found that is matched up with the input address
+*  
+*
+*/
 
 struct Node *check_is_in_list(List_Entry *list, char address[]) {
 
@@ -345,12 +437,43 @@ struct Node *check_is_in_list(List_Entry *list, char address[]) {
 }
 
 
+/*
+*  print_MACaddress:
+*
+*  This helper function prints the MAC addresses which is used with the
+*  function of print_list defined in LinkedList.h.
+*
+*  Parameters:
+*
+*  sc - anytype of data which will be printed
+*
+*  Return value:
+*
+*  None
+*/
+
 void print_MACaddress(void *sc){
 
     ScannedDevice *temp_data = (struct ScannedDevice *)sc;
     printf(" %s \t", &temp_data->scanned_mac_address[0]);
 
 }
+
+
+/*
+*  print_Timestamp:
+*
+*  This helper function prints the timestamp which is used with the
+*  function of print_list defined in LinkedList.h.
+*
+*  Parameters:
+*
+*  sc - anytype of data which will be printed
+*
+*  Return value:
+*
+*  None
+*/
 
 void print_Timestamp(void *sc){
 
@@ -359,6 +482,24 @@ void print_Timestamp(void *sc){
 
 }
 
+
+/*
+*  enable_advertising:
+*
+*  This function enables the LBeacon to start advertising, sets the time
+*  interval for advertising, and calibrates the RSSI value.
+*
+*  Parameters:
+*
+*  advertising_interval - the time interval for which the LBeacon can
+*  advertise advertising_uuid - universally unique identifier for advertising
+*  rssi_value - RSSI value of the bluetooth device
+*
+*  Return value:
+*
+*  ErrorCode: The error code for the corresponding error
+*
+*/
 
 ErrorCode enable_advertising(int advertising_interval, char *advertising_uuid,
 
@@ -515,6 +656,20 @@ ErrorCode enable_advertising(int advertising_interval, char *advertising_uuid,
 }
 
 
+/*
+*  disable_advertising:
+*
+*  This function disables the advertising capabilities of the beacon.
+*
+*  Parameters:
+*
+*  None
+*
+*  Return value:
+*
+*  ErrorCode: The error code for the corresponding error
+*
+*/
 
 ErrorCode disable_advertising() {
 
@@ -569,6 +724,21 @@ ErrorCode disable_advertising() {
 }
 
 
+/*
+*  ble_beacon:
+*
+*  This function allows avertising to be stopped with ctrl-c if
+*  enable_advertising was a success.
+*
+*  Parameters:
+*
+*  beacon_location - advertising uuid
+*
+*  Return value:
+*
+*  None
+*/
+
 void *stop_ble_beacon(void *beacon_location) {
 
     int enable_advertising_success =
@@ -608,6 +778,23 @@ void *stop_ble_beacon(void *beacon_location) {
 }
 
 
+/*
+*  cleanup_scanned_list:
+*
+*  This function determines when scernned Device struct of each discovered
+*  device remains in the seanned list for at most TIME_IN_SCANNED_LIST sec
+*  scanned data of device in the scanned list. In the background, This work
+*  thread continuously check the scanned list. If so, the ScannedDevice
+*  struct will be removed.
+*
+*  Parameters:
+*
+*  None
+*
+*  Return value:
+*
+*  None
+*/
 
 void *cleanup_scanned_list(void) {
 
@@ -650,8 +837,25 @@ void *cleanup_scanned_list(void) {
 }
 
 
+/*
+*  waitingList_to_array:
+*
+*  This function continuously looks through the ThreadStatus array that
+*  contains the status of all the send_file thread. When the function finds the
+*  ThreadStatus of available thread and the waiting list is not empty, the
+*  function removes the last node from the waiting list and copies the  MAC
+*  address in the removed node to the ThreadStatus.
+*
+*  Parameters:
+*
+*  None
+*
+*  Return value:
+*
+*  None
+*/
 
-void *queue_to_array() {
+void *waitinglist_to_array() {
 
     /* Maximum number of devices to be handled by all push dongles */
     int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
@@ -705,6 +909,22 @@ void *queue_to_array() {
 }
 
 
+/*
+*  send_file:
+*
+*  This function pushes a message asynchronously to devices. It is the thread
+*  function of the specified thread.
+*
+*  [N.B. The beacon may still be scanning for other bluetooth devices.]
+*
+*  Parameters:
+*
+*  id - ID of the thread used to send the push message
+*
+*  Return value:
+*
+*  None
+*/
 
 void *send_file(void *id) {
 
@@ -864,13 +1084,30 @@ void *send_file(void *id) {
 
 }
 
-void *zigbee_connection(Zigbee *zigbee){
 
+/*
+*  zigbee_connection:
+*
+*  This function is respondsible for sending packet to gateway via xbee module
+*  and receiving command or data from the gateway. 
+*
+*  Parameters:
+*
+*  zigbee - the struct of necessary parameter and data 
+*
+*  Return value:
+*
+*  None
+*/
+
+void *zigbee_connection(Zigbee *zigbee){
     
 
     while(ready_to_work == true ) {
+        
         /* Pointer point_to_CallBack will store the callback function.       */
         /* If pointer point_to_CallBack is NULL, break the Loop              */
+        
         void *point_to_CallBack;
 
         if ((ret = xbee_conCallbackGet(zigbee->con, (xbee_t_conCallback*)
@@ -920,6 +1157,27 @@ void *zigbee_connection(Zigbee *zigbee){
     return;
 }
 
+
+/*
+*  start_scanning:
+*
+*  This function scans continuously for bluetooth devices under the coverage
+*  of the  beacon until scanning is cancelled. Each scanned device fall under
+*  one of three cases: a bluetooth device with no RSSI value and a bluetooth
+*  device with a RSSI value, When the RSSI value of the device is within the
+*  threshold, the ScannedDevice struct of the device is be added to the linked
+*  list of devices to which messages will be sent.
+*
+*  [N.B. This function is extented by the main thread. ]
+*
+*  Parameters:
+*
+*  None
+*
+*  Return value:
+*
+*  None
+*/
 
 void start_scanning() {
 
@@ -1100,6 +1358,22 @@ void start_scanning() {
 }
 
 
+/*
+*  startThread:
+*
+*  This function initializes the threads.
+*
+*  Parameters:
+*
+*  threads - name of the thread
+*  thfunct - the function for thread to do
+*  arg - the argument for thread's function
+*
+*  Return value:
+*
+*  ErrorCode: The error code for the corresponding error
+*/
+
 ErrorCode startThread(pthread_t threads ,void * (*thfunct)(void*), void *arg){
 
     pthread_attr_t attr;
@@ -1116,6 +1390,20 @@ ErrorCode startThread(pthread_t threads ,void * (*thfunct)(void*), void *arg){
 
 }
 
+
+/*
+*  cleanup_exit:
+*
+*  This function releases all the resources and set the flag.
+*
+*  Parameters:
+*
+*  None
+*
+*  Return value:
+*
+*  None
+*/
 
 void cleanup_exit(){
 
@@ -1231,7 +1519,6 @@ int main(int argc, char **argv) {
 
 
 
-
     /* Store coordinates of the beacon location */
     sprintf(hex_c,
             "E2C56DB5DFFB48D2B060D0F5%02x%02x%02x%02x%02x%02x%02x%02x",
@@ -1266,9 +1553,9 @@ int main(int argc, char **argv) {
 
     /* Create the thread for sending MAC address in waiting list to an
      * available thread */
-    pthread_t queue_to_array_thread;
+    pthread_t waitinglist_to_array_thread;
 
-    return_value = startThread(queue_to_array_thread, queue_to_array, NULL);
+    return_value = startThread(waitinglist_to_array_thread, waitinglist_to_array, NULL);
 
     if(return_value != WORK_SCUCESSFULLY){
          perror(errordesc[E_START_THREAD].message);
@@ -1286,7 +1573,7 @@ int main(int argc, char **argv) {
     }
 
 
-    /* Parameters for zigbee initialization */
+    /* Parameters for Zigbee initialization */
     char* xbee_mode  = "xbeeZB";
 
     char* xbee_device = "/dev/ttyAMA0";
@@ -1422,7 +1709,7 @@ int main(int argc, char **argv) {
     }
 
 
-    return_value = pthread_join(queue_to_array_thread, NULL);
+    return_value = pthread_join(waitinglist_to_array_thread, NULL);
 
     if (return_value != 0) {
         perror(strerror(errno));

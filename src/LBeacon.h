@@ -34,13 +34,14 @@
 *
 * Authors:
 *
+*      Han Wang, hollywang@iis.sinica.edu.tw
 *      Jake Lee, jakelee@iis.sinica.edu.tw
 *      Johnson Su, johnsonsu@iis.sinica.edu.tw
 *      Shirley Huang, shirley.huang.93@gmail.com
 *      Han Hu, hhu14@illinois.edu
 *      Jeffrey Lin, lin.jeff03@gmail.com
 *      Howard Hsu, haohsu0823@gmail.com
-*      Han Wang, hollywang@iis.sinica.edu.tw
+*      
 */
 
 
@@ -292,10 +293,13 @@ typedef struct ScannedDevice {
 /* Struct for necessary parameters for Zigbee Initialization */
 typedef struct Zigbee {
 
-    struct xbee *xbee;
+    /* Struct for xbee main part which is defined in library */
+    struct xbee *xbee; 
 
+    /* Struct for xbee connector which is defined in library */
     struct xbee_con *con;
 
+    /* Struct for queue of packet which is defined in pkt_Queue.h */
     pkt_ptr pkt_Queue;
     
 }Zigbee;
@@ -681,7 +685,7 @@ void *cleanup_scanned_list(void);
 
 
 /*
-*  queue_to_array:
+*  waitinglist_to_array:
 *
 *  This function continuously looks through the ThreadStatus array that
 *  contains the status of all the send_file thread. When the function finds the
@@ -698,7 +702,7 @@ void *cleanup_scanned_list(void);
 *  None
 */
 
-void *queue_to_array();
+void *waitinglist_to_array();
 
 
 /*
@@ -719,6 +723,24 @@ void *queue_to_array();
 */
 
 void *send_file(void *dongle_id);
+
+
+/*
+*  zigbee_connection:
+*
+*  This function is respondsible for sending packet to gateway via xbee module
+*  and receiving command or data from the gateway. 
+*
+*  Parameters:
+*
+*  zigbee - the struct of necessary parameter and data 
+*
+*  Return value:
+*
+*  None
+*/
+
+void *zigbee_connection(Zigbee *zigbee);
 
 
 /*
@@ -780,7 +802,6 @@ ErrorCode startThread(pthread_t threads, void * (*thfunct)(void*), void *arg);
 
 void cleanup_exit();
 
-void *zigbee_connection();
 
 
 

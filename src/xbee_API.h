@@ -46,16 +46,15 @@
 #ifndef xbee_API_H
 #define xbee_API_H
 
-/* A variable to get error code */
+/* A variable to get error code from zigbee library*/
 xbee_err ret;
 
-/* A variable txRet get Tx return value */
-//unsigned char txRet;
 
+/* The function for xbee initialization */
 xbee_err xbee_initial(char* xbee_mode, char* xbee_device, int xbee_baudrate
                         , int LogLevel, struct xbee** xbee, pkt_ptr pkt_Queue);
 
-// A function for setting up xbee connection
+/* A function for setting up xbee connection */
 xbee_err xbee_connector(struct xbee** xbee, struct xbee_con** con
                                                 , pkt_ptr pkt_Queue);
 
