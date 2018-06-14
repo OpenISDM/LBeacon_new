@@ -1,7 +1,7 @@
 # LBeacon
 #---------------------------------------------------------------------------
 CC = gcc -std=gnu99
-OBJS = Utilities.o LinkedList.o pkt_Queue.o xbee_API.o LBeacon.o 
+OBJS = Utilities.o LinkedList.o pkt_Queue.o xbee_API.o Mempool.o LBeacon.o 
 CFLAGS = -g
 LIB = -L/usr/local/lib
 LIBXBEE = ../libxbee3/lib/
@@ -20,5 +20,7 @@ pkt_Queue.o: pkt_Queue.c pkt_Queue.h
 	$(CC) pkt_Queue.c pkt_Queue.h $(LIBXBEE) -lxbee -c
 xbee_API.o: xbee_API.c xbee_API.h
 	$(CC) xbee_API.c xbee_API.h  $(LIBXBEE) -lxbee -c
+Mempool.o: Mempool.c Mempool.h
+	$(CC) Mempool.c $(CFLAGS) $(LIB) -c
 clean:
 	@rm -rf *.o

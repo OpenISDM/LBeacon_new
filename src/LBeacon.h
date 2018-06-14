@@ -78,6 +78,7 @@
 #include "LinkedList.h"
 #include "Utilities.h"
 #include "xbee_API.h"
+#include "Mempool.h"
 
 
 
@@ -409,17 +410,17 @@ Zigbee *zigbee;
 
 /* Head of scanned_list that holds the scanned device structs of devices found
  * in recent scan. Some of the structs in this list may be duplicated.*/
-List_Entry *scanned_list_head;
+List_Entry scanned_list_head;
 
 /* Head of waiting_list that holds the scanned device structs of devices
 * waiting for an available thread to send messages to their address.*/
-List_Entry *waiting_list_head;
+List_Entry waiting_list_head;
 
 /* Head of tracking_object_list that holds the scanned device structs of 
 * devices to be processed for each device in the list, a line contain of it's 
 * MAC address and time at which the address is found in placed to a tracked 
 * object buffer to be send the gateway and search.*/
-List_Entry *tracked_object_list_head;
+List_Entry tracked_object_list_head;
 
 
 /* Global flags for communication among threads */
@@ -432,6 +433,8 @@ bool ready_to_work;
 /* A global flag that is false initially and set to true by the main thread to
  * inform all of the thread that scanning operation have been canceled. */
 bool send_message_cancelled;
+
+static alloc_handle_t *Mempool; // Memory pool for water quality segments
 
 
 
@@ -877,3 +880,4 @@ extern int pthread_detach(pthread_t thread);
 /* This function is called to create a new thread*/
 extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     void *(*start_routine) (void *), void *arg);
+

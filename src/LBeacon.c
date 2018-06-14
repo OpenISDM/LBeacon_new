@@ -238,16 +238,16 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     strncpy(data.scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS);
    
     struct Node *node_scanned, *node_wait, *node_track;
-    node_scanned = (struct Node*)malloc(sizeof(struct Node));
-    node_track = (struct Node*)malloc(sizeof(struct Node));
+    node_scanned = (struct Node*)Alloc(sizeof(struct Node));
+    node_track = (struct Node*)Alloc(sizeof(struct Node));
     
     
     
     /* Add newly scanned devices to the waiting list for new scanned devices */
-    if (check_is_in_list(scanned_list_head, address) == NULL) {
+    if (check_is_in_list(&scanned_list_head, address) == NULL) {
 
-        node_wait = (struct Node*)malloc(sizeof(struct Node));
-        list_insert_first(&node_wait->ptrs, waiting_list_head);
+        node_wait = (struct Node*)Alloc(sizeof(struct Node));
+        list_insert_first(&node_wait->ptrs, &waiting_list_head);
         
       
         node_wait->data = &data;
@@ -255,8 +255,8 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 
     }
 
-    list_insert_first(&node_scanned->ptrs, scanned_list_head);
-    list_insert_first(&node_track->ptrs, tracked_object_list_head);
+    list_insert_first(&node_scanned->ptrs, &scanned_list_head);
+    list_insert_first(&node_track->ptrs, &tracked_object_list_head);
     
     node_scanned->data = &data;
     node_track->data = &data;
@@ -727,7 +727,7 @@ void *cleanup_scanned_list(void) {
     while (ready_to_work == true) {
 
         /*Check whether the list is empty */
-        if(get_list_length(scanned_list_head) == 0){
+        if(get_list_length(&scanned_list_head) == 0){
             continue;
         }
 
@@ -735,7 +735,7 @@ void *cleanup_scanned_list(void) {
         Node *temp;
 
         /* Go through list */
-        list_for_each(listptrs, scanned_list_head){
+        list_for_each(listptrs, &scanned_list_head){
 
             temp = ListEntry(listptrs, Node, ptrs);
             ScannedDevice *temp_data;
@@ -796,7 +796,7 @@ void *waitinglist_to_array() {
             device_id++) {
 
             void *data;
-            data = get_list_tail(waiting_list_head);
+            data = get_list_tail(&waiting_list_head);
 
             /* Check whether the return value from get_list_head is NULL */
             if(data == NULL){
@@ -816,11 +816,11 @@ void *waitinglist_to_array() {
                         address,
                         LENGTH_OF_MAC_ADDRESS);
 
-                struct Node *node = ListEntry(waiting_list_head->next, Node,
+                struct Node *node = ListEntry(waiting_list_head.next, Node,
                                               ptrs);
 
-                list_remove_node(waiting_list_head->next);
-                free(node);
+                list_remove_node(waiting_list_head.next);
+                //free(node);
                 g_idle_handler[device_id].idle = false;
                 g_idle_handler[device_id].is_waiting_to_send = true;
             }
@@ -1034,7 +1034,7 @@ void *track_devices(char *file_name) {
 
 
         /*Check whether the list is empty */
-        if(get_list_length(tracked_object_list_head) == 0){  
+        if(get_list_length(&tracked_object_list_head) == 0){  
             
             sleep(30);
             continue;
@@ -1056,7 +1056,7 @@ void *track_devices(char *file_name) {
         }
 
         /* Go through list*/
-        list_for_each(lisptrs, tracked_object_list_head){
+        list_for_each(lisptrs, &tracked_object_list_head){
 
             temp = ListEntry(lisptrs, Node, ptrs);
             ScannedDevice *temp_data;
@@ -1416,9 +1416,9 @@ void cleanup_exit(){
     send_message_cancelled = true;
     
     /* Release the space for the lists */
-    free_list(scanned_list_head);
-    free_list(waiting_list_head);
-    free_list(tracked_object_list_head);
+    free_list(&scanned_list_head);
+    free_list(&waiting_list_head);
+    free_list(&tracked_object_list_head);
     
     /* Release the handler for Bluetooth */
     free(g_idle_handler);
@@ -1463,23 +1463,26 @@ int main(int argc, char **argv) {
     /*Initialize the global flags */
     send_message_cancelled == true;
     ready_to_work = true;
+
+    /* Allocate memory pool for WQ segments */
+    Mempool = AllocInit();    
     
 
 
     /*Initialize the lists */
     
-    scanned_list_head = (struct List_Entry *)malloc(sizeof(struct List_Entry));
-    init_list(scanned_list_head);
-    waiting_list_head = (struct List_Entry *)malloc(sizeof(struct List_Entry));
-    init_list(waiting_list_head);
-    tracked_object_list_head = (struct List_Entry*)malloc(sizeof(struct List_Entry));
-    init_list(tracked_object_list_head);
+    
+    init_list(&scanned_list_head);
+    
+    init_list(&waiting_list_head);
+    
+    init_list(&tracked_object_list_head);
     
 
     /* Load config struct */
     g_config = get_config(CONFIG_FILE_NAME);
     g_push_file_path =
-        malloc(g_config.file_path_length + g_config.file_name_length);
+        Alloc(g_config.file_path_length + g_config.file_name_length);
 
 
     if (g_push_file_path == NULL) {
@@ -1526,7 +1529,7 @@ int main(int argc, char **argv) {
     /* Allocate an array with the size of maximum number of devices */
     int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
     g_idle_handler =
-        malloc(maximum_number_of_devices * sizeof(ThreadStatus));
+        Alloc(maximum_number_of_devices * sizeof(ThreadStatus));
 
     if (g_idle_handler == NULL) {
 
@@ -1555,6 +1558,45 @@ int main(int argc, char **argv) {
             coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
             coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
             coordinate_Y.b[2], coordinate_Y.b[3]);
+
+
+     /* Parameters for Zigbee initialization */
+    char* xbee_mode  = "xbeeZB";
+
+    char* xbee_device = "/dev/ttyAMA0";
+    
+    int xbee_baudrate = 9600;
+
+    int LogLevel = 100;
+
+    
+    zigbee = (struct Zigbee*)Alloc(sizeof(struct Zigbee));
+    
+    zigbee->pkt_Queue = Alloc(sizeof(spkt_ptr));
+
+    xbee_initial(xbee_mode, xbee_device, xbee_baudrate
+                            , LogLevel, &(zigbee->xbee), zigbee->pkt_Queue);
+    
+    printf("Start establishing Connection to xbee\n");
+
+
+    /*--------------Configuration for connection in Data mode----------------*/
+    /* In this mode we aim to get Data.                                      */
+    /*-----------------------------------------------------------------------*/
+
+    printf("Establishing Connection...\n");
+
+    xbee_connector(&(zigbee->xbee), &(zigbee->con), zigbee->pkt_Queue);
+
+    printf("Connection Successfully Established\n");
+
+    /* Start the chain reaction!                                             */
+
+    if((ret = xbee_conValidate(zigbee->con)) != XBEE_ENONE){
+        xbee_log(zigbee->xbee, 1, "con unvalidate ret : %d", ret);
+        return;
+    }
+
 
 
 
@@ -1605,43 +1647,7 @@ int main(int argc, char **argv) {
     }
 
 
-    /* Parameters for Zigbee initialization */
-    char* xbee_mode  = "xbeeZB";
-
-    char* xbee_device = "/dev/ttyAMA0";
-    
-    int xbee_baudrate = 9600;
-
-    int LogLevel = 100;
-
-    
-    zigbee = (struct Zigbee*)malloc(sizeof(struct Zigbee));
-    
-    zigbee->pkt_Queue = malloc(sizeof(spkt_ptr));
-
-    xbee_initial(xbee_mode, xbee_device, xbee_baudrate
-                            , LogLevel, &(zigbee->xbee), zigbee->pkt_Queue);
-    
-    printf("Start establishing Connection to xbee\n");
-
-
-    /*--------------Configuration for connection in Data mode----------------*/
-    /* In this mode we aim to get Data.                                      */
-    /*-----------------------------------------------------------------------*/
-
-    printf("Establishing Connection...\n");
-
-    xbee_connector(&(zigbee->xbee), &(zigbee->con), zigbee->pkt_Queue);
-
-    printf("Connection Successfully Established\n");
-
-    /* Start the chain reaction!                                             */
-
-    if((ret = xbee_conValidate(zigbee->con)) != XBEE_ENONE){
-        xbee_log(zigbee->xbee, 1, "con unvalidate ret : %d", ret);
-        return;
-    }
-
+   
 
   
 
