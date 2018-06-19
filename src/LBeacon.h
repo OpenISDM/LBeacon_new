@@ -343,7 +343,8 @@ typedef enum ErrorCode {
     E_ADVERTISE_STATUS = 14,
     E_ADVERTISE_MODE = 15,
     E_START_THREAD = 16,
-    MAX_ERROR_CODE = 17
+    E_ZIGBEE_CONNECT = 17,
+    MAX_ERROR_CODE = 18
 
 }ErrorCode;
 
@@ -371,6 +372,7 @@ struct _errordesc {
     {E_ADVERTISE_STATUS, "LE set advertise returned status"},
     {E_ADVERTISE_MODE, "Error with setting advertise mode"},
     {E_START_THREAD, "Error with creating thread"},
+    {E_ZIGBEE_CONNECT, "Error with zigbee connection"},
     {MAX_ERROR_CODE, "The element is invalid"},
 
 };
@@ -446,6 +448,8 @@ bool ready_to_work;
 /* A global flag that is false initially and set to true by the main thread to
  * inform all of the thread that scanning operation have been canceled. */
 bool send_message_cancelled;
+
+bool is_polled_by_gateway;
 
 static alloc_handle_t *Mempool; // Memory pool for water quality segments
 
@@ -764,7 +768,7 @@ void *track_devices(char *file_name);
 *  None
 */
 
-void zigbee_connection(Zigbee *zigbee, char *message);
+ErrorCode zigbee_connection(Zigbee *zigbee);
 
 
 /*

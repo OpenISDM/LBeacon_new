@@ -1079,26 +1079,22 @@ void *track_devices(char *file_name) {
             fputs(timestamp_end_str, track_file);
             fputs("\n", track_file);
 
-            char *zig_message[80];
-            strcpy(zig_message, &temp->scanned_mac_address[0]);
-            strcat(zig_message, timestamp_init_str);
            
-            /* Send tracking content to the gateway */        
-            zigbee_connection(zigbee, zig_message);
-
-
-            /* Clean up the tracked_object_list */
-            list_remove_node(&temp->tr_list_ptrs);
-            //free(temp);
-
         }
 
-       
+        while(is_polled_by_gateway == true){
 
-    }
+            if(zigbee_connection(zigbee) != 0){
+                perror(errordesc[E_ZIGBEE_CONNECT].message);
+            }
+        }
 
     /* Close the file for tracking */
     fclose(track_file);
+    
+    }
+
+   
 
 }
 
@@ -1118,10 +1114,32 @@ void *track_devices(char *file_name) {
 *  None
 */
 
-void zigbee_connection(Zigbee *zigbee, char *message){
+ErrorCode zigbee_connection(Zigbee *zigbee){
     
 
-   
+    int number_in_list = get_list_length(&tracked_object_list_head);
+
+    
+    struct List_Entry *lisptrs;
+    ScannedDevice *temp_zig_data;
+    char timestamp_init_str[LENGTH_OF_TIME];
+    char timestamp_end_str[LENGTH_OF_TIME];
+
+    list_for_each(lisptrs, &tracked_object_list_head){
+
+        temp_zig_data = ListEntry(lisptrs, ScannedDevice, tr_list_ptrs);
+         
+        unsigned timestamp_init = (unsigned)&temp_zig_data->initial_scanned_time;
+        unsigned timestamp_end = (unsigned)&temp_zig_data->final_scanned_time;
+        sprintf(timestamp_init_str, ", %u", timestamp_init);
+        sprintf(timestamp_end_str, ", %u", timestamp_end);
+        
+        char *zig_message[80];
+        strcpy(zig_message, &temp_zig_data->scanned_mac_address[0]);
+        strcat(zig_message, timestamp_init_str);
+        strcat(zig_message, timestamp_end_str);
+
+        
         /* Pointer point_to_CallBack will store the callback function.       */
         /* If pointer point_to_CallBack is NULL, break the Loop              */
         
@@ -1143,7 +1161,7 @@ void zigbee_connection(Zigbee *zigbee, char *message){
         }
 
 
-        addpkt(zigbee->pkt_Queue, Data, Gateway, message);
+        addpkt(zigbee->pkt_Queue, Data, Gateway, zig_message);
 
         /* If there are remain some packet need to send in the Queue,            */
         /* send the packet                                                   */
@@ -1160,11 +1178,20 @@ void zigbee_connection(Zigbee *zigbee, char *message){
         
         }
         
-        usleep(2000000);
-    
-       
+        usleep(2000000);   
+        
 
-   return;
+        /* Clean up the tracked_object_list */
+        list_remove_node(&temp_zig_data->tr_list_ptrs);
+        //free(temp);
+
+
+    }
+
+    
+    is_polled_by_gateway = false;
+
+   return WORK_SCUCESSFULLY;
 }
 
 
@@ -1468,6 +1495,7 @@ int main(int argc, char **argv) {
     /*Initialize the global flags */
     send_message_cancelled == true;
     ready_to_work = true;
+    is_polled_by_gateway = false;
 
   
 
