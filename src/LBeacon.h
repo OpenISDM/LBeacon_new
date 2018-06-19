@@ -285,9 +285,22 @@ typedef struct ThreadStatus {
  * at when the address is scanned */
 typedef struct ScannedDevice {
     
+    char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
+    
     long long initial_scanned_time;
     
-    char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
+    long long final_scanned_time;
+
+    struct List_Entry sc_list_ptrs;
+
+    struct List_Entry tr_list_ptrs;
+
+    struct List_Entry wa_list_ptrs;
+
+    bool is_in_scanned_device_list;
+
+    bool is_in_tracked_object_list;
+
 
 } ScannedDevice;
 
@@ -557,7 +570,7 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 *
 */
 
-struct Node *check_is_in_list(List_Entry *list, char address[]);
+struct ScannedDevice *check_is_in_list(List_Entry *list, char address[]);
 
 
 /*

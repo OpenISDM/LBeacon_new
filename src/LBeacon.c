@@ -231,36 +231,27 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     strcat(address, "\0");
 
    
-    ScannedDevice data;
+    struct ScannedDevice *new_node;
+    new_node = (struct ScannedDevice*)malloc(sizeof(struct ScannedDevice));
     
-    data.initial_scanned_time = get_system_time();
+    new_node->initial_scanned_time = get_system_time();
 
-    strncpy(data.scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS);
-   
-    struct Node *node_scanned, *node_wait, *node_track;
-    node_scanned = (struct Node*)Alloc(sizeof(struct Node));
-    node_track = (struct Node*)Alloc(sizeof(struct Node));
-    
+    strncpy(new_node->scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS);
     
     
     /* Add newly scanned devices to the waiting list for new scanned devices */
     if (check_is_in_list(&scanned_list_head, address) == NULL) {
 
-        node_wait = (struct Node*)Alloc(sizeof(struct Node));
-        list_insert_first(&node_wait->ptrs, &waiting_list_head);
         
-      
-        node_wait->data = &data;
-        
+        list_insert_first(&new_node->wa_list_ptrs, &waiting_list_head);
+            
 
     }
 
-    list_insert_first(&node_scanned->ptrs, &scanned_list_head);
-    list_insert_first(&node_track->ptrs, &tracked_object_list_head);
+    list_insert_first(&new_node->sc_list_ptrs, &scanned_list_head);
+    list_insert_first(&new_node->tr_list_ptrs, &tracked_object_list_head);
     
-    node_scanned->data = &data;
-    node_track->data = &data;
-    
+   
 
 }
 
@@ -333,23 +324,22 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 *
 */
 
-struct Node *check_is_in_list(List_Entry *list, char address[]) {
+struct ScannedDevice *check_is_in_list(List_Entry *list, char address[]) {
 
     /* Create a temporary node and set as the head */
     struct List_Entry *listptrs;
-    Node *match_node;
+    ScannedDevice *match_node;
 
     /* Go through list */
     list_for_each(listptrs, list) {
 
         /* Input MAC address exists in the linked list */
-        match_node = ListEntry(listptrs, Node, ptrs);
+        match_node = ListEntry(listptrs, ScannedDevice, sc_list_ptrs);
         int len = strlen(address);
-        ScannedDevice *temp_data;
-        temp_data = (struct ScannedDevice *)match_node->data;
+        
 
         if (strcmp(address,
-            &temp_data->scanned_mac_address[len + NUMBER_CHAR_CHECKED]) > 0) {
+            &match_node->scanned_mac_address[len + NUMBER_CHAR_CHECKED]) > 0) {
 
             return match_node;
 
@@ -728,25 +718,25 @@ void *cleanup_scanned_list(void) {
 
         /*Check whether the list is empty */
         if(get_list_length(&scanned_list_head) == 0){
+            
+            sleep(A_SHORT_TIME);
             continue;
         }
 
         struct List_Entry *listptrs;
-        Node *temp;
+        ScannedDevice *temp;
 
         /* Go through list */
         list_for_each(listptrs, &scanned_list_head){
 
-            temp = ListEntry(listptrs, Node, ptrs);
-            ScannedDevice *temp_data;
-            temp_data = (struct ScannedDevice *)temp->data;
-
+            temp = ListEntry(listptrs, ScannedDevice, sc_list_ptrs);
+            
 
             /* Device has been in the scanned list for at least 30 seconds */
-            if (get_system_time() - temp_data->initial_scanned_time > TIMEOUT) {
+            if (temp->final_scanned_time - temp->initial_scanned_time > TIMEOUT) {
                 /* Remove this scanned devices from the scanned list*/
-                list_remove_node(&temp->ptrs);
-                free(temp);
+                list_remove_node(&temp->sc_list_ptrs);
+                //free(temp);
 
             }
             else {
@@ -795,8 +785,8 @@ void *waitinglist_to_array() {
         for (device_id = 0; device_id < maximum_number_of_devices;
             device_id++) {
 
-            void *data;
-            data = get_list_tail(&waiting_list_head);
+            ScannedDevice *data;
+            data = ListEntry(&waiting_list_head.prev, ScannedDevice, wa_list_ptrs);;
 
             /* Check whether the return value from get_list_head is NULL */
             if(data == NULL){
@@ -805,9 +795,8 @@ void *waitinglist_to_array() {
 
             }
 
-            ScannedDevice *sc_data;
-            sc_data = (struct ScannedDevice *) data;
-            char *address = &sc_data->scanned_mac_address[0];
+            
+            char *address = &data->scanned_mac_address[0];
 
             /* Remove from waiting_list and add MAC address to the array when
              * a thread becomes available */
@@ -816,8 +805,8 @@ void *waitinglist_to_array() {
                         address,
                         LENGTH_OF_MAC_ADDRESS);
 
-                struct Node *node = ListEntry(waiting_list_head.next, Node,
-                                              ptrs);
+                struct ScannedDevice *node = ListEntry(waiting_list_head.next, ScannedDevice,
+                                              wa_list_ptrs);
 
                 list_remove_node(waiting_list_head.next);
                 //free(node);
@@ -1043,7 +1032,7 @@ void *track_devices(char *file_name) {
         
         /* Create a temporary node and set as the head */
         struct List_Entry *lisptrs;
-        Node *temp;
+        ScannedDevice *temp;
         char timestamp_str[LENGTH_OF_TIME];
 
         /* Create a new file with tracked_object_list's data*/
@@ -1058,24 +1047,22 @@ void *track_devices(char *file_name) {
         /* Go through list*/
         list_for_each(lisptrs, &tracked_object_list_head){
 
-            temp = ListEntry(lisptrs, Node, ptrs);
-            ScannedDevice *temp_data;
-            temp_data = (struct ScannedDevice *)temp->data;
+            temp = ListEntry(lisptrs, ScannedDevice, tr_list_ptrs);
 
 
             /* Convert the timestamp from list to string */
-            unsigned timestamp = (unsigned)&temp_data->initial_scanned_time;
+            unsigned timestamp = (unsigned)&temp->initial_scanned_time;
             sprintf(timestamp_str, "%u", timestamp);
 
             fputs("MAC address: ",output);
-            fputs(&temp_data->scanned_mac_address[0], output);
+            fputs(&temp->scanned_mac_address[0], output);
             fputs(" ", output);
             fputs("Timestamp: ", output);
             fputs(timestamp_str, output);
             fputs("\n", output);
 
             char *zig_message[80];
-            strcpy(zig_message, &temp_data->scanned_mac_address[0]);
+            strcpy(zig_message, &temp->scanned_mac_address[0]);
             strcat(zig_message, timestamp_str);
            
             /* Send tracking content to the gateway */        
@@ -1083,8 +1070,8 @@ void *track_devices(char *file_name) {
 
 
             /* Clean up the tracked_object_list */
-            list_remove_node(&temp->ptrs);
-            free(temp);
+            list_remove_node(&temp->tr_list_ptrs);
+            //free(temp);
 
         }
 
@@ -1464,9 +1451,7 @@ int main(int argc, char **argv) {
     send_message_cancelled == true;
     ready_to_work = true;
 
-    /* Allocate memory pool for WQ segments */
-    Mempool = AllocInit();    
-    
+  
 
 
     /*Initialize the lists */
@@ -1482,7 +1467,7 @@ int main(int argc, char **argv) {
     /* Load config struct */
     g_config = get_config(CONFIG_FILE_NAME);
     g_push_file_path =
-        Alloc(g_config.file_path_length + g_config.file_name_length);
+        malloc(g_config.file_path_length + g_config.file_name_length);
 
 
     if (g_push_file_path == NULL) {
@@ -1529,7 +1514,7 @@ int main(int argc, char **argv) {
     /* Allocate an array with the size of maximum number of devices */
     int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
     g_idle_handler =
-        Alloc(maximum_number_of_devices * sizeof(ThreadStatus));
+        malloc(maximum_number_of_devices * sizeof(ThreadStatus));
 
     if (g_idle_handler == NULL) {
 
@@ -1554,7 +1539,7 @@ int main(int argc, char **argv) {
 
     /* Store coordinates of the beacon location */
     sprintf(hex_c,
-            "E2C56DB5DFFB48D2B060D0F5%02x%02x%02x%02x%02x%02x%02x%02x",
+            "E2C56DB5DFFB%02x%02x%02x%02xD0F548D2B060%02x%02x%02x%02x",
             coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
             coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
             coordinate_Y.b[2], coordinate_Y.b[3]);
@@ -1570,9 +1555,9 @@ int main(int argc, char **argv) {
     int LogLevel = 100;
 
     
-    zigbee = (struct Zigbee*)Alloc(sizeof(struct Zigbee));
+    zigbee = (struct Zigbee*)malloc(sizeof(struct Zigbee));
     
-    zigbee->pkt_Queue = Alloc(sizeof(spkt_ptr));
+    zigbee->pkt_Queue = malloc(sizeof(spkt_ptr));
 
     xbee_initial(xbee_mode, xbee_device, xbee_baudrate
                             , LogLevel, &(zigbee->xbee), zigbee->pkt_Queue);

@@ -50,7 +50,7 @@
 
 
 
-void init_list(List_Entry *entry){
+inline void init_list(List_Entry *entry){
         
         entry->next = entry;
         entry->prev = entry;

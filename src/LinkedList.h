@@ -122,7 +122,7 @@ void init_list(List_Entry *entry);
 *
 *  None
 */
-inline void list_insert_(List_Entry *new_node, List_Entry *prev,
+void list_insert_(List_Entry *new_node, List_Entry *prev,
 						 List_Entry *next);
 
 /*
@@ -140,7 +140,7 @@ inline void list_insert_(List_Entry *new_node, List_Entry *prev,
 *
 *  None
 */
-inline void list_insert_first(List_Entry *new_node, List_Entry *head);
+void list_insert_first(List_Entry *new_node, List_Entry *head);
 
 /*
 *  list_insert_tail:
@@ -157,7 +157,7 @@ inline void list_insert_first(List_Entry *new_node, List_Entry *head);
 *
 *  None
 */
-inline void list_insert_tail(List_Entry *new_node, List_Entry *head);
+void list_insert_tail(List_Entry *new_node, List_Entry *head);
 
 /*
 *  list_remove_:
@@ -176,7 +176,7 @@ inline void list_insert_tail(List_Entry *new_node, List_Entry *head);
 *
 *  None
 */
-inline void list_remove_(List_Entry *prev, List_Entry *next);
+void list_remove_(List_Entry *prev, List_Entry *next);
 
 
 /*
@@ -195,7 +195,7 @@ inline void list_remove_(List_Entry *prev, List_Entry *next);
 *
 *  None
 */
-inline void list_remove_node(List_Entry *removed_node_ptrs);
+void list_remove_node(List_Entry *removed_node_ptrs);
 
 
 /*
@@ -212,7 +212,7 @@ inline void list_remove_node(List_Entry *removed_node_ptrs);
  *
  *  length - number of nodes in the list.
  */
-inline int get_list_length(List_Entry *entry);
+int get_list_length(List_Entry *entry);
 
 /*
  *  get_list_head:
@@ -230,7 +230,7 @@ inline int get_list_length(List_Entry *entry);
  *
  *  return_value - data of the fist node.
  */
-inline void *get_list_head(List_Entry *entry);
+void *get_list_head(List_Entry *entry);
 
 /*
  *  get_list_tail:
@@ -248,7 +248,7 @@ inline void *get_list_head(List_Entry *entry);
  *
  *  return_value - data of the last node.
  */
-inline void *get_list_tail(List_Entry *entry);
+void *get_list_tail(List_Entry *entry);
 
 /*
  *  print_list:
@@ -267,7 +267,7 @@ inline void *get_list_tail(List_Entry *entry);
  *
  *  None
  */
-inline void print_list(List_Entry *entry, void (*fptr)(void *));
+void print_list(List_Entry *entry, void (*fptr)(void *));
 
 /*
  *  free_list:
@@ -283,5 +283,5 @@ inline void print_list(List_Entry *entry, void (*fptr)(void *));
  *
  *  None
  */
-inline void free_list(List_Entry *entry);
+void free_list(List_Entry *entry);
 
