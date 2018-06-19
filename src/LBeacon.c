@@ -230,28 +230,32 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     ba2str(bluetooth_device_address, address);
     strcat(address, "\0");
 
-   
     struct ScannedDevice *new_node;
-    new_node = (struct ScannedDevice*)malloc(sizeof(struct ScannedDevice));
-    
-    new_node->initial_scanned_time = get_system_time();
-
-    strncpy(new_node->scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS);
-    
+    new_node = check_is_in_list(&scanned_list_head, address);
     
     /* Add newly scanned devices to the waiting list for new scanned devices */
-    if (check_is_in_list(&scanned_list_head, address) == NULL) {
+    if (new_node == NULL) {
+        
+        printf("New mac address! \n");
+        new_node = (struct ScannedDevice*)malloc(sizeof(struct ScannedDevice));
+    
+        new_node->initial_scanned_time = get_system_time();
 
+        strncpy(new_node->scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS);
         
         list_insert_first(&new_node->wa_list_ptrs, &waiting_list_head);
-            
+
+        list_insert_first(&new_node->sc_list_ptrs, &scanned_list_head);
+        list_insert_first(&new_node->tr_list_ptrs, &tracked_object_list_head);
+       
+        
+    }else{
+        printf("Same mac! \n");
+        new_node->final_scanned_time = get_system_time();
 
     }
 
-    list_insert_first(&new_node->sc_list_ptrs, &scanned_list_head);
-    list_insert_first(&new_node->tr_list_ptrs, &tracked_object_list_head);
-    
-   
+      
 
 }
 
@@ -1017,7 +1021,7 @@ void *send_file(void *id) {
 
 void *track_devices(char *file_name) {
 
-    FILE *output;
+    FILE *track_file;
 
     while(ready_to_work == true){
 
@@ -1033,16 +1037,27 @@ void *track_devices(char *file_name) {
         /* Create a temporary node and set as the head */
         struct List_Entry *lisptrs;
         ScannedDevice *temp;
-        char timestamp_str[LENGTH_OF_TIME];
+        char timestamp_init_str[LENGTH_OF_TIME];
+        char timestamp_end_str[LENGTH_OF_TIME];
 
         /* Create a new file with tracked_object_list's data*/
-        output = fopen(file_name, "a+");
+        
+        track_file = fopen(file_name, "at");
+        
+        if(track_file == NULL){
 
-        if(output == NULL){
+            track_file = fopen(file_name, "wt");
+        
+        }
+        if(track_file == NULL){
+        
+            printf("can not open track_file for writing.\n");  
 
             perror(errordesc[E_OPEN_FILE].message);
             return;
+
         }
+        
 
         /* Go through list*/
         list_for_each(lisptrs, &tracked_object_list_head){
@@ -1051,19 +1066,22 @@ void *track_devices(char *file_name) {
 
 
             /* Convert the timestamp from list to string */
-            unsigned timestamp = (unsigned)&temp->initial_scanned_time;
-            sprintf(timestamp_str, "%u", timestamp);
+            unsigned timestamp_init = (unsigned)&temp->initial_scanned_time;
+            unsigned timestamp_end = (unsigned)&temp->final_scanned_time;
+            sprintf(timestamp_init_str, "%u", timestamp_init);
+            sprintf(timestamp_end_str, "%u", timestamp_end);
 
-            fputs("MAC address: ",output);
-            fputs(&temp->scanned_mac_address[0], output);
-            fputs(" ", output);
-            fputs("Timestamp: ", output);
-            fputs(timestamp_str, output);
-            fputs("\n", output);
+
+            fputs(&temp->scanned_mac_address[0], track_file);
+            fputs(",", track_file);
+            fputs(timestamp_init_str, track_file);
+            fputs(",", track_file);
+            fputs(timestamp_end_str, track_file);
+            fputs("\n", track_file);
 
             char *zig_message[80];
             strcpy(zig_message, &temp->scanned_mac_address[0]);
-            strcat(zig_message, timestamp_str);
+            strcat(zig_message, timestamp_init_str);
            
             /* Send tracking content to the gateway */        
             zigbee_connection(zigbee, zig_message);
@@ -1080,7 +1098,7 @@ void *track_devices(char *file_name) {
     }
 
     /* Close the file for tracking */
-    fclose(output);
+    fclose(track_file);
 
 }
 
