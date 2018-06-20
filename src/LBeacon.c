@@ -247,6 +247,12 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 
         list_insert_first(&new_node->sc_list_ptrs, &scanned_list_head);
         list_insert_first(&new_node->tr_list_ptrs, &tracked_object_list_head);
+
+        
+        /* Set the flag in the struct to the true */
+        new_node->is_in_scanned_device_list = true;
+        new_node->is_in_tracked_object_list = true;
+        new_node->is_in_waiting_list = true;
        
         
     }else{
@@ -738,9 +744,20 @@ void *cleanup_scanned_list(void) {
 
             /* Device has been in the scanned list for at least 30 seconds */
             if (temp->final_scanned_time - temp->initial_scanned_time > TIMEOUT) {
-                /* Remove this scanned devices from the scanned list*/
+                
+                /* Remove this scanned devices from the scanned list
+                 * and set is_in_scanned_device_list to false */
                 list_remove_node(&temp->sc_list_ptrs);
-                //free(temp);
+                temp->is_in_scanned_device_list = false;
+                
+                /* If the node not in any list any more, free the node. */
+                if(temp->is_in_tracked_object_list == false &&
+                    temp->is_in_waiting_list == false){
+
+                    
+                    //free(&temp);
+
+                }
 
             }
             else {
@@ -812,8 +829,19 @@ void *waitinglist_to_array() {
                 struct ScannedDevice *node = ListEntry(waiting_list_head.next, ScannedDevice,
                                               wa_list_ptrs);
 
-                list_remove_node(waiting_list_head.next);
-                //free(node);
+                list_remove_node(&node->wa_list_ptrs);
+
+                node->is_in_waiting_list = false;
+
+                /* If the node not in any list any more, free the node. */
+                if(node->is_in_tracked_object_list == false &&
+                    node->is_in_scanned_device_list == false){
+
+                    //free(&node);
+
+                }
+
+             
                 g_idle_handler[device_id].idle = false;
                 g_idle_handler[device_id].is_waiting_to_send = true;
             }
@@ -1040,8 +1068,7 @@ void *track_devices(char *file_name) {
         char timestamp_init_str[LENGTH_OF_TIME];
         char timestamp_end_str[LENGTH_OF_TIME];
 
-        /* Create a new file with tracked_object_list's data*/
-        
+        /* Create a new file with tracked_object_list's data*/        
         track_file = fopen(file_name, "at");
         
         if(track_file == NULL){
@@ -1086,15 +1113,17 @@ void *track_devices(char *file_name) {
 
             if(zigbee_connection(zigbee) != 0){
                 perror(errordesc[E_ZIGBEE_CONNECT].message);
+                return;
             }
         }
 
-    /* Close the file for tracking */
-    fclose(track_file);
+        /* Close the file for tracking */
+        fclose(track_file);
     
     }
 
-   
+    
+    return;
 
 }
 
@@ -1121,21 +1150,21 @@ ErrorCode zigbee_connection(Zigbee *zigbee){
 
     
     struct List_Entry *lisptrs;
-    ScannedDevice *temp_zig_data;
+    ScannedDevice *temp;
     char timestamp_init_str[LENGTH_OF_TIME];
     char timestamp_end_str[LENGTH_OF_TIME];
 
     list_for_each(lisptrs, &tracked_object_list_head){
 
-        temp_zig_data = ListEntry(lisptrs, ScannedDevice, tr_list_ptrs);
+        temp = ListEntry(lisptrs, ScannedDevice, tr_list_ptrs);
          
-        unsigned timestamp_init = (unsigned)&temp_zig_data->initial_scanned_time;
-        unsigned timestamp_end = (unsigned)&temp_zig_data->final_scanned_time;
+        unsigned timestamp_init = (unsigned)&temp->initial_scanned_time;
+        unsigned timestamp_end = (unsigned)&temp->final_scanned_time;
         sprintf(timestamp_init_str, ", %u", timestamp_init);
         sprintf(timestamp_end_str, ", %u", timestamp_end);
         
         char *zig_message[80];
-        strcpy(zig_message, &temp_zig_data->scanned_mac_address[0]);
+        strcpy(zig_message, &temp->scanned_mac_address[0]);
         strcat(zig_message, timestamp_init_str);
         strcat(zig_message, timestamp_end_str);
 
@@ -1182,8 +1211,16 @@ ErrorCode zigbee_connection(Zigbee *zigbee){
         
 
         /* Clean up the tracked_object_list */
-        list_remove_node(&temp_zig_data->tr_list_ptrs);
-        //free(temp);
+        list_remove_node(&temp->tr_list_ptrs);
+        temp->is_in_tracked_object_list = false;
+
+         /* If the node not in any list any more, free the node. */
+            if(temp->is_in_waiting_list == false &&
+                temp->is_in_scanned_device_list == false){
+
+                //free(&temp);
+
+            }
 
 
     }
@@ -1498,7 +1535,6 @@ int main(int argc, char **argv) {
     is_polled_by_gateway = false;
 
   
-
 
     /*Initialize the lists */
     

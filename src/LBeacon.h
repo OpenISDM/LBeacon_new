@@ -301,6 +301,8 @@ typedef struct ScannedDevice {
 
     bool is_in_tracked_object_list;
 
+    bool is_in_waiting_list;
+
 
 } ScannedDevice;
 
@@ -451,7 +453,7 @@ bool send_message_cancelled;
 
 bool is_polled_by_gateway;
 
-static alloc_handle_t *Mempool; // Memory pool for water quality segments
+
 
 
 
