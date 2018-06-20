@@ -770,7 +770,7 @@ void *track_devices(char *file_name);
 *  None
 */
 
-ErrorCode zigbee_connection(Zigbee *zigbee);
+ErrorCode zigbee_connection(Zigbee *zigbee, char *message);
 
 
 /*

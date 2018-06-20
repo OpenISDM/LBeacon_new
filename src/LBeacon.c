@@ -1055,10 +1055,9 @@ void *track_devices(char *file_name) {
 
 
         /*Check whether the list is empty */
-        if(get_list_length(&tracked_object_list_head) == 0){  
+        while(is_polled_by_gateway == false){  
             
-            sleep(30);
-            continue;
+            sleep(A_SHORT_TIME);
 
         }
         
@@ -1085,37 +1084,53 @@ void *track_devices(char *file_name) {
 
         }
         
+        
 
-        /* Go through list*/
+             /* Go through list*/
         list_for_each(lisptrs, &tracked_object_list_head){
 
             temp = ListEntry(lisptrs, ScannedDevice, tr_list_ptrs);
 
 
-            /* Convert the timestamp from list to string */
+           /* Convert the timestamp from list to string */
             unsigned timestamp_init = (unsigned)&temp->initial_scanned_time;
             unsigned timestamp_end = (unsigned)&temp->final_scanned_time;
-            sprintf(timestamp_init_str, "%u", timestamp_init);
-            sprintf(timestamp_end_str, "%u", timestamp_end);
+            sprintf(timestamp_init_str, ", %u", timestamp_init);
+            sprintf(timestamp_end_str, ", %u", timestamp_end);
 
 
-            fputs(&temp->scanned_mac_address[0], track_file);
-            fputs(",", track_file);
+           fputs(&temp->scanned_mac_address[0], track_file);               
             fputs(timestamp_init_str, track_file);
-            fputs(",", track_file);
             fputs(timestamp_end_str, track_file);
             fputs("\n", track_file);
 
-           
-        }
+            char *zig_message[80];
+            strcpy(zig_message, &temp->scanned_mac_address[0]);
+            strcat(zig_message, timestamp_init_str);
+            strcat(zig_message, timestamp_end_str);
 
-        while(is_polled_by_gateway == true){
-
-            if(zigbee_connection(zigbee) != 0){
+            if(zigbee_connection(zigbee, zig_message) != 0){
                 perror(errordesc[E_ZIGBEE_CONNECT].message);
                 return;
             }
-        }
+
+            /* Clean up the tracked_object_list */
+            list_remove_node(&temp->tr_list_ptrs);
+            temp->is_in_tracked_object_list = false;
+
+            /* If the node not in any list any more, free the node. */
+            if(temp->is_in_waiting_list == false &&
+                temp->is_in_scanned_device_list == false){
+
+                //free(&temp);
+
+            }
+
+        
+         }
+
+    
+        is_polled_by_gateway = false;
 
         /* Close the file for tracking */
         fclose(track_file);
@@ -1143,90 +1158,52 @@ void *track_devices(char *file_name) {
 *  None
 */
 
-ErrorCode zigbee_connection(Zigbee *zigbee){
+ErrorCode zigbee_connection(Zigbee *zigbee, char *message){
     
 
     int number_in_list = get_list_length(&tracked_object_list_head);
 
-    
-    struct List_Entry *lisptrs;
-    ScannedDevice *temp;
-    char timestamp_init_str[LENGTH_OF_TIME];
-    char timestamp_end_str[LENGTH_OF_TIME];
-
-    list_for_each(lisptrs, &tracked_object_list_head){
-
-        temp = ListEntry(lisptrs, ScannedDevice, tr_list_ptrs);
-         
-        unsigned timestamp_init = (unsigned)&temp->initial_scanned_time;
-        unsigned timestamp_end = (unsigned)&temp->final_scanned_time;
-        sprintf(timestamp_init_str, ", %u", timestamp_init);
-        sprintf(timestamp_end_str, ", %u", timestamp_end);
         
-        char *zig_message[80];
-        strcpy(zig_message, &temp->scanned_mac_address[0]);
-        strcat(zig_message, timestamp_init_str);
-        strcat(zig_message, timestamp_end_str);
-
+    /* Pointer point_to_CallBack will store the callback function.       */
+    /* If pointer point_to_CallBack is NULL, break the Loop              */
         
-        /* Pointer point_to_CallBack will store the callback function.       */
-        /* If pointer point_to_CallBack is NULL, break the Loop              */
+    void *point_to_CallBack;
+
+    if ((ret = xbee_conCallbackGet(zigbee->con, (xbee_t_conCallback*)            
+        &point_to_CallBack))!= XBEE_ENONE) {
+
+        xbee_log(zigbee->xbee, -1, "xbee_conCallbackGet() returned: %d", ret);
+        return;
         
-        void *point_to_CallBack;
-
-        if ((ret = xbee_conCallbackGet(zigbee->con, (xbee_t_conCallback*)            
-            &point_to_CallBack))!= XBEE_ENONE) {
-
-            xbee_log(zigbee->xbee, -1, "xbee_conCallbackGet() returned: %d", ret);
-            return;
-        
-        }
-
-        if (point_to_CallBack == NULL){
-            
-            printf("Stop Xbee...\n");
-            return;
-        
-        }
-
-
-        addpkt(zigbee->pkt_Queue, Data, Gateway, zig_message);
-
-        /* If there are remain some packet need to send in the Queue,            */
-        /* send the packet                                                   */
-        if(zigbee->pkt_Queue->front->next != NULL){
-
-            xbee_conTx(zigbee->con, NULL, zigbee->pkt_Queue->front->next->content);
-
-            delpkt(zigbee->pkt_Queue);
-        
-        }
-        else{
-        
-            xbee_log(zigbee->xbee, -1, "xbee packet Queue is NULL.");
-        
-        }
-        
-        usleep(2000000);   
-        
-
-        /* Clean up the tracked_object_list */
-        list_remove_node(&temp->tr_list_ptrs);
-        temp->is_in_tracked_object_list = false;
-
-         /* If the node not in any list any more, free the node. */
-            if(temp->is_in_waiting_list == false &&
-                temp->is_in_scanned_device_list == false){
-
-                //free(&temp);
-
-            }
-
-
     }
 
+    if (point_to_CallBack == NULL){
+            
+        printf("Stop Xbee...\n");
+        return;
     
-    is_polled_by_gateway = false;
+    }
+
+
+    addpkt(zigbee->pkt_Queue, Data, Gateway, message);
+
+    /* If there are remain some packet need to send in the Queue,            */
+    /* send the packet                                                   */
+    if(zigbee->pkt_Queue->front->next != NULL){
+
+        xbee_conTx(zigbee->con, NULL, zigbee->pkt_Queue->front->next->content);
+
+        delpkt(zigbee->pkt_Queue);
+        
+    }
+    else{
+        
+        xbee_log(zigbee->xbee, -1, "xbee packet Queue is NULL.");
+        
+    }
+        
+    usleep(2000000);   
+ 
 
    return WORK_SCUCESSFULLY;
 }
