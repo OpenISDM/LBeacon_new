@@ -236,7 +236,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     /* Add newly scanned devices to the waiting list for new scanned devices */
     if (new_node == NULL) {
         
-        printf("New mac address! \n");
+        
         new_node = (struct ScannedDevice*)malloc(sizeof(struct ScannedDevice));
     
         new_node->initial_scanned_time = get_system_time();
@@ -256,7 +256,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
        
         
     }else{
-        printf("Same mac! \n");
+        
         new_node->final_scanned_time = get_system_time();
 
     }
@@ -338,20 +338,24 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[]) {
 
     /* Create a temporary node and set as the head */
     struct List_Entry *listptrs;
-    ScannedDevice *match_node;
+    ScannedDevice *temp;
 
     /* Go through list */
     list_for_each(listptrs, list) {
 
         /* Input MAC address exists in the linked list */
-        match_node = ListEntry(listptrs, ScannedDevice, sc_list_ptrs);
+        temp = ListEntry(listptrs, ScannedDevice, sc_list_ptrs);
         int len = strlen(address);
-        
 
-        if (strcmp(address,
-            &match_node->scanned_mac_address[len + NUMBER_CHAR_CHECKED]) > 0) {
+        char *addr_last_two = &address[len - 2];
+        char *temp_last_two = &temp->scanned_mac_address[len - 2];
 
-            return match_node;
+
+        if ((!strncmp(address, temp->scanned_mac_address, 2))&&
+            (!strncmp(addr_last_two, temp_last_two, 2))) {
+
+            
+            return temp;
 
         }
 
@@ -1055,7 +1059,7 @@ void *track_devices(char *file_name) {
 
 
         /*Check whether the list is empty */
-        while(is_polled_by_gateway == false){  
+        while(get_list_length(&tracked_object_list_head) == 0){  
             
             sleep(A_SHORT_TIME);
 

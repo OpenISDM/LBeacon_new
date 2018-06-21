@@ -83,7 +83,6 @@ typedef spkt_ptr* pkt_ptr;
 /* Create Packet Queue Header */
 void init_Packet_Queue(pkt_ptr pkt_queue);
 
-/* Free the Packet Queue */
 void Free_Packet_Queue(pkt_ptr pkt_queue);
 
 /* Add new Packet to the end of Queue */
@@ -92,15 +91,12 @@ void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content);
 /* Delete the end of Queue */
 void delpkt(pkt_ptr pkt_queue);
 
-/* Delete all the packet in the queue */
 void delallpkt(pkt_ptr pkt_queue);
 
 char* type_to_str(int type);
 
-/* Print the address of the zigbee */
 char* print_address(unsigned char* address);
 
-/* Display the content of the packet */
 void display_pkt(char* content, pPkt pkt);
 
 /* Fill the address from raw(char) to addr(Hex) */
