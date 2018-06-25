@@ -257,7 +257,28 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
         
     }else{
         
-        new_node->final_scanned_time = get_system_time();
+         new_node->final_scanned_time = get_system_time();
+
+        /* For the case of one device stays at the same spot too long and the
+         * data has been sent to gateway once, but the node is removed frome the 
+         * track_object_list. */
+        if(check_is_in_list(&tracked_object_list_head, address) == NULL &&
+            new_node->is_in_tracked_object_list == false){
+
+            printf("Add to track again! \n");
+            list_insert_first(&new_node->tr_list_ptrs, &tracked_object_list_head);
+            new_node->is_in_tracked_object_list = true;
+        }
+        if(check_is_in_list(&waiting_list_head, address) == NULL &&
+            new_node->is_in_waiting_list == false){
+
+            printf("Add to waitlist again! \n");
+            list_insert_first(&new_node->wa_list_ptrs, &waiting_list_head);
+            new_node->is_in_waiting_list = true;
+
+        }
+
+       
 
     }
 
@@ -758,7 +779,7 @@ void *cleanup_scanned_list(void) {
                 if(temp->is_in_tracked_object_list == false &&
                     temp->is_in_waiting_list == false){
 
-                    
+                     printf("Free the node by cleanup! \n");
                     //free(&temp);
 
                 }
@@ -806,6 +827,15 @@ void *waitinglist_to_array() {
 
     while (ready_to_work == true) {
 
+        
+        /*Check whether the list is empty */
+        while(get_list_length(&waiting_list_head) == 0){  
+            
+            sleep(A_SHORT_TIME);
+
+        }
+
+
         /* Go through the array of ThreadStatus */
         for (device_id = 0; device_id < maximum_number_of_devices;
             device_id++) {
@@ -826,21 +856,21 @@ void *waitinglist_to_array() {
             /* Remove from waiting_list and add MAC address to the array when
              * a thread becomes available */
             if (g_idle_handler[device_id].idle == true && address != NULL) {
+                
                 strncpy(g_idle_handler[device_id].scanned_mac_address,
                         address,
                         LENGTH_OF_MAC_ADDRESS);
 
-                struct ScannedDevice *node = ListEntry(waiting_list_head.next, ScannedDevice,
-                                              wa_list_ptrs);
 
-                list_remove_node(&node->wa_list_ptrs);
+                list_remove_node(&data->wa_list_ptrs);
 
-                node->is_in_waiting_list = false;
+                data->is_in_waiting_list = false;
 
                 /* If the node not in any list any more, free the node. */
-                if(node->is_in_tracked_object_list == false &&
-                    node->is_in_scanned_device_list == false){
+                if(data->is_in_tracked_object_list == false &&
+                    data->is_in_scanned_device_list == false){
 
+                    printf("Free the node by wait! \n");
                     //free(&node);
 
                 }
@@ -1061,7 +1091,7 @@ void *track_devices(char *file_name) {
         /*Check whether the list is empty */
         while(get_list_length(&tracked_object_list_head) == 0){  
             
-            sleep(A_SHORT_TIME);
+            sleep(A_VERY_SHORT_TIME);
 
         }
         
@@ -1072,7 +1102,7 @@ void *track_devices(char *file_name) {
         char timestamp_end_str[LENGTH_OF_TIME];
 
         /* Create a new file with tracked_object_list's data*/        
-        track_file = fopen(file_name, "at");
+        track_file = fopen(file_name, "w+");
         
         if(track_file == NULL){
 
@@ -1126,6 +1156,7 @@ void *track_devices(char *file_name) {
             if(temp->is_in_waiting_list == false &&
                 temp->is_in_scanned_device_list == false){
 
+                printf("Free the node by track! \n");
                 //free(&temp);
 
             }

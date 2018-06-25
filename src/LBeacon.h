@@ -127,7 +127,7 @@
 
 /* Maximum length of time in milliseconds, a bluetooth device
 * stays in the push list */
-#define TIMEOUT 30000
+#define TIMEOUT 300
 
 /* Maximum number of characters in each line of output file used for tracking
  * scanned devices */
