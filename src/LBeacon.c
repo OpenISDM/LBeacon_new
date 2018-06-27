@@ -232,30 +232,41 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 
     struct ScannedDevice *new_node;
     new_node = check_is_in_list(&scanned_list_head, address);
+
+    printf("New Address: %s \n", address);
     
     /* Add newly scanned devices to the lists for new scanned devices */
     if (new_node == NULL) {
         
-        printf("******Get the memory from the pool. ****** \n");
-        new_node = (struct ScannedDevice*) mp_get(&mempool);
+       if(check_is_in_list(&tracked_object_list_head, address) == NULL){
+
+            printf("******Get the memory from the pool. ****** \n");
+            new_node = (struct ScannedDevice*) mp_get(&mempool);
     
-        new_node->initial_scanned_time = get_system_time();
+            new_node->initial_scanned_time = get_system_time();
 
-        strncpy(new_node->scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS);
-        
+            strncpy(new_node->scanned_mac_address, 
+                    address, 
+                    LENGTH_OF_MAC_ADDRESS);
+
+            list_insert_first(&new_node->tr_list_ptrs, 
+                                &tracked_object_list_head);
+
+             new_node->is_in_tracked_object_list = true;
+
+       }
+               
         list_insert_first(&new_node->sc_list_ptrs, &scanned_list_head);
-        list_insert_first(&new_node->tr_list_ptrs, &tracked_object_list_head);
-
-        
+              
         /* Set the flag in the struct to the true */
         new_node->is_in_scanned_device_list = true;
-        new_node->is_in_tracked_object_list = true;
-
        
+      
         
     }else{
         
          new_node->final_scanned_time = get_system_time();
+         printf("Updated time: %lld \n", new_node->final_scanned_time);
 
         /* For the case of one device stays at the same spot too long and the
          * data has been sent to gateway once, but the node is removed frome the 
@@ -264,15 +275,18 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
             new_node->is_in_tracked_object_list == false){
 
             printf("Add to track again! \n");
-            list_insert_first(&new_node->tr_list_ptrs, &tracked_object_list_head);
+            list_insert_first(&new_node->tr_list_ptrs,
+                             &tracked_object_list_head);
+
             new_node->is_in_tracked_object_list = true;
         }
 
        
     }
-
+    //printf("Tracking list includes: ");
     print_list(&tracked_object_list_head);
-
+    //printf("Scanned list includes: ");
+    //print_list(&scanned_list_head);
       
 
 }
@@ -352,6 +366,11 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[]) {
     struct List_Entry *listptrs;
     ScannedDevice *temp;
 
+    if(get_list_length(list) == 0){
+
+        return NULL;
+
+    }
     /* Go through list */
     list_for_each(listptrs, list) {
 
@@ -717,6 +736,9 @@ void *stop_ble_beacon(void *beacon_location) {
 void *cleanup_scanned_list(void) {
 
 
+    struct List_Entry *listptrs;
+    ScannedDevice *temp;
+
     while (ready_to_work == true) {
 
         /*Check whether the list is empty */
@@ -725,28 +747,26 @@ void *cleanup_scanned_list(void) {
             sleep(A_SHORT_TIME);
             continue;
         }
-
-        struct List_Entry *listptrs;
-        ScannedDevice *temp;
+ 
 
         /* Go through list */
         list_for_each(listptrs, &scanned_list_head){
 
             temp = ListEntry(listptrs, ScannedDevice, sc_list_ptrs);
-            
+
 
             /* Device has been in the scanned list for at least 30 seconds */
-            if (temp->final_scanned_time - temp->initial_scanned_time > TIMEOUT) {
+            if (get_system_time() - temp->final_scanned_time > TIMEOUT) {
                 
                 /* Remove this scanned devices from the scanned list
                  * and set is_in_scanned_device_list to false */
                 list_remove_node(&temp->sc_list_ptrs);
                 temp->is_in_scanned_device_list = false;
-                
+                printf("Removing node from scanned list. \n");
 
                 /* If the node not in any list any more, free the node. */  
                 if(temp->is_in_tracked_object_list == false){
-                 
+                    
                     mp_release(&mempool, &temp);
 
                 }
@@ -787,22 +807,24 @@ void *cleanup_scanned_list(void) {
 void *track_devices(char *file_name) {
 
     FILE *track_file;
+    
+    /* Create a temporary node and set as the head */
+    struct List_Entry *lisptrs;
+    ScannedDevice *temp;
+    char timestamp_init_str[LENGTH_OF_TIME];
+    char timestamp_end_str[LENGTH_OF_TIME];
 
     while(ready_to_work == true){
 
 
         /*Check whether the list is empty */
-        while(get_list_length(&tracked_object_list_head) == 0){  
+        while(is_polled_by_gateway == false){  
             
             sleep(A_VERY_SHORT_TIME);
 
         }
         
-        /* Create a temporary node and set as the head */
-        struct List_Entry *lisptrs;
-        ScannedDevice *temp;
-        char timestamp_init_str[LENGTH_OF_TIME];
-        char timestamp_end_str[LENGTH_OF_TIME];
+     
 
         /* Create a new file with tracked_object_list's data*/        
         track_file = fopen(file_name, "a+");
@@ -823,7 +845,7 @@ void *track_devices(char *file_name) {
         
         
 
-             /* Go through list*/
+        /* Go through list*/
         list_for_each(lisptrs, &tracked_object_list_head){
 
             temp = ListEntry(lisptrs, ScannedDevice, tr_list_ptrs);
