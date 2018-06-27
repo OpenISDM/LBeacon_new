@@ -295,13 +295,10 @@ typedef struct ScannedDevice {
 
     struct List_Entry tr_list_ptrs;
 
-    struct List_Entry wa_list_ptrs;
-
     bool is_in_scanned_device_list;
 
     bool is_in_tracked_object_list;
 
-    bool is_in_waiting_list;
 
 
 } ScannedDevice;
@@ -429,10 +426,6 @@ Zigbee *zigbee;
  * in recent scan. Some of the structs in this list may be duplicated.*/
 List_Entry scanned_list_head;
 
-/* Head of waiting_list that holds the scanned device structs of devices
-* waiting for an available thread to send messages to their address.*/
-List_Entry waiting_list_head;
-
 /* Head of tracking_object_list that holds the scanned device structs of 
 * devices to be processed for each device in the list, a line contain of it's 
 * MAC address and time at which the address is found in placed to a tracked 
@@ -447,11 +440,10 @@ false by any thread when the thread encounters a fatal error, indicating that
 it is about to exit.*/
 bool ready_to_work;
 
-/* A global flag that is false initially and set to true by the main thread to
- * inform all of the thread that scanning operation have been canceled. */
-bool send_message_cancelled;
 
 bool is_polled_by_gateway;
+
+Memory_Pool mempool; 
 
 
 
@@ -580,6 +572,25 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[]);
 
 
 /*
+ *  print_list:
+ *
+ *  This function prints the data in the specified list in the order of head 
+ *  to tail. fpitr is used to access the function to be used for printing 
+ *  current node data.
+ *  Note that different data types need different specifier in printf().
+ *
+ *  Parameters:
+ *
+ *  entry - the head of the list for determining which list is goning to be 
+ *  modified.
+ *
+ *  Return value:
+ *
+ *  None
+ */
+void print_list(List_Entry *entry);
+
+/*
 *  print_MACaddress:
 *
 *  This helper function prints the MAC addresses which is used with the
@@ -692,47 +703,6 @@ void *stop_ble_beacon(void *beacon_location);
 */
 
 void *cleanup_scanned_list(void);
-
-
-/*
-*  waitinglist_to_array:
-*
-*  This function continuously looks through the ThreadStatus array that
-*  contains the status of all the send_file thread. When the function finds the
-*  ThreadStatus of available thread and the waiting list is not empty, the
-*  function removes the last node from the waiting list and copies the  MAC
-*  address in the removed node to the ThreadStatus.
-*
-*  Parameters:
-*
-*  None
-*
-*  Return value:
-*
-*  None
-*/
-
-void *waitinglist_to_array();
-
-
-/*
-*  send_file:
-*
-*  This function pushes a message asynchronously to devices. It is the thread
-*  function of the specified thread.
-*
-*  [N.B. The beacon may still be scanning for other bluetooth devices.]
-*
-*  Parameters:
-*
-*  id - ID of the thread used to send the push message
-*
-*  Return value:
-*
-*  None
-*/
-
-void *send_file(void *dongle_id);
 
 
 

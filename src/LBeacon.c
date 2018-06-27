@@ -233,18 +233,16 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     struct ScannedDevice *new_node;
     new_node = check_is_in_list(&scanned_list_head, address);
     
-    /* Add newly scanned devices to the waiting list for new scanned devices */
+    /* Add newly scanned devices to the lists for new scanned devices */
     if (new_node == NULL) {
         
-        
-        new_node = (struct ScannedDevice*)malloc(sizeof(struct ScannedDevice));
+        printf("******Get the memory from the pool. ****** \n");
+        new_node = (struct ScannedDevice*) mp_get(&mempool);
     
         new_node->initial_scanned_time = get_system_time();
 
         strncpy(new_node->scanned_mac_address, address, LENGTH_OF_MAC_ADDRESS);
         
-        list_insert_first(&new_node->wa_list_ptrs, &waiting_list_head);
-
         list_insert_first(&new_node->sc_list_ptrs, &scanned_list_head);
         list_insert_first(&new_node->tr_list_ptrs, &tracked_object_list_head);
 
@@ -252,7 +250,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
         /* Set the flag in the struct to the true */
         new_node->is_in_scanned_device_list = true;
         new_node->is_in_tracked_object_list = true;
-        new_node->is_in_waiting_list = true;
+
        
         
     }else{
@@ -269,18 +267,11 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
             list_insert_first(&new_node->tr_list_ptrs, &tracked_object_list_head);
             new_node->is_in_tracked_object_list = true;
         }
-        if(check_is_in_list(&waiting_list_head, address) == NULL &&
-            new_node->is_in_waiting_list == false){
-
-            printf("Add to waitlist again! \n");
-            list_insert_first(&new_node->wa_list_ptrs, &waiting_list_head);
-            new_node->is_in_waiting_list = true;
-
-        }
 
        
-
     }
+
+    print_list(&tracked_object_list_head);
 
       
 
@@ -387,50 +378,27 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[]) {
 }
 
 
-/*
-*  print_MACaddress:
-*
-*  This helper function prints the MAC addresses which is used with the
-*  function of print_list defined in LinkedList.h.
-*
-*  Parameters:
-*
-*  sc - anytype of data which will be printed
-*
-*  Return value:
-*
-*  None
-*/
+void print_list(List_Entry *entry){
 
-void print_MACaddress(void *sc){
+    /*Check whether the list is empty */
+    if (get_list_length(entry) == 0 ) {
+        return;
+    }
 
-    ScannedDevice *temp_data = (struct ScannedDevice *)sc;
-    printf(" %s \t", &temp_data->scanned_mac_address[0]);
+    struct List_Entry *listptrs;
+    struct ScannedDevice *node;
 
-}
+    list_for_each(listptrs, entry){
 
+        node = ListEntry(listptrs, ScannedDevice, sc_list_ptrs);
+        printf(" %s \t", &node->scanned_mac_address);
 
-/*
-*  print_Timestamp:
-*
-*  This helper function prints the timestamp which is used with the
-*  function of print_list defined in LinkedList.h.
-*
-*  Parameters:
-*
-*  sc - anytype of data which will be printed
-*
-*  Return value:
-*
-*  None
-*/
+    }
 
-void print_Timestamp(void *sc){
-
-    ScannedDevice *temp_data = (struct ScannedDevice *)sc;
-    printf(" %lld \t", &temp_data->initial_scanned_time);
+    printf("\n");
 
 }
+
 
 
 /*
@@ -775,12 +743,11 @@ void *cleanup_scanned_list(void) {
                 list_remove_node(&temp->sc_list_ptrs);
                 temp->is_in_scanned_device_list = false;
                 
-                /* If the node not in any list any more, free the node. */
-                if(temp->is_in_tracked_object_list == false &&
-                    temp->is_in_waiting_list == false){
 
-                     printf("Free the node by cleanup! \n");
-                    //free(&temp);
+                /* If the node not in any list any more, free the node. */  
+                if(temp->is_in_tracked_object_list == false){
+                 
+                    mp_release(&mempool, &temp);
 
                 }
 
@@ -798,271 +765,7 @@ void *cleanup_scanned_list(void) {
 }
 
 
-/*
-*  waitingList_to_array:
-*
-*  This function continuously looks through the ThreadStatus array that
-*  contains the status of all the send_file thread. When the function finds the
-*  ThreadStatus of available thread and the waiting list is not empty, the
-*  function removes the last node from the waiting list and copies the  MAC
-*  address in the removed node to the ThreadStatus.
-*
-*  Parameters:
-*
-*  None
-*
-*  Return value:
-*
-*  None
-*/
 
-void *waitinglist_to_array() {
-
-    /* Maximum number of devices to be handled by all push dongles */
-    int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
-
-    /* An iterator through the array of ScannedDevice struct */
-    int device_id;
-
-
-    while (ready_to_work == true) {
-
-        
-        /*Check whether the list is empty */
-        while(get_list_length(&waiting_list_head) == 0){  
-            
-            sleep(A_SHORT_TIME);
-
-        }
-
-
-        /* Go through the array of ThreadStatus */
-        for (device_id = 0; device_id < maximum_number_of_devices;
-            device_id++) {
-
-            ScannedDevice *data;
-            data = ListEntry(&waiting_list_head.prev, ScannedDevice, wa_list_ptrs);;
-
-            /* Check whether the return value from get_list_head is NULL */
-            if(data == NULL){
-
-                continue;
-
-            }
-
-            
-            char *address = &data->scanned_mac_address[0];
-
-            /* Remove from waiting_list and add MAC address to the array when
-             * a thread becomes available */
-            if (g_idle_handler[device_id].idle == true && address != NULL) {
-                
-                strncpy(g_idle_handler[device_id].scanned_mac_address,
-                        address,
-                        LENGTH_OF_MAC_ADDRESS);
-
-
-                list_remove_node(&data->wa_list_ptrs);
-
-                data->is_in_waiting_list = false;
-
-                /* If the node not in any list any more, free the node. */
-                if(data->is_in_tracked_object_list == false &&
-                    data->is_in_scanned_device_list == false){
-
-                    printf("Free the node by wait! \n");
-                    //free(&node);
-
-                }
-
-             
-                g_idle_handler[device_id].idle = false;
-                g_idle_handler[device_id].is_waiting_to_send = true;
-            }
-        }
-    }
-
-
-
-    return;
-
-}
-
-
-/*
-*  send_file:
-*
-*  This function pushes a message asynchronously to devices. It is the thread
-*  function of the specified thread.
-*
-*  [N.B. The beacon may still be scanning for other bluetooth devices.]
-*
-*  Parameters:
-*
-*  id - ID of the thread used to send the push message
-*
-*  Return value:
-*
-*  None
-*/
-
-void *send_file(void *id) {
-
-    obexftp_client_t *client = NULL; /* ObexFTP client */
-    int dongle_device_id = 0;        /* Device ID of each dongle */
-    int socket;                      /* ObexFTP client's socket */
-    int channel = -1;                /* ObexFTP channel */
-    int thread_id = (int)id;         /* Thread ID */
-    char *address = NULL;            /* Scanned MAC address */
-    char *file_name;                  /* File name of message to be sent */
-    int return_value;                /* Return value for error handling */
-
-    /* Get the maximum number of devices from config file. */
-    int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
-
-    /* An iterator through the array of ScannedDevice struct */
-    int device_id;
-
-
-    while (send_message_cancelled = false) {
-
-        for (device_id = 0; device_id < maximum_number_of_devices;
-            device_id++) {
-
-            if (device_id == thread_id &&
-                g_idle_handler[device_id].is_waiting_to_send == true) {
-
-
-                /* Open socket and use current time as start time to keep
-                 * of how long has taken to send the message to the device */
-                socket = hci_open_dev(dongle_device_id);
-
-
-                if (0 > dongle_device_id || 0 > socket) {
-
-                    /* Error handling */
-                    perror(errordesc[E_SEND_OPEN_SOCKET].message);
-                    strncpy(
-                            g_idle_handler[device_id].scanned_mac_address,
-                            "0",
-                            LENGTH_OF_MAC_ADDRESS);
-
-                    g_idle_handler[device_id].idle = true;
-                    g_idle_handler[device_id].is_waiting_to_send = false;
-                    break;
-
-                }
-
-                long long start = get_system_time();
-                address =
-                    (char *)g_idle_handler[device_id].scanned_mac_address;
-                channel = obexftp_browse_bt_push(address);
-
-                /* Extract basename from file path */
-                file_name = strrchr(g_push_file_path, '/');
-                file_name[g_config.file_name_length] = '\0';
-
-                if (!file_name) {
-
-                    file_name = g_push_file_path;
-
-                }
-                else {
-
-                    file_name++;
-
-                }
-                printf("Sending file %s to %s\n", file_name, address);
-
-                /* Open connection */
-                client = obexftp_open(OBEX_TRANS_BLUETOOTH, NULL, NULL,
-                                      NULL);
-                long long end = get_system_time();
-                printf("Time to open connection: %lld ms\n", end - start);
-
-                if (client == NULL) {
-
-                    /* Error handling */
-                    perror(errordesc[E_SEND_OBEXFTP_CLIENT].message);
-                    strncpy(
-                            g_idle_handler[device_id].scanned_mac_address,
-                            "0",
-                            LENGTH_OF_MAC_ADDRESS);
-
-                    g_idle_handler[device_id].idle = true;
-                    g_idle_handler[device_id].is_waiting_to_send = false;
-                    close(socket);
-                    break;
-
-                }
-
-                /* Connect to the scanned device */
-                return_value = obexftp_connect_push(client, address,
-                                                    channel);
-
-                /* If obexftp_connect_push returns a negative integer, then
-                 * it goes into error handling */
-                if (0 > return_value) {
-
-                    /* Error handling */
-                    perror(errordesc[E_SEND_CONNECT_DEVICE].message);
-                    obexftp_close(client);
-                    client = NULL;
-                    strncpy(
-                            g_idle_handler[device_id].scanned_mac_address,
-                            "0",
-                            LENGTH_OF_MAC_ADDRESS);
-
-                    g_idle_handler[device_id].idle = true;
-                    g_idle_handler[device_id].is_waiting_to_send = false;
-                    close(socket);
-                    break;
-
-                }
-
-                /* Push file to the scanned device */
-                return_value = obexftp_put_file(client, g_push_file_path,
-                                                file_name);
-                if (0 > return_value) {
-
-                    /* TODO: Error handling */
-                    perror(errordesc[E_SEND_PUT_FILE].message);
-                }
-
-                /* Disconnect connection */
-                return_value = obexftp_disconnect(client);
-                if (0 > return_value) {
-
-                    /* TODO: Error handling  */
-                    perror(errordesc[E_SEND_DISCONNECT_CLIENT].message);
-                    pthread_exit(NULL);
-                    return;
-
-                }
-
-               /* Leave the socket open */
-                obexftp_close(client);
-                client = NULL;
-                strncpy(g_idle_handler[device_id].scanned_mac_address,
-                        "0",
-                        LENGTH_OF_MAC_ADDRESS);
-
-                g_idle_handler[device_id].idle = true;
-                g_idle_handler[device_id].is_waiting_to_send = false;
-                close(socket);
-
-            }//end if
-
-        }//end for loop
-
-    } //end while loop
-
-    /* Exit forcibly by main thread */
-    if(ready_to_work == false){
-        return;
-    }
-
-}
 
 
 /*
@@ -1102,7 +805,7 @@ void *track_devices(char *file_name) {
         char timestamp_end_str[LENGTH_OF_TIME];
 
         /* Create a new file with tracked_object_list's data*/        
-        track_file = fopen(file_name, "w+");
+        track_file = fopen(file_name, "a+");
         
         if(track_file == NULL){
 
@@ -1152,12 +855,11 @@ void *track_devices(char *file_name) {
             list_remove_node(&temp->tr_list_ptrs);
             temp->is_in_tracked_object_list = false;
 
+    
             /* If the node not in any list any more, free the node. */
-            if(temp->is_in_waiting_list == false &&
-                temp->is_in_scanned_device_list == false){
+            if(temp->is_in_scanned_device_list == false){
 
-                printf("Free the node by track! \n");
-                //free(&temp);
+                mp_release(&mempool, &temp);
 
             }
 
@@ -1294,7 +996,6 @@ void start_scanning() {
          /* Error handling */
          perror(errordesc[E_SCAN_OPEN_SOCKET].message);
          ready_to_work = false;
-         send_message_cancelled = true;
          return;
 
     }
@@ -1477,6 +1178,7 @@ ErrorCode startThread(pthread_t threads ,void * (*thfunct)(void*), void *arg){
 }
 
 
+
 /*
 *  cleanup_exit:
 *
@@ -1494,12 +1196,8 @@ ErrorCode startThread(pthread_t threads ,void * (*thfunct)(void*), void *arg){
 void cleanup_exit(){
 
     ready_to_work = false;
-    send_message_cancelled = true;
     
-    /* Release the space for the lists */
-    free_list(&scanned_list_head);
-    free_list(&waiting_list_head);
-    free_list(&tracked_object_list_head);
+    mp_destroy(&mempool);
     
     /* Release the handler for Bluetooth */
     free(g_idle_handler);
@@ -1542,7 +1240,6 @@ int main(int argc, char **argv) {
     int return_value;
 
     /*Initialize the global flags */
-    send_message_cancelled == true;
     ready_to_work = true;
     is_polled_by_gateway = false;
 
@@ -1550,12 +1247,19 @@ int main(int argc, char **argv) {
 
     /*Initialize the lists */
     
-    
     init_list(&scanned_list_head);
-    
-    init_list(&waiting_list_head);
+
     
     init_list(&tracked_object_list_head);
+
+    if(mp_init(&mempool, sizeof(struct ScannedDevice), 64) == NULL){
+
+
+        /* Error handling */
+        perror(errordesc[E_MALLOC].message);
+        cleanup_exit();
+        return E_MALLOC;
+    }
     
 
     /* Load config struct */
@@ -1702,19 +1406,6 @@ int main(int argc, char **argv) {
 
 
 
-    /* Create the thread for sending MAC address in waiting list to an
-     * available thread */
-    pthread_t waitinglist_to_array_thread;
-
-    return_value = startThread(waitinglist_to_array_thread, waitinglist_to_array, NULL);
-
-    if(return_value != WORK_SCUCESSFULLY){
-         perror(errordesc[E_START_THREAD].message);
-        cleanup_exit();
-    }
-
-    
-
     /* Create the thread for track device */
     pthread_t track_devices_thread;
 
@@ -1726,104 +1417,15 @@ int main(int argc, char **argv) {
     }
 
 
-   
-
   
-
-    int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
-    int maximum_number_of_devices_per_dongle =
-        maximum_number_of_devices / number_of_push_dongles;
-
-    /* An iterator through each push dongle */
-    int push_dongle_id;
-
-    /* An iterator through a block of devices per dongle */
-    int block_id;
-
-    int dongle_device_id = 0; /*Device ID of dongle */
-
-
-    /* Create an arrayof threads for sending message to the scanned MAC
-     * address */
-    pthread_t send_file_thread[maximum_number_of_devices];
-
-    /* After all the other threads are ready, set this flag to false. */
-    send_message_cancelled = false;
-
-
-   for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
-
-         if (g_idle_handler[device_id].is_waiting_to_send == true) {
-
-            /* Depending on the number of push dongles, split the threads
-             * evenly and assign each thread to a push dongle device ID */
-            for (push_dongle_id = 0;
-                push_dongle_id < number_of_push_dongles;
-                push_dongle_id++) {
-
-                for (block_id = 0;
-                     block_id < maximum_number_of_devices_per_dongle;
-                     block_id++) {
-
-                    if (device_id ==
-                        push_dongle_id *
-                        maximum_number_of_devices_per_dongle +
-                        block_id) {
-
-                            dongle_device_id = push_dongle_id + 1;
-
-                        }
-
-                    }
-
-                }
-
-            }
-
-        return_value =  startThread(send_file_thread[device_id], send_file,
-                    (void *)dongle_device_id);
-
-        if(return_value != WORK_SCUCESSFULLY){
-            perror(errordesc[E_START_THREAD].message);
-            cleanup_exit();
-        }
-
-
-    }
-
-    /*Set send_message_cancelled flag to false now. All the thread are ready.*/
-    send_message_cancelled = false;
-
-
     while(ready_to_work == true){
 
         start_scanning();
 
     }
 
-    /* ready_to_work = false , shut down.
-     * wait for send_file_thread to exit. */
+   
 
-    for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
-
-        return_value = pthread_join(send_file_thread[device_id], NULL);
-
-        if (return_value != 0) {
-            perror(strerror(errno));
-            cleanup_exit();
-            return;
-
-        }
-    }
-
-
-    return_value = pthread_join(waitinglist_to_array_thread, NULL);
-
-    if (return_value != 0) {
-        perror(strerror(errno));
-        cleanup_exit();
-        return;
-    }
 
     return_value = pthread_join(cleanup_scanned_list_thread, NULL);
 
