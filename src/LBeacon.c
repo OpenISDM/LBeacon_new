@@ -49,6 +49,7 @@
 
 #include "LBeacon.h"
 
+
 /*
 *  get_config:
 *
@@ -171,6 +172,7 @@ Config get_config(char *file_name) {
     return config;
 }
 
+
 /*
 *  get_system_time:
 *
@@ -210,7 +212,7 @@ long long get_system_time() {
 *  with MAC address matching the input MAC address. If there is no such
 *  ScannedDevice struct, the function inserts the newly constructed struct at
 *  the head of the waiting list. It inserts new struct at the head of the
-*  scanned list regarded as the results of above mentioned test.
+*  lists regardless the results of above mentioned test.
 *
 *  Parameters:
 *
@@ -294,9 +296,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 *  print_RSSI_value:
 *
 *  This function prints the RSSI value along with the MAC address of the
-*  user's scanned bluetooth device. When the LBeacon is running, we will
-*  continuously see a list of scanned bluetooth devices running in the
-*  console.
+*  user's scanned bluetooth device. 
 *
 *  Parameters:
 *
@@ -340,20 +340,21 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 /*
 *  check_is_in_list:
 *
-*  This function checks whether the specified MAC address given as
-*  input is in the specified list.
-*  If a node with MAC address match up with the input address is found in the 
-*  list specified by the input parameter, return the pointer to the node with 
-*  maching address, otherwise it returns NULL.
+*  This function checks whether the MAC address given as input is in the 
+*  specified list. If a node with MAC address matching the input address is 
+*  found in the list specified by the input parameter, the function returns 
+*  the pointer to the node with maching address, otherwise it returns NULL.
 *
 *  Parameters:
 *
-*  list - the list is going to be checked
-*  address - scanned MAC address of a bluetooth device
+*  list - the list to be checked
+*  address - MAC address of a bluetooth device
+*  ptrs_type - an indicator of the pointer type of the specific list
 *
 *  Return value:
 *
 *  match_node - The node found that is matched up with the input address
+*               or NULL
 *  
 *
 */
@@ -410,6 +411,24 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[],
 }
 
 
+/*
+ *  print_list:
+ *
+ *  This function prints the data in the specified list in the order of head 
+ *  to tail. fpitr is used to access the function to be used for printing 
+ *  current node data.
+ *
+ *  Parameters:
+ *
+ *  entry - the head of the list for determining which list is goning to be 
+ *  modified.
+ *  ptrs_type - an indicator of the pointer type of the specific list
+ *
+ *  Return value:
+ *
+ *  None
+ */
+
 void print_list(List_Entry *entry, int ptrs_type){
 
     
@@ -460,7 +479,8 @@ void print_list(List_Entry *entry, int ptrs_type){
 *  Parameters:
 *
 *  advertising_interval - the time interval for which the LBeacon can
-*  advertise advertising_uuid - universally unique identifier for advertising
+*  advertise 
+*  advertising_uuid - universally unique identifier for advertising
 *  rssi_value - RSSI value of the bluetooth device
 *
 *  Return value:
@@ -693,10 +713,10 @@ ErrorCode disable_advertising() {
 
 
 /*
-*  ble_beacon:
+*  stop_ble_beacon:
 *
-*  This function allows avertising to be stopped with ctrl-c if
-*  enable_advertising was a success.
+*  This function allows avertising to be stopped with ctrl-c if a precious 
+*  call to enable_advertising was a success.
 *
 *  Parameters:
 *
@@ -749,11 +769,10 @@ void *stop_ble_beacon(void *beacon_location) {
 /*
 *  cleanup_scanned_list:
 *
-*  This function determines when scernned Device struct of each discovered
-*  device remains in the seanned list for at most TIME_IN_SCANNED_LIST sec
-*  scanned data of device in the scanned list. In the background, This work
-*  thread continuously check the scanned list. If so, the ScannedDevice
-*  struct will be removed.
+*  This function checks each entry in the scanned list to determine whether 
+*  the device with MAC address given by the ScannedDevice node at entry has
+*  been in the list for over TIMEOUT, if yes, the function removes the 
+*  ScannedDevice struct from the list. 
 *
 *  Parameters:
 *
@@ -821,9 +840,10 @@ void *cleanup_scanned_list(void) {
 /*
 *  track_devices:
 *
-*  This function tracks the MAC addresses of scanned bluetooth devices under
-*  the beacon. An output file will contain for each timestamp and the MAC
-*  addresses of the scanned bluetooth devices at the given timestamp.
+*  This function tracks the MAC addresses of scanned (is discovered) bluetooth
+*  devices under a location beacon. An output file will contain for each 
+*  timestamp, the MAC addresses of the bluetooth devices discovered at the 
+*  given timestamp.
 *
 *  Parameters:
 *
@@ -935,19 +955,22 @@ void *track_devices(char *file_name) {
 /*
 *  zigbee_connection:
 *
-*  This function is respondsible for sending packet to gateway via xbee module
-*  and receiving command or data from the gateway. 
+*  When called, this function sends a containing the specified message packet 
+*  to the gateway via xbee module and and receives command or data from the 
+*  gateway. 
 *
 *  Parameters:
 *
-*  zigbee - the struct of necessary parameter and data 
+*  zigbee - the struct of necessary parameter and data
+*  message - the message be sent to the gateway 
 *
 *  Return value:
 *
-*  None
+*  ErrorCode: The error code for the corresponding error
+*
 */
 
-ErrorCode zigbee_connection(Zigbee *zigbee, char *message){
+ErrorCode zigbee_connection(Zigbee zigbee, char *message){
     
 
     int number_in_list = get_list_length(&tracked_object_list_head);
@@ -958,10 +981,10 @@ ErrorCode zigbee_connection(Zigbee *zigbee, char *message){
         
     void *point_to_CallBack;
 
-    if ((ret = xbee_conCallbackGet(zigbee->con, (xbee_t_conCallback*)            
+    if ((ret = xbee_conCallbackGet(zigbee.con, (xbee_t_conCallback*)            
         &point_to_CallBack))!= XBEE_ENONE) {
 
-        xbee_log(zigbee->xbee, -1, "xbee_conCallbackGet() returned: %d", ret);
+        xbee_log(zigbee.xbee, -1, "xbee_conCallbackGet() returned: %d", ret);
         return;
         
     }
@@ -974,20 +997,20 @@ ErrorCode zigbee_connection(Zigbee *zigbee, char *message){
     }
 
 
-    addpkt(zigbee->pkt_Queue, Data, Gateway, message);
+    addpkt(zigbee.pkt_Queue, Data, Gateway, message);
 
     /* If there are remain some packet need to send in the Queue,            */
     /* send the packet                                                   */
-    if(zigbee->pkt_Queue->front->next != NULL){
+    if(zigbee.pkt_Queue->front->next != NULL){
 
-        xbee_conTx(zigbee->con, NULL, zigbee->pkt_Queue->front->next->content);
+        xbee_conTx(zigbee.con, NULL, zigbee.pkt_Queue->front->next->content);
 
-        delpkt(zigbee->pkt_Queue);
+        delpkt(zigbee.pkt_Queue);
         
     }
     else{
         
-        xbee_log(zigbee->xbee, -1, "xbee packet Queue is NULL.");
+        xbee_log(zigbee.xbee, -1, "xbee packet Queue is NULL.");
         
     }
         
@@ -1005,10 +1028,10 @@ ErrorCode zigbee_connection(Zigbee *zigbee, char *message){
 *  of the  beacon until scanning is cancelled. Each scanned device fall under
 *  one of three cases: a bluetooth device with no RSSI value and a bluetooth
 *  device with a RSSI value, When the RSSI value of the device is within the
-*  threshold, the ScannedDevice struct of the device is be added to the linked
+*  threshold, the ScannedDevice struct of the device is added to the linked
 *  list of devices to which messages will be sent.
 *
-*  [N.B. This function is extented by the main thread. ]
+*  [N.B. This function is executed by the main thread. ]
 *
 *  Parameters:
 *
@@ -1046,7 +1069,7 @@ void start_scanning() {
     if (0 > dongle_device_id || 0 > socket) {
 
          /* Error handling */
-         perror(errordesc[E_SCAN_OPEN_SOCKET].message);
+         perror(errordesc[E_OPEN_SOCKET].message);
          ready_to_work = false;
          return;
 
@@ -1205,7 +1228,7 @@ void start_scanning() {
 *  Parameters:
 *
 *  threads - name of the thread
-*  thfunct - the function for thread to do
+*  threadfunct - the function for thread to do
 *  arg - the argument for thread's function
 *
 *  Return value:
@@ -1213,12 +1236,12 @@ void start_scanning() {
 *  ErrorCode: The error code for the corresponding error
 */
 
-ErrorCode startThread(pthread_t threads ,void * (*thfunct)(void*), void *arg){
+ErrorCode startThread(pthread_t threads ,void * (*threadfunct)(void*), void *arg){
 
     pthread_attr_t attr;
 
     if ( pthread_attr_init(&attr) != 0
-      || pthread_create(&threads, &attr, thfunct, arg) != 0
+      || pthread_create(&threads, &attr, threadfunct, arg) != 0
       || pthread_attr_destroy(&attr) != 0
       || pthread_detach(threads) != 0) {
 
@@ -1231,10 +1254,11 @@ ErrorCode startThread(pthread_t threads ,void * (*thfunct)(void*), void *arg){
 
 
 
+
 /*
 *  cleanup_exit:
 *
-*  This function releases all the resources and set the flag.
+*  This function releases all the resources.
 *
 *  Parameters:
 *
@@ -1252,28 +1276,26 @@ void cleanup_exit(){
     mp_destroy(&mempool);
     
     /* Release the handler for Bluetooth */
-    free(g_idle_handler);
+    
     free(g_push_file_path);
     
     
 
     /* Free Packet Queue for zigbee connection */
-    Free_Packet_Queue(zigbee->pkt_Queue);
+    Free_Packet_Queue(zigbee.pkt_Queue);
 
     /* Close connection  */
-    if ((ret = xbee_conEnd(zigbee->con)) != XBEE_ENONE) {
-        xbee_log(zigbee->xbee, 10, "xbee_conEnd() returned: %d", ret);
+    if ((ret = xbee_conEnd(zigbee.con)) != XBEE_ENONE) {
+        xbee_log(zigbee.xbee, 10, "xbee_conEnd() returned: %d", ret);
         return;
     }
     printf("Stop connection Succeeded\n");
 
     /* Close xbee                                                            */
-    xbee_shutdown(zigbee->xbee);
+    xbee_shutdown(zigbee.xbee);
     printf("Shutdown Xbee Succeeded\n");
 
-    /* Free the struct of zigbee */
-    free(zigbee);
-    
+   
     return;
 
 }
@@ -1363,17 +1385,8 @@ int main(int argc, char **argv) {
 
     /* Allocate an array with the size of maximum number of devices */
     int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
-    g_idle_handler =
-        malloc(maximum_number_of_devices * sizeof(ThreadStatus));
+    
 
-    if (g_idle_handler == NULL) {
-
-        /* Error handling */
-        perror(errordesc[E_MALLOC].message);
-        cleanup_exit();
-        return E_MALLOC;
-
-    }
 
     /* Initialize each ThreadStatus struct in the array */
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
@@ -1405,12 +1418,10 @@ int main(int argc, char **argv) {
     int LogLevel = 100;
 
     
-    zigbee = (struct Zigbee*)malloc(sizeof(struct Zigbee));
-    
-    zigbee->pkt_Queue = malloc(sizeof(spkt_ptr));
+    zigbee.pkt_Queue = malloc(sizeof(spkt_ptr));
 
     xbee_initial(xbee_mode, xbee_device, xbee_baudrate
-                            , LogLevel, &(zigbee->xbee), zigbee->pkt_Queue);
+                            , LogLevel, &(zigbee.xbee), zigbee.pkt_Queue);
     
     printf("Start establishing Connection to xbee\n");
 
@@ -1421,14 +1432,14 @@ int main(int argc, char **argv) {
 
     printf("Establishing Connection...\n");
 
-    xbee_connector(&(zigbee->xbee), &(zigbee->con), zigbee->pkt_Queue);
+    xbee_connector(&(zigbee.xbee), &(zigbee.con), zigbee.pkt_Queue);
 
     printf("Connection Successfully Established\n");
 
     /* Start the chain reaction!                                             */
 
-    if((ret = xbee_conValidate(zigbee->con)) != XBEE_ENONE){
-        xbee_log(zigbee->xbee, 1, "con unvalidate ret : %d", ret);
+    if((ret = xbee_conValidate(zigbee.con)) != XBEE_ENONE){
+        xbee_log(zigbee.xbee, 1, "con unvalidate ret : %d", ret);
         return;
     }
 

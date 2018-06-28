@@ -133,8 +133,7 @@
  * scanned devices */
 #define TRACKING_FILE_LINE_LENGTH 1024
 
-/* The number of char in MAC address checked to determine matched or not */
-#define NUMBER_CHAR_CHECKED 10
+#define MAXIMUM_NUMBER_OF_DEVICES 10
 
 /* Number of characters in a Bluetooth MAC address */
 #define LENGTH_OF_MAC_ADDRESS 18
@@ -148,11 +147,11 @@
 /* RSSI value for the calibration */
 #define RSSI_VALUE 20
 
-/* Timeout interval */
+/* Timeout interval in ms */
 #define A_LONG_TIME 30000
-#define A_SHORT_TIME 300
-#define A_VERY_SHORT_TIME 30
-
+#define A_SHORT_TIME 3000
+#define A_VERY_SHORT_TIME 5000
+#define A_VERY_VERY_SHORT_TIME 30
 
 
 
@@ -189,6 +188,8 @@ union {
 /*
 * TYPEDEF STRUCTS
 */
+
+/* The configuration file structure */
 
 typedef struct Config {
    
@@ -269,7 +270,7 @@ typedef struct Config {
 
 } Config;
 
-
+/* The structure for storing information and status of a thread */
 typedef struct ThreadStatus {
     
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
@@ -282,7 +283,7 @@ typedef struct ThreadStatus {
 
 
 /* Struct for storing MAC address of the user's device and the time instant
- * at when the address is scanned */
+ * at which the address is scanned */
 typedef struct ScannedDevice {
     
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
@@ -303,79 +304,19 @@ typedef struct ScannedDevice {
 
 } ScannedDevice;
 
-/* Struct for necessary parameters for Zigbee Initialization */
+/* Struct of parameters for Zigbee Initialization */
 typedef struct Zigbee {
 
-    /* Struct for xbee main part which is defined in library */
+    /* Struct of xbee main part which is defined in "libxbee" library */
     struct xbee *xbee; 
 
-    /* Struct for xbee connector which is defined in library */
+    /* Struct of xbee connector which is defined in "libxbee" library */
     struct xbee_con *con;
 
-    /* Struct for queue of packet which is defined in pkt_Queue.h */
+    /* Struct of queue of packet which is defined in pkt_Queue.h */
     pkt_ptr pkt_Queue;
     
-}Zigbee;
-
-
-
-/*
-* ERROR CODE
-*/
-
-typedef enum ErrorCode {
-
-    WORK_SCUCESSFULLY = 0,
-    E_MALLOC = 1,
-    E_OPEN_FILE = 2,
-    E_OPEN_DEVICE = 3,
-    E_SEND_OPEN_SOCKET = 4,
-    E_SEND_OBEXFTP_CLIENT = 5,
-    E_SEND_CONNECT_DEVICE = 6,
-    E_SEND_PUT_FILE = 7,
-    E_SEND_DISCONNECT_CLIENT = 8,
-    E_SCAN_OPEN_SOCKET = 9,
-    E_SCAN_SET_HCI_FILTER = 10,
-    E_SCAN_SET_INQUIRY_MODE = 11,
-    E_SCAN_START_INQUIRY = 12,
-    E_SEND_REQUEST_TIMEOUT = 13,
-    E_ADVERTISE_STATUS = 14,
-    E_ADVERTISE_MODE = 15,
-    E_START_THREAD = 16,
-    E_ZIGBEE_CONNECT = 17,
-    MAX_ERROR_CODE = 18
-
-}ErrorCode;
-
-typedef enum ErrorCode error_t;
-
-struct _errordesc {
-    int code;
-    char *message;
-}errordesc[] = {
-
-    {WORK_SCUCESSFULLY, "The code works successfullly"},
-    {E_MALLOC, "Error with allocating memory"},
-    {E_OPEN_FILE, "Error with opening file"},
-    {E_OPEN_DEVICE, "Error with opening the dvice"},
-    {E_SEND_OPEN_SOCKET, "Error with opening socket"},
-    {E_SEND_OBEXFTP_CLIENT, "Error opening obexftp client"},
-    {E_SEND_CONNECT_DEVICE, "Error connecting to obexftp device"},
-    {E_SEND_PUT_FILE, "Error with putting file"},
-    {E_SEND_DISCONNECT_CLIENT, "Disconnecting the client"},
-    {E_SCAN_OPEN_SOCKET, "Error with opening socket"},
-    {E_SCAN_SET_HCI_FILTER, "Error with setting HCI filter"},
-    {E_SCAN_SET_INQUIRY_MODE, "Error with settnig inquiry mode"},
-    {E_SCAN_START_INQUIRY, "Error with starting inquiry"},
-    {E_SEND_REQUEST_TIMEOUT, "Timeout for sending request"},
-    {E_ADVERTISE_STATUS, "LE set advertise returned status"},
-    {E_ADVERTISE_MODE, "Error with setting advertise mode"},
-    {E_START_THREAD, "Error with creating thread"},
-    {E_ZIGBEE_CONNECT, "Error with zigbee connection"},
-    {MAX_ERROR_CODE, "The element is invalid"},
-
-};
-
+} Zigbee;
 
 
 
@@ -388,7 +329,6 @@ extern struct pollfd;
 
 /*In hci_sock.h, the struct for callback event from the socket.*/
 extern struct hci_filter;
-
 
 
 
@@ -414,20 +354,20 @@ int g_size_of_file = 0;
 Config g_config;
 
 /* An array of struct for storing information and status of each thread */
-ThreadStatus *g_idle_handler;
+ThreadStatus g_idle_handler[MAXIMUM_NUMBER_OF_DEVICES];
 
 /* Struct for storing necessary objects for zigbee connection */
-Zigbee *zigbee;
+Zigbee zigbee;
 
 
-/* Three list of struct for recording scanned devices */
+/* Two lists of struct for recording scanned devices */
 
 /* Head of scanned_list that holds the scanned device structs of devices found
  * in recent scan. Some of the structs in this list may be duplicated.*/
 List_Entry scanned_list_head;
 
 /* Head of tracking_object_list that holds the scanned device structs of 
-* devices to be processed for each device in the list, a line contain of it's 
+* devices to be processed. For each device in the list, a line contain of it's 
 * MAC address and time at which the address is found in placed to a tracked 
 * object buffer to be send the gateway and search.*/
 List_Entry tracked_object_list_head;
@@ -435,7 +375,7 @@ List_Entry tracked_object_list_head;
 
 /* Global flags for communication among threads */
 
-/* A global flag that in initially set to true by main thread. It is set to 
+/* A global flag that is initially set to true by main thread. It is set to 
 false by any thread when the thread encounters a fatal error, indicating that 
 it is about to exit.*/
 bool ready_to_work;
@@ -449,7 +389,60 @@ pthread_mutex_t lock;
 
 
 
+/*
+* ERROR CODE
+*/
 
+typedef enum ErrorCode {
+
+    WORK_SCUCESSFULLY = 0,
+    E_MALLOC = 1,
+    E_OPEN_FILE = 2,
+    E_OPEN_DEVICE = 3,
+    E_OPEN_SOCKET = 4,
+    E_SEND_OBEXFTP_CLIENT = 5,
+    E_SEND_CONNECT_DEVICE = 6,
+    E_SEND_PUT_FILE = 7,
+    E_SEND_DISCONNECT_CLIENT = 8,
+    E_SCAN_SET_HCI_FILTER = 9,
+    E_SCAN_SET_INQUIRY_MODE = 10,
+    E_SCAN_START_INQUIRY = 11,
+    E_SEND_REQUEST_TIMEOUT = 12,
+    E_ADVERTISE_STATUS = 13,
+    E_ADVERTISE_MODE = 14,
+    E_START_THREAD = 15,
+    E_ZIGBEE_CONNECT = 16,
+    MAX_ERROR_CODE = 17
+
+} ErrorCode;
+
+typedef enum ErrorCode error_t;
+
+struct _errordesc {
+    int code;
+    char *message;
+} errordesc[] = {
+
+    {WORK_SCUCESSFULLY, "The code works successfullly"},
+    {E_MALLOC, "Error allocating memory"},
+    {E_OPEN_FILE, "Error opening file"},
+    {E_OPEN_DEVICE, "Error opening the dvice"},
+    {E_OPEN_SOCKET, "Error opening socket"},
+    {E_SEND_OBEXFTP_CLIENT, "Error opening obexftp client"},
+    {E_SEND_CONNECT_DEVICE, "Error connecting to obexftp device"},
+    {E_SEND_PUT_FILE, "Error putting file"},
+    {E_SEND_DISCONNECT_CLIENT, "Disconnecting the client"},
+    {E_SCAN_SET_HCI_FILTER, "Error setting HCI filter"},
+    {E_SCAN_SET_INQUIRY_MODE, "Error settnig inquiry mode"},
+    {E_SCAN_START_INQUIRY, "Error starting inquiry"},
+    {E_SEND_REQUEST_TIMEOUT, "Timeout for sending request"},
+    {E_ADVERTISE_STATUS, "LE set advertise returned status"},
+    {E_ADVERTISE_MODE, "Error setting advertise mode"},
+    {E_START_THREAD, "Error creating thread"},
+    {E_ZIGBEE_CONNECT, "Error zigbee connection"},
+    {MAX_ERROR_CODE, "The element is invalid"},
+
+};
 
 
 
@@ -510,7 +503,7 @@ long long get_system_time();
 *  with MAC address matching the input MAC address. If there is no such
 *  ScannedDevice struct, the function inserts the newly constructed struct at
 *  the head of the waiting list. It inserts new struct at the head of the
-*  scanned list regarded as the results of above mentioned test.
+*  lists regardless the results of above mentioned test.
 *
 *  Parameters:
 *
@@ -528,9 +521,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
 *  print_RSSI_value:
 *
 *  This function prints the RSSI value along with the MAC address of the
-*  user's scanned bluetooth device. When the LBeacon is running, we will
-*  continuously see a list of scanned bluetooth devices running in the
-*  console.
+*  user's scanned bluetooth device. 
 *
 *  Parameters:
 *
@@ -552,20 +543,21 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 /*
 *  check_is_in_list:
 *
-*  This function checks whether the specified MAC address given as
-*  input is in the specified list.
-*  If a node with MAC address match up with the input address is found in the 
-*  list specified by the input parameter, return the pointer to the node with 
-*  maching address, otherwise it returns NULL.
+*  This function checks whether the MAC address given as input is in the 
+*  specified list. If a node with MAC address matching the input address is 
+*  found in the list specified by the input parameter, the function returns 
+*  the pointer to the node with maching address, otherwise it returns NULL.
 *
 *  Parameters:
 *
-*  list - the list is going to be checked
-*  address - scanned MAC address of a bluetooth device
+*  list - the list to be checked
+*  address - MAC address of a bluetooth device
+*  ptrs_type - an indicator of the pointer type of the specific list
 *
 *  Return value:
 *
 *  match_node - The node found that is matched up with the input address
+*               or NULL
 *  
 *
 */
@@ -580,53 +572,19 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[],
  *  This function prints the data in the specified list in the order of head 
  *  to tail. fpitr is used to access the function to be used for printing 
  *  current node data.
- *  Note that different data types need different specifier in printf().
  *
  *  Parameters:
  *
  *  entry - the head of the list for determining which list is goning to be 
  *  modified.
+ *  ptrs_type - an indicator of the pointer type of the specific list
  *
  *  Return value:
  *
  *  None
  */
+
 void print_list(List_Entry *entry, int ptrs_type);
-
-/*
-*  print_MACaddress:
-*
-*  This helper function prints the MAC addresses which is used with the
-*  function of print_list defined in LinkedList.h.
-*
-*  Parameters:
-*
-*  sc - anytype of data which will be printed
-*
-*  Return value:
-*
-*  None
-*/
-
-void print_MACaddress(void *sc);
-
-
-/*
-*  print_Timestamp:
-*
-*  This helper function prints the timestamp which is used with the
-*  function of print_list defined in LinkedList.h.
-*
-*  Parameters:
-*
-*  sc - anytype of data which will be printed
-*
-*  Return value:
-*
-*  None
-*/
-
-void print_Timestamp(void *sc);
 
 
 /*
@@ -638,7 +596,8 @@ void print_Timestamp(void *sc);
 *  Parameters:
 *
 *  advertising_interval - the time interval for which the LBeacon can
-*  advertise advertising_uuid - universally unique identifier for advertising
+*  advertise 
+*  advertising_uuid - universally unique identifier for advertising
 *  rssi_value - RSSI value of the bluetooth device
 *
 *  Return value:
@@ -648,7 +607,7 @@ void print_Timestamp(void *sc);
 */
 
 ErrorCode enable_advertising(int advertising_interval, char *advertising_uuid,
-    int rssi_value);
+                            int rssi_value);
 
 
 /*
@@ -670,10 +629,10 @@ ErrorCode disable_advertising();
 
 
 /*
-*  ble_beacon:
+*  stop_ble_beacon:
 *
-*  This function allows avertising to be stopped with ctrl-c if
-*  enable_advertising was a success.
+*  This function allows avertising to be stopped with ctrl-c if a precious 
+*  call to enable_advertising was a success.
 *
 *  Parameters:
 *
@@ -690,11 +649,10 @@ void *stop_ble_beacon(void *beacon_location);
 /*
 *  cleanup_scanned_list:
 *
-*  This function determines when scernned Device struct of each discovered
-*  device remains in the seanned list for at most TIME_IN_SCANNED_LIST sec
-*  scanned data of device in the scanned list. In the background, This work
-*  thread continuously check the scanned list. If so, the ScannedDevice
-*  struct will be removed.
+*  This function checks each entry in the scanned list to determine whether 
+*  the device with MAC address given by the ScannedDevice node at entry has
+*  been in the list for over TIMEOUT, if yes, the function removes the 
+*  ScannedDevice struct from the list. 
 *
 *  Parameters:
 *
@@ -712,9 +670,10 @@ void *cleanup_scanned_list(void);
 /*
 *  track_devices:
 *
-*  This function tracks the MAC addresses of scanned bluetooth devices under
-*  the beacon. An output file will contain for each timestamp and the MAC
-*  addresses of the scanned bluetooth devices at the given timestamp.
+*  This function tracks the MAC addresses of scanned (is discovered) bluetooth
+*  devices under a location beacon. An output file will contain for each 
+*  timestamp, the MAC addresses of the bluetooth devices discovered at the 
+*  given timestamp.
 *
 *  Parameters:
 *
@@ -731,19 +690,22 @@ void *track_devices(char *file_name);
 /*
 *  zigbee_connection:
 *
-*  This function is respondsible for sending packet to gateway via xbee module
-*  and receiving command or data from the gateway. 
+*  When called, this function sends a containing the specified message packet 
+*  to the gateway via xbee module and and receives command or data from the 
+*  gateway. 
 *
 *  Parameters:
 *
-*  zigbee - the struct of necessary parameter and data 
+*  zigbee - the struct of necessary parameter and data
+*  message - the message be sent to the gateway 
 *
 *  Return value:
 *
-*  None
+*  ErrorCode: The error code for the corresponding error
+*
 */
 
-ErrorCode zigbee_connection(Zigbee *zigbee, char *message);
+ErrorCode zigbee_connection(Zigbee zigbee, char *message);
 
 
 /*
@@ -753,10 +715,10 @@ ErrorCode zigbee_connection(Zigbee *zigbee, char *message);
 *  of the  beacon until scanning is cancelled. Each scanned device fall under
 *  one of three cases: a bluetooth device with no RSSI value and a bluetooth
 *  device with a RSSI value, When the RSSI value of the device is within the
-*  threshold, the ScannedDevice struct of the device is be added to the linked
+*  threshold, the ScannedDevice struct of the device is added to the linked
 *  list of devices to which messages will be sent.
 *
-*  [N.B. This function is extented by the main thread. ]
+*  [N.B. This function is executed by the main thread. ]
 *
 *  Parameters:
 *
@@ -778,7 +740,7 @@ void start_scanning();
 *  Parameters:
 *
 *  threads - name of the thread
-*  thfunct - the function for thread to do
+*  threadfunct - the function for thread to do
 *  arg - the argument for thread's function
 *
 *  Return value:
@@ -786,13 +748,14 @@ void start_scanning();
 *  ErrorCode: The error code for the corresponding error
 */
 
-ErrorCode startThread(pthread_t threads, void * (*thfunct)(void*), void *arg);
+ErrorCode startThread(pthread_t threads, void * (*threadfunct)(void*), 
+                        void *arg);
 
 
 /*
 *  cleanup_exit:
 *
-*  This function releases all the resources and set the flag.
+*  This function releases all the resources.
 *
 *  Parameters:
 *
