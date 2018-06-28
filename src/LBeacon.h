@@ -443,7 +443,9 @@ bool ready_to_work;
 
 bool is_polled_by_gateway;
 
-Memory_Pool mempool; 
+Memory_Pool mempool;
+ 
+pthread_mutex_t lock;
 
 
 
@@ -568,7 +570,8 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 *
 */
 
-struct ScannedDevice *check_is_in_list(List_Entry *list, char address[]);
+struct ScannedDevice *check_is_in_list(List_Entry *list, char address[], 
+                                                            int ptrs_type);
 
 
 /*
@@ -588,7 +591,7 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[]);
  *
  *  None
  */
-void print_list(List_Entry *entry);
+void print_list(List_Entry *entry, int ptrs_type);
 
 /*
 *  print_MACaddress:

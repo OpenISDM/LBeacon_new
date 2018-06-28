@@ -231,14 +231,13 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     strcat(address, "\0");
 
     struct ScannedDevice *new_node;
-    new_node = check_is_in_list(&scanned_list_head, address);
-
-    printf("New Address: %s \n", address);
+    new_node = check_is_in_list(&scanned_list_head, address, 0);
+   
     
     /* Add newly scanned devices to the lists for new scanned devices */
     if (new_node == NULL) {
         
-       if(check_is_in_list(&tracked_object_list_head, address) == NULL){
+       if(check_is_in_list(&tracked_object_list_head, address, 1) == NULL){
 
             printf("******Get the memory from the pool. ****** \n");
             new_node = (struct ScannedDevice*) mp_get(&mempool);
@@ -265,26 +264,28 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
         
     }else{
         
-         new_node->final_scanned_time = get_system_time();
-         printf("Updated time: %lld \n", new_node->final_scanned_time);
-
-        /* For the case of one device stays at the same spot too long and the
+          /* For the case of one device stays at the same spot too long and the
          * data has been sent to gateway once, but the node is removed frome the 
          * track_object_list. */
-        if(check_is_in_list(&tracked_object_list_head, address) == NULL &&
+        if(check_is_in_list(&tracked_object_list_head, address, 1) == NULL &&
             new_node->is_in_tracked_object_list == false){
 
-            printf("Add to track again! \n");
+          
             list_insert_first(&new_node->tr_list_ptrs,
                              &tracked_object_list_head);
 
             new_node->is_in_tracked_object_list = true;
         }
 
+         new_node->final_scanned_time = get_system_time();
+        
+
+      
+
        
     }
     //printf("Tracking list includes: ");
-    print_list(&tracked_object_list_head);
+    print_list(&scanned_list_head, 0);
     //printf("Scanned list includes: ");
     //print_list(&scanned_list_head);
       
@@ -360,22 +361,40 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 *
 */
 
-struct ScannedDevice *check_is_in_list(List_Entry *list, char address[]) {
+struct ScannedDevice *check_is_in_list(List_Entry *list, char address[], 
+                                                            int ptrs_type) {
 
     /* Create a temporary node and set as the head */
     struct List_Entry *listptrs;
     ScannedDevice *temp;
 
     if(get_list_length(list) == 0){
-
+        printf("nothing in the list! \n");
         return NULL;
 
     }
+
+   
     /* Go through list */
     list_for_each(listptrs, list) {
 
         /* Input MAC address exists in the linked list */
-        temp = ListEntry(listptrs, ScannedDevice, sc_list_ptrs);
+        
+        switch(ptrs_type){
+            
+            case 0:
+                
+                temp = ListEntry(listptrs, ScannedDevice, sc_list_ptrs);
+            break;
+
+            case 1:
+               
+                temp = ListEntry(listptrs, ScannedDevice, tr_list_ptrs);
+            break;
+
+
+        }
+        
         int len = strlen(address);
 
         char *addr_last_two = &address[len - 2];
@@ -385,19 +404,18 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[]) {
         if ((!strncmp(address, temp->scanned_mac_address, 2))&&
             (!strncmp(addr_last_two, temp_last_two, 2))) {
 
-            
             return temp;
 
         }
 
     }
-
+   
     /* Input MAC address is new */
     return NULL;
 }
 
 
-void print_list(List_Entry *entry){
+void print_list(List_Entry *entry, int ptrs_type){
 
     /*Check whether the list is empty */
     if (get_list_length(entry) == 0 ) {
@@ -409,7 +427,23 @@ void print_list(List_Entry *entry){
 
     list_for_each(listptrs, entry){
 
-        node = ListEntry(listptrs, ScannedDevice, sc_list_ptrs);
+        switch(ptrs_type){
+            
+            case 0:
+                
+                node = ListEntry(listptrs, ScannedDevice, sc_list_ptrs);
+
+            break;
+
+            case 1:
+               
+                node = ListEntry(listptrs, ScannedDevice, tr_list_ptrs);
+
+            break;
+
+
+        }
+
         printf(" %s \t", &node->scanned_mac_address);
 
     }
