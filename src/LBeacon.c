@@ -236,8 +236,10 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     
     /* Add newly scanned devices to the lists for new scanned devices */
     if (new_node == NULL) {
-        
-       if(check_is_in_list(&tracked_object_list_head, address, 1) == NULL){
+
+        new_node = check_is_in_list(&tracked_object_list_head, address, 1);
+
+       if( new_node == NULL){
 
             printf("******Get the memory from the pool. ****** \n");
             new_node = (struct ScannedDevice*) mp_get(&mempool);
@@ -254,14 +256,12 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
              new_node->is_in_tracked_object_list = true;
 
        }
-               
+
         list_insert_first(&new_node->sc_list_ptrs, &scanned_list_head);
-              
-        /* Set the flag in the struct to the true */
         new_node->is_in_scanned_device_list = true;
+        /* Set the flag in the struct to the true */
        
-      
-        
+       
     }else{
         
           /* For the case of one device stays at the same spot too long and the
@@ -284,10 +284,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 
        
     }
-    //printf("Tracking list includes: ");
-    print_list(&scanned_list_head, 0);
-    //printf("Scanned list includes: ");
-    //print_list(&scanned_list_head);
+   
       
 
 }
@@ -369,7 +366,7 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[],
     ScannedDevice *temp;
 
     if(get_list_length(list) == 0){
-        printf("nothing in the list! \n");
+       
         return NULL;
 
     }
@@ -379,7 +376,6 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[],
     list_for_each(listptrs, list) {
 
         /* Input MAC address exists in the linked list */
-        
         switch(ptrs_type){
             
             case 0:
@@ -392,7 +388,6 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[],
                 temp = ListEntry(listptrs, ScannedDevice, tr_list_ptrs);
             break;
 
-
         }
         
         int len = strlen(address);
@@ -400,7 +395,7 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[],
         char *addr_last_two = &address[len - 2];
         char *temp_last_two = &temp->scanned_mac_address[len - 2];
 
-
+    
         if ((!strncmp(address, temp->scanned_mac_address, 2))&&
             (!strncmp(addr_last_two, temp_last_two, 2))) {
 
@@ -417,13 +412,15 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[],
 
 void print_list(List_Entry *entry, int ptrs_type){
 
+    
+    struct List_Entry *listptrs;
+    struct ScannedDevice *node;
+
     /*Check whether the list is empty */
     if (get_list_length(entry) == 0 ) {
         return;
     }
 
-    struct List_Entry *listptrs;
-    struct ScannedDevice *node;
 
     list_for_each(listptrs, entry){
 
@@ -776,10 +773,10 @@ void *cleanup_scanned_list(void) {
     while (ready_to_work == true) {
 
         /*Check whether the list is empty */
-        if(get_list_length(&scanned_list_head) == 0){
+        while(get_list_length(&scanned_list_head) == 0){
             
             sleep(A_SHORT_TIME);
-            continue;
+
         }
  
 
@@ -791,16 +788,17 @@ void *cleanup_scanned_list(void) {
 
             /* Device has been in the scanned list for at least 30 seconds */
             if (get_system_time() - temp->final_scanned_time > TIMEOUT) {
-                
+
                 /* Remove this scanned devices from the scanned list
                  * and set is_in_scanned_device_list to false */
                 list_remove_node(&temp->sc_list_ptrs);
                 temp->is_in_scanned_device_list = false;
-                printf("Removing node from scanned list. \n");
+                printf("Node: %s is removing node from scanned list. \n", temp->scanned_mac_address);
 
                 /* If the node not in any list any more, free the node. */  
                 if(temp->is_in_tracked_object_list == false){
                     
+                    printf("rmp_release the space \n");
                     mp_release(&mempool, &temp);
 
                 }
@@ -817,8 +815,6 @@ void *cleanup_scanned_list(void) {
     return;
 
 }
-
-
 
 
 
