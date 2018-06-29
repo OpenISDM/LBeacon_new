@@ -60,18 +60,75 @@ typedef struct {
     void *memory;
 } Memory_Pool;
 
-//size must be greater than or equal to MEMORY_POOL_MINIMUM_SIZE
 
+
+/*
+*  mp_init:
+*
+*  This function initializes the memory pool and links the slots in the pool.
+*
+*  Parameters:
+*
+*  mp - the specific memory pool to be utlized
+*  size - the size of the one slots 
+*  slots - the number or the size of the slots 
+*
+*  Return value:
+*
+*  Status integer - the error code or the successful message
+*/
 int mp_init(Memory_Pool *mp, size_t size, size_t slots);
+
+
+/*
+*  mp_destroy:
+*
+*  This function reads the specified config file line by line until the
+*  end of file, and stores the data in the lines into the global variable of a
+*  Config struct.
+*
+*  Parameters:
+*
+*  mp - the specific memory pool to be destroied 
+*
+*  Return value:
+*
+*  None
+*
+*/
 void mp_destroy(Memory_Pool *mp);
 
-/* [NB: For Lbeacon, each slot needs to hold a ScannedDevice struct. 
-    Clearly, no struct should straddle two cache lines. So, slot size
-    should be size of the struct rounded up to an integer multiple of
-    cache line size. Cache line size of RPI W0 is supposedly 32 bytes.]
+
+/*
+*  mp_alloc:
+*
+*  This function gets the space of the head in the memory pool and relinks
+*  the head to the next node in the pool.
+*
+*  Parameters:
+*
+*  mp - the specific memory pool to be utlized
+*
+*  Return value:
+*
+*  temp - returns the pointer to the specific element 
 */
+void *mp_alloc(Memory_Pool *mp);
 
-void *mp_get(Memory_Pool *mp);
-void mp_release(Memory_Pool *mp, void *mem);
 
-// [NB: We should call the function mp_alloc and mp_free.]
+/*
+*  mp_free:
+*
+*  This function release the unused element back to the memory pool and place 
+*  it in the head of the list.
+
+*  Parameters:
+*
+*  mp - the specific memory pool to be utlized
+*  mem - the specific element to be released
+*
+*  Return value:
+*
+*  none
+*/
+void mp_free(Memory_Pool *mp, void *mem);

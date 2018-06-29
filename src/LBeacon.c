@@ -252,7 +252,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
        if( new_node == NULL){
 
             printf("******Get the memory from the pool. ****** \n");
-            new_node = (struct ScannedDevice*) mp_get(&mempool);
+            new_node = (struct ScannedDevice*) mp_alloc(&mempool);
     
             /* Get the initial time for the new node. */
             new_node->initial_scanned_time = get_system_time();
@@ -841,7 +841,7 @@ void *cleanup_scanned_list(void) {
                 if(temp->is_in_tracked_object_list == false){
                     
                     
-                    mp_release(&mempool, &temp);
+                    mp_free(&mempool, &temp);
 
                 }
 
@@ -971,7 +971,7 @@ void *track_devices(char *file_name) {
             /* If the node not in any list any more, free the node. */
             if(temp->is_in_scanned_device_list == false){
 
-                mp_release(&mempool, &temp);
+                mp_free(&mempool, &temp);
 
             }
 
@@ -1470,9 +1470,9 @@ int main(int argc, char **argv) {
     printf("Start establishing Connection to xbee\n");
 
 
-    /*--------------Configuration for connection in Data mode----------------*/
-    /* In this mode we aim to get Data.                                      */
-    /*-----------------------------------------------------------------------*/
+    /*--------------Configuration for connection in Data mode--------------*/
+    /* In this mode we aim to get Data.                                    */
+    /*---------------------------------------------------------------------*/
 
     printf("Establishing Connection...\n");
 
@@ -1480,7 +1480,7 @@ int main(int argc, char **argv) {
 
     printf("Connection Successfully Established\n");
 
-    /* Start the chain reaction!                                             */
+    /* Start the chain reaction!                                           */
 
     if((ret = xbee_conValidate(zigbee.con)) != XBEE_ENONE){
         xbee_log(zigbee.xbee, 1, "con unvalidate ret : %d", ret);
@@ -1493,7 +1493,8 @@ int main(int argc, char **argv) {
     /* Create the thread for message advertising to BLE bluetooth devices */
     pthread_t stop_ble_beacon_thread;
 
-    return_value = startThread(stop_ble_beacon_thread, stop_ble_beacon, hex_c);
+    return_value = startThread(stop_ble_beacon_thread, 
+                                    stop_ble_beacon, hex_c);
 
     if(return_value != WORK_SCUCESSFULLY){
          perror(errordesc[E_START_THREAD].message);
@@ -1504,7 +1505,8 @@ int main(int argc, char **argv) {
     /* Create the the cleanup_scanned_list thread */
     pthread_t cleanup_scanned_list_thread;
 
-    return_value = startThread(cleanup_scanned_list_thread,cleanup_scanned_list, NULL);
+    return_value = startThread(cleanup_scanned_list_thread,
+                                cleanup_scanned_list, NULL);
 
     if(return_value != WORK_SCUCESSFULLY){
          perror(errordesc[E_START_THREAD].message);
@@ -1516,7 +1518,8 @@ int main(int argc, char **argv) {
     /* Create the thread for track device */
     pthread_t track_devices_thread;
 
-    return_value = startThread(track_devices_thread, track_devices, "output.txt");
+    return_value = startThread(track_devices_thread, 
+                                    track_devices, "output.txt");
 
     if(return_value != WORK_SCUCESSFULLY){
          perror(errordesc[E_START_THREAD].message);

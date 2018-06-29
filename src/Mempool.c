@@ -48,11 +48,25 @@
 *      
 */#include "Mempool.h"
 
+/*
+*  mp_init:
+*
+*  This function initializes the memory pool and links the slots in the pool.
+*
+*  Parameters:
+*
+*  mp - the specific memory pool to be utlized
+*  size - the size of the one slots 
+*  slots - the number or the size of the slots 
+*
+*  Return value:
+*
+*  Status integer - the error code or the successful message
+*/
+
 int mp_init(Memory_Pool *mp, size_t size, size_t slots)
 {
-    /* [NB] should check whether mp is NULL, return error if it is.]
-       parameter check code ....
-    */
+  
 
     //allocate memory
     if((mp->memory = malloc(size * slots)) == NULL)
@@ -62,11 +76,6 @@ int mp_init(Memory_Pool *mp, size_t size, size_t slots)
     mp->head = NULL;
 
     //add every slot to the list
-    char *end = (char *)mp->memory + size * slots;
-    /*
-    [NB: Below cleverly uses the release function to link up the slots
-    but an expert says it is more complicated than necessary and suggested
-    the following way. */
      char *ptr;
      for (ptr = mp->memory; --slots; ptr+=size) {
         *(void **)ptr = ptr+size;
@@ -74,13 +83,28 @@ int mp_init(Memory_Pool *mp, size_t size, size_t slots)
      *(void **)ptr = NULL;
      mp->head = mp->memory;
     
-/*
-    for(char *ite = mp->memory; ite < end; ite += size)
-        mp_release(mp, ite);
-*/
 
     return MEMORY_POOL_SUCCESS;
 }
+
+
+
+/*
+*  mp_destroy:
+*
+*  This function reads the specified config file line by line until the
+*  end of file, and stores the data in the lines into the global variable of a
+*  Config struct.
+*
+*  Parameters:
+*
+*  mp - the specific memory pool to be destroied 
+*
+*  Return value:
+*
+*  None
+*
+*/
 
 void mp_destroy(Memory_Pool *mp)
 {   
@@ -90,7 +114,24 @@ void mp_destroy(Memory_Pool *mp)
 
 }
 
-void *mp_get(Memory_Pool *mp)
+
+
+/*
+*  mp_alloc:
+*
+*  This function gets the space of the head in the memory pool and relinks
+*  the head to the next node in the pool.
+*
+*  Parameters:
+*
+*  mp - the specific memory pool to be utlized
+*
+*  Return value:
+*
+*  temp - returns the pointer to the specific element 
+*/
+
+void *mp_alloc(Memory_Pool *mp)
 {
     if(mp->head == NULL)
         return NULL;
@@ -105,10 +146,25 @@ void *mp_get(Memory_Pool *mp)
     return temp;
 }
 
-/* [NB: As commented by a blogger, the function should have error check
-   to make sure that mem actually points to slot.] */
 
-void mp_release(Memory_Pool *mp, void *mem)
+
+/*
+*  mp_free:
+*
+*  This function release the unused element back to the memory pool and place 
+*  it in the head of the list.
+
+*  Parameters:
+*
+*  mp - the specific memory pool to be utlized
+*  mem - the specific element to be released
+*
+*  Return value:
+*
+*  none
+*/
+
+void mp_free(Memory_Pool *mp, void *mem)
 {
     //store first address
     void *temp = mp->head;
