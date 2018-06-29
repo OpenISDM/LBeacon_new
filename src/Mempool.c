@@ -1,204 +1,122 @@
-/*  mempool.c
-**
-**  A simple fast memory allocation package.
-**
-**  By Steve Hill in Graphics Gems III, David Kirk (ed.),
-**    Academic Press, Boston, MA, 1992
-**
-**  Modified by Lew Rossman, 8/13/94.
-**
-**  AllocInit()     - create an alloc pool, returns the old pool handle
-**  Alloc()         - allocate memory
-**  AllocReset()    - reset the current pool
-**  AllocSetPool()  - set the current pool
-**  AllocFree()     - free the memory used by the current pool.
-**
-*/
-
-#include <stdlib.h>
-#include <malloc.h>
-#include "mempool.h"
-
 /*
-**  ALLOC_BLOCK_SIZE - adjust this size to suit your installation - it
-**  should be reasonably large otherwise you will be mallocing a lot.
-*/
+* Copyright (c) 2016 Academia Sinica, Institute of Information Science
+*
+* License:
+*
+*      GPL 3.0 : The content of this file is subject to the terms and
+*      cnditions defined in file 'COPYING.txt', which is part of this source
+*      code package.
+*
+* Project Name:
+*
+*      BeDIPS
+*
+* File Description:
+*
+*      This file contains the program to allow the necessory memory 
+*      allocation for the nodes in the linked list. 
+*
+*      Note: The code is referred to the site:
+*      https://codereview.stackexchange.com/questions/48919/simple-memory-
+*      pool-%20using-no-extra-memory 
+*       
+*
+* File Name:
+*
+*      Mempool.c
+*
+* Version:
+* 
+*       1.2
+*
+* Abstract:
+*
+*      BeDIPS uses LBeacons to deliver 3D coordinates and textual
+*      descriptions of their locations to users' devices. Basically, a
+*      LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
+*      coordinates and location description of every LBeacon are retrieved
+*      from BeDIS (Building/environment Data and Information System) and
+*      stored locally during deployment and maintenance times. Once
+*      initialized, each LBeacon broadcasts its coordinates and location
+*      description to Bluetooth enabled user devices within its coverage
+*      area.
+*
+* Authors:
+*
+*      Han Wang, hollywang@iis.sinica.edu.tw
 
-#define ALLOC_BLOCK_SIZE   64000       /*(62*1024)*/
+*      
+*/#include "Mempool.h"
 
-/*
-**  alloc_hdr_t - Header for each block of memory.
-*/
-
-typedef struct alloc_hdr_s
+int mp_init(Memory_Pool *mp, size_t size, size_t slots)
 {
-    struct alloc_hdr_s *next;   /* Next Block          */
-    char               *block,  /* Start of block      */
-                       *free,   /* Next free in block  */
-                       *end;    /* block + block size  */
-}  alloc_hdr_t;
-
-/*
-**  alloc_root_t - Header for the whole pool.
-*/
-
-typedef struct alloc_root_s
-{
-    alloc_hdr_t *first,    /* First header in pool */
-                *current;  /* Current header       */
-}  alloc_root_t;
-
-/*
-**  root - Pointer to the current pool.
-*/
-
-static alloc_root_t *root;
-
-
-/*
-**  AllocHdr()
-**
-**  Private routine to allocate a header and memory block.
-*/
-
-static alloc_hdr_t *AllocHdr(void);
-                
-static alloc_hdr_t * AllocHdr()
-{
-    alloc_hdr_t     *hdr;
-    char            *block;
-
-    block = (char *) malloc(ALLOC_BLOCK_SIZE);
-    hdr   = (alloc_hdr_t *) malloc(sizeof(alloc_hdr_t));
-
-    if (hdr == NULL || block == NULL) return(NULL);
-    hdr->block = block;
-    hdr->free  = block;
-    hdr->next  = NULL;
-    hdr->end   = block + ALLOC_BLOCK_SIZE;
-
-    return(hdr);
-}
-
-
-/*
-**  AllocInit()
-**
-**  Create a new memory pool with one block.
-**  Returns pointer to the new pool.
-*/
-
-alloc_handle_t * AllocInit()
-{
-    alloc_handle_t *newpool;
-
-    root = (alloc_root_t *) malloc(sizeof(alloc_root_t));
-    if (root == NULL) return(NULL);
-    if ( (root->first = AllocHdr()) == NULL) return(NULL);
-    root->current = root->first;
-    newpool = (alloc_handle_t *) root;
-    return(newpool);
-}
-
-
-/*
-**  Alloc()
-**
-**  Use as a direct replacement for malloc().  Allocates
-**  memory from the current pool.
-*/
-
-char * Alloc(long size)
-{
-    alloc_hdr_t  *hdr = root->current;
-    char         *ptr;
-
-    /*
-    **  Align to 4 byte boundary - should be ok for most machines.
-    **  Change this if your machine has weird alignment requirements.
+    /* [NB] should check whether mp is NULL, return error if it is.]
+       parameter check code ....
     */
-    size = (size + 3) & 0xfffffffc;
 
-    ptr = hdr->free;
-    hdr->free += size;
+    //allocate memory
+    if((mp->memory = malloc(size * slots)) == NULL)
+        return MEMORY_POOL_ERROR;
 
-    /* Check if the current block is exhausted. */
+    //initialize
+    mp->head = NULL;
 
-    if (hdr->free >= hdr->end)
-    {
-        /* Is the next block already allocated? */
-
-        if (hdr->next != NULL)
-        {
-            /* re-use block */
-            hdr->next->free = hdr->next->block;
-            root->current = hdr->next;
-        }
-        else
-        {
-            /* extend the pool with a new block */
-            if ( (hdr->next = AllocHdr()) == NULL) return(NULL);
-            root->current = hdr->next;
-        }
-
-        /* set ptr to the first location in the next block */
-        ptr = root->current->free;
-        root->current->free += size;
-    }
-
-    /* Return pointer to allocated memory. */
-
-    return(ptr);
-}
-
-
+    //add every slot to the list
+    char *end = (char *)mp->memory + size * slots;
+    /*
+    [NB: Below cleverly uses the release function to link up the slots
+    but an expert says it is more complicated than necessary and suggested
+    the following way. */
+     char *ptr;
+     for (ptr = mp->memory; --slots; ptr+=size) {
+        *(void **)ptr = ptr+size;
+     }
+     *(void **)ptr = NULL;
+     mp->head = mp->memory;
+    
 /*
-**  AllocSetPool()
-**
-**  Change the current pool.  Return the old pool.
+    for(char *ite = mp->memory; ite < end; ite += size)
+        mp_release(mp, ite);
 */
 
-alloc_handle_t * AllocSetPool(alloc_handle_t *newpool)
-{
-    alloc_handle_t *old = (alloc_handle_t *) root;
-    root = (alloc_root_t *) newpool;
-    return(old);
+    return MEMORY_POOL_SUCCESS;
 }
 
+void mp_destroy(Memory_Pool *mp)
+{   
 
-/*
-**  AllocReset()
-**
-**  Reset the current pool for re-use.  No memory is freed,
-**  so this is very fast.
-*/
+    mp->memory = NULL;
+    free(mp->memory);
 
-void  AllocReset()
-{
-    root->current = root->first;
-    root->current->free = root->current->block;
 }
 
-
-/*
-**  AllocFreePool()
-**
-**  Free the memory used by the current pool.
-**  Don't use where AllocReset() could be used.
-*/
-
-void  AllocFreePool()
+void *mp_get(Memory_Pool *mp)
 {
-    alloc_hdr_t  *tmp,
-                 *hdr = root->first;
+    if(mp->head == NULL)
+        return NULL;
 
-    while (hdr != NULL)
-    {
-        tmp = hdr->next;
-        free((char *) hdr->block);
-        free((char *) hdr);
-        hdr = tmp;
-    }
-    free((char *) root);
-    root = NULL;
+    //store first address, i.e., address of the start of first element
+    void *temp = mp->head;
+
+    //link one past it
+    mp->head = *mp->head;
+
+    //return the first address
+    return temp;
 }
+
+/* [NB: As commented by a blogger, the function should have error check
+   to make sure that mem actually points to slot.] */
+
+void mp_release(Memory_Pool *mp, void *mem)
+{
+    //store first address
+    void *temp = mp->head;
+
+    //link new node
+    mp->head = mem;
+
+    //link to the list from new node
+    *mp->head = temp;
+}
+

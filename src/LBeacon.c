@@ -23,6 +23,10 @@
 *
 *      LBeacon.c
 *
+* Version:
+* 
+*       1.2
+*
 * Abstract:
 *
 *      BeDIPS uses LBeacons to deliver 3D coordinates and textual
@@ -236,9 +240,13 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     new_node = check_is_in_list(&scanned_list_head, address, 0);
    
     
-    /* Add newly scanned devices to the lists for new scanned devices */
+    /* If check_is_in_list() of Scanned List returns null, insert the new
+     * to the list. */
     if (new_node == NULL) {
 
+        /* Check whether the node is already in the track_object_list, if no,
+         * alloc a memory space to the brand new node. If yes, get the 
+         * memory space of the node found in the track_obkect_list. */
         new_node = check_is_in_list(&tracked_object_list_head, address, 1);
 
        if( new_node == NULL){
@@ -246,39 +254,48 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
             printf("******Get the memory from the pool. ****** \n");
             new_node = (struct ScannedDevice*) mp_get(&mempool);
     
+            /* Get the initial time for the new node. */
             new_node->initial_scanned_time = get_system_time();
+            new_node->final_scanned_time = get_system_time();
 
+            /* Copy the MAC address to the node */
             strncpy(new_node->scanned_mac_address, 
                     address, 
                     LENGTH_OF_MAC_ADDRESS);
 
+            /* Insert to the track_object_list  */
             list_insert_first(&new_node->tr_list_ptrs, 
                                 &tracked_object_list_head);
 
+             /* Set the flag in the struct to the true */
              new_node->is_in_tracked_object_list = true;
 
        }
 
+        /* Insert to the scanned list */
         list_insert_first(&new_node->sc_list_ptrs, &scanned_list_head);
-        new_node->is_in_scanned_device_list = true;
+        
         /* Set the flag in the struct to the true */
+        new_node->is_in_scanned_device_list = true;
+        
        
        
     }else{
         
-          /* For the case of one device stays at the same spot too long and the
-         * data has been sent to gateway once, but the node is removed frome the 
-         * track_object_list. */
+          /* For the case of one device stays at the same spot too long and 
+           * the data has been sent to gateway once, but the node is removed 
+           * frome the track_object_list. */
         if(check_is_in_list(&tracked_object_list_head, address, 1) == NULL &&
             new_node->is_in_tracked_object_list == false){
 
-          
+            /* Insert to the track_object_list  */
             list_insert_first(&new_node->tr_list_ptrs,
                              &tracked_object_list_head);
 
             new_node->is_in_tracked_object_list = true;
         }
 
+         /* Update the final time */
          new_node->final_scanned_time = get_system_time();
         
 
@@ -366,6 +383,7 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[],
     struct List_Entry *listptrs;
     ScannedDevice *temp;
 
+    /* If there is no node in the list, reutrn NULL directly. */
     if(get_list_length(list) == 0){
        
         return NULL;
@@ -376,17 +394,20 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[],
     /* Go through list */
     list_for_each(listptrs, list) {
 
-        /* Input MAC address exists in the linked list */
+        /* Depends on the pointer types of the ScannedDevice, get the node
+         * from the specific list.  */
         switch(ptrs_type){
             
             case 0:
                 
                 temp = ListEntry(listptrs, ScannedDevice, sc_list_ptrs);
+            
             break;
 
             case 1:
                
                 temp = ListEntry(listptrs, ScannedDevice, tr_list_ptrs);
+            
             break;
 
         }
@@ -396,7 +417,7 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[],
         char *addr_last_two = &address[len - 2];
         char *temp_last_two = &temp->scanned_mac_address[len - 2];
 
-    
+        /* Compare the last two digits of the MAC address */
         if ((!strncmp(address, temp->scanned_mac_address, 2))&&
             (!strncmp(addr_last_two, temp_last_two, 2))) {
 
@@ -443,6 +464,8 @@ void print_list(List_Entry *entry, int ptrs_type){
 
     list_for_each(listptrs, entry){
 
+        /* For the input parameter of the macro, depends on the pointer types 
+         * of the ScannedDevice, get the node from the specific list.  */
         switch(ptrs_type){
             
             case 0:
@@ -794,7 +817,7 @@ void *cleanup_scanned_list(void) {
         /*Check whether the list is empty */
         while(get_list_length(&scanned_list_head) == 0){
             
-            sleep(A_SHORT_TIME);
+            sleep(A_VERY_SHORT_TIME);
 
         }
  
@@ -812,12 +835,12 @@ void *cleanup_scanned_list(void) {
                  * and set is_in_scanned_device_list to false */
                 list_remove_node(&temp->sc_list_ptrs);
                 temp->is_in_scanned_device_list = false;
-                printf("Node: %s is removing node from scanned list. \n", temp->scanned_mac_address);
+            
 
                 /* If the node not in any list any more, free the node. */  
                 if(temp->is_in_tracked_object_list == false){
                     
-                    printf("rmp_release the space \n");
+                    
                     mp_release(&mempool, &temp);
 
                 }
@@ -861,13 +884,15 @@ void *track_devices(char *file_name) {
     /* Create a temporary node and set as the head */
     struct List_Entry *lisptrs;
     ScannedDevice *temp;
+    int number_in_list;
+    int number_to_send;
     char timestamp_init_str[LENGTH_OF_TIME];
     char timestamp_end_str[LENGTH_OF_TIME];
 
     while(ready_to_work == true){
 
 
-        /*Check whether the list is empty */
+        /*Check whether is polled by gateway, if not yet, sleep for while */
         while(is_polled_by_gateway == false){  
             
             sleep(A_VERY_SHORT_TIME);
@@ -886,17 +911,30 @@ void *track_devices(char *file_name) {
         }
         if(track_file == NULL){
         
-            printf("can not open track_file for writing.\n");  
-
             perror(errordesc[E_OPEN_FILE].message);
             return;
 
         }
         
+        pthread_mutex_lock(&lock);
+        number_in_list = get_list_length(&tracked_object_list_head);
+        number_to_send = min(MAX_NO_OBJECTS, number_in_list);
         
-
-        /* Go through list*/
+        /* Go through the track_object_list to get the content in the list 
+         * for writing the file and zigbee connection. 
+         * 
+         * [Note] Here is some difference with the pseudocode by Jane:
+         * When gateway is polling, instead of go thorgh list twice for 
+         * writing content to file and zigbee as dscribed in the pseudocode, 
+         * I implement it in the way that I go through the track_object_list 
+         * once, once getting the content, write it in the file and wrap it 
+         * to the gateway at the same time.  */
         list_for_each(lisptrs, &tracked_object_list_head){
+
+            
+            if(number_to_send <= 0){
+                break;
+            }
 
             temp = ListEntry(lisptrs, ScannedDevice, tr_list_ptrs);
 
@@ -907,12 +945,14 @@ void *track_devices(char *file_name) {
             sprintf(timestamp_init_str, ", %u", timestamp_init);
             sprintf(timestamp_end_str, ", %u", timestamp_end);
 
-
-           fputs(&temp->scanned_mac_address[0], track_file);               
+            /* Write the content to the file */
+            fputs(&temp->scanned_mac_address[0], track_file);               
             fputs(timestamp_init_str, track_file);
             fputs(timestamp_end_str, track_file);
             fputs("\n", track_file);
 
+            /* Wrap the content in the track_object_list to the string for 
+             * the zigbee transmistion. */ 
             char *zig_message[80];
             strcpy(zig_message, &temp->scanned_mac_address[0]);
             strcat(zig_message, timestamp_init_str);
@@ -935,11 +975,24 @@ void *track_devices(char *file_name) {
 
             }
 
-        
-         }
-
+            
+        }
     
-        is_polled_by_gateway = false;
+        /* Check is there any left to send, if no, set the is_polled_by_gateway
+         * to false */
+        if(number_in_list > number_to_send){
+            
+            is_polled_by_gateway = true;
+        
+        }else{
+            
+            is_polled_by_gateway = false;
+        
+        }
+        
+
+
+        pthread_mutex_unlock(&lock);
 
         /* Close the file for tracking */
         fclose(track_file);
@@ -972,8 +1025,6 @@ void *track_devices(char *file_name) {
 
 ErrorCode zigbee_connection(Zigbee zigbee, char *message){
     
-
-    int number_in_list = get_list_length(&tracked_object_list_head);
 
         
     /* Pointer point_to_CallBack will store the callback function.       */
@@ -1275,12 +1326,9 @@ void cleanup_exit(){
     
     mp_destroy(&mempool);
     
-    /* Release the handler for Bluetooth */
-    
+    /* Release the handler for Bluetooth */ 
     free(g_push_file_path);
     
-    
-
     /* Free Packet Queue for zigbee connection */
     Free_Packet_Queue(zigbee.pkt_Queue);
 
@@ -1320,13 +1368,12 @@ int main(int argc, char **argv) {
   
 
     /*Initialize the lists */
-    
-    init_list(&scanned_list_head);
-
-    
+    init_list(&scanned_list_head); 
     init_list(&tracked_object_list_head);
 
-    if(mp_init(&mempool, sizeof(struct ScannedDevice), 64) == NULL){
+    /* Initialize the memory pool */
+    if(mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_FOR_MEM_POOL) 
+            == NULL){
 
 
         /* Error handling */
@@ -1410,11 +1457,8 @@ int main(int argc, char **argv) {
 
      /* Parameters for Zigbee initialization */
     char* xbee_mode  = "xbeeZB";
-
-    char* xbee_device = "/dev/ttyAMA0";
-    
+    char* xbee_device = "/dev/ttyAMA0"; 
     int xbee_baudrate = 9600;
-
     int LogLevel = 100;
 
     

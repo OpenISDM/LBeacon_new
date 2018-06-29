@@ -20,6 +20,10 @@
 *
 *      LBeacon.h
 *
+* Version:
+* 
+*       1.2
+*
 * Abstract:
 *
 *      BeDIPS uses LBeacons to deliver 3D coordinates and textual
@@ -147,11 +151,23 @@
 /* RSSI value for the calibration */
 #define RSSI_VALUE 20
 
+/* The maximum number for the zigbee transmition in one time */
+#define MAX_NO_OBJECTS 10
+
+/* The number of slots for the memory pool */
+#define SLOTS_FOR_MEM_POOL 64
+
 /* Timeout interval in ms */
 #define A_LONG_TIME 30000
-#define A_SHORT_TIME 3000
-#define A_VERY_SHORT_TIME 5000
+#define A_SHORT_TIME 5000
+#define A_VERY_SHORT_TIME 300
 #define A_VERY_VERY_SHORT_TIME 30
+
+/* The macro of comparing two integer for minimum */
+#define min(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
 
 
 
@@ -380,11 +396,14 @@ false by any thread when the thread encounters a fatal error, indicating that
 it is about to exit.*/
 bool ready_to_work;
 
-
+/* A global falg as the sign for reminding the track_object_thread to transmit
+ * the data to the gateway */
 bool is_polled_by_gateway;
 
+/* The memory pool for the allocation of all nodes in the list */
 Memory_Pool mempool;
  
+/* A lock for the processing of writing data */ 
 pthread_mutex_t lock;
 
 

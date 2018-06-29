@@ -20,6 +20,10 @@
 *
 *      LinkedList.h
 *
+* Version:
+* 
+*       1.2
+*
 * Abstract:
 *
 *      BeDIPS uses LBeacons to deliver 3D coordinates and textual
