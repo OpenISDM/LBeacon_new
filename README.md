@@ -6,7 +6,7 @@ Alpha version of LBeacon was demonstrated during Academia Sinica open house and 
 
 ### Installing LBeacon on Raspberry Pi
 
-[Download](https://www.raspberrypi.org/downloads/raspbian/) Raspbian stretch lite for the Raspberry Pi operating system and follow its installation guide.
+[Download](https://www.raspberrypi.org/downloads/raspbian/) Raspbian Jessie lite for the Raspberry Pi operating system and follow its installation guide.
 
 In Raspberry Pi, install packages by running the following command:
 ```sh
