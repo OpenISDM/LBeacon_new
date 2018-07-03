@@ -256,8 +256,8 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
             
 
             /* Initialize the entry that pointing to itself */
-            init_entry(&new_node->sc_list_ptrs);
-            init_entry(&new_node->tr_list_ptrs);
+            //init_entry(&new_node->sc_list_ptrs);
+            //init_entry(&new_node->tr_list_ptrs);
 
             /* Get the initial time for the new node. */
             new_node->initial_scanned_time = get_system_time();
@@ -841,7 +841,7 @@ void *cleanup_scanned_list(void) {
                 list_remove_node(&temp->sc_list_ptrs);
                 
                 /* Setting the entry of the node to point to itself */
-                init_entry(&temp->sc_list_ptrs);
+                //init_entry(&temp->sc_list_ptrs);
                 temp->is_in_scanned_device_list = false;
             
 
@@ -979,7 +979,7 @@ void *track_devices(char *file_name) {
             list_remove_node(&temp->tr_list_ptrs);
 
             /* Setting the entry of the node to point to itself */
-            init_entry(&temp->tr_list_ptrs);
+            //init_entry(&temp->tr_list_ptrs);
             temp->is_in_tracked_object_list = false;
 
     
