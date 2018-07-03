@@ -80,13 +80,6 @@ typedef struct List_Entry {
 	
 }List_Entry;
 
-/* Struct for each node in the list with any type of data */
-typedef struct Node {
-	void *data;
-	struct List_Entry ptrs;
-	
-}Node;
-
 
 
 
@@ -108,7 +101,7 @@ typedef struct Node {
 *
 *  None
 */
-void init_list(List_Entry *entry);
+void init_entry(List_Entry *entry);
 
 /*
 *  list_insert_:

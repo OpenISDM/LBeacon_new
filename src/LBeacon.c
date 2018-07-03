@@ -253,7 +253,12 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 
             printf("******Get the memory from the pool. ****** \n");
             new_node = (struct ScannedDevice*) mp_alloc(&mempool);
-    
+            
+
+            /* Initialize the entry that pointing to itself */
+            init_entry(&new_node->sc_list_ptrs);
+            init_entry(&new_node->tr_list_ptrs);
+
             /* Get the initial time for the new node. */
             new_node->initial_scanned_time = get_system_time();
             new_node->final_scanned_time = get_system_time();
@@ -834,13 +839,16 @@ void *cleanup_scanned_list(void) {
                 /* Remove this scanned devices from the scanned list
                  * and set is_in_scanned_device_list to false */
                 list_remove_node(&temp->sc_list_ptrs);
+                
+                /* Setting the entry of the node to point to itself */
+                init_entry(&temp->sc_list_ptrs);
                 temp->is_in_scanned_device_list = false;
             
 
                 /* If the node not in any list any more, free the node. */  
                 if(temp->is_in_tracked_object_list == false){
                     
-                    
+                    printf("Removing node by scanned list \n");
                     mp_free(&mempool, &temp);
 
                 }
@@ -892,11 +900,16 @@ void *track_devices(char *file_name) {
     while(ready_to_work == true){
 
 
-        /*Check whether is polled by gateway, if not yet, sleep for while */
-        while(is_polled_by_gateway == false){  
-            
-            sleep(A_VERY_SHORT_TIME);
+         number_in_list = get_list_length(&tracked_object_list_head);
+         number_to_send = min(MAX_NO_OBJECTS, number_in_list);
 
+         printf("Number in list: %d\n", number_in_list);
+
+        /*Check whether is polled by gateway, if not yet, sleep for while */
+        if(number_in_list == 0){  
+        
+            sleep(A_VERY_SHORT_TIME);
+            continue;
         }
         
      
@@ -917,8 +930,7 @@ void *track_devices(char *file_name) {
         }
         
         pthread_mutex_lock(&lock);
-        number_in_list = get_list_length(&tracked_object_list_head);
-        number_to_send = min(MAX_NO_OBJECTS, number_in_list);
+       
         
         /* Go through the track_object_list to get the content in the list 
          * for writing the file and zigbee connection. 
@@ -965,12 +977,15 @@ void *track_devices(char *file_name) {
 
             /* Clean up the tracked_object_list */
             list_remove_node(&temp->tr_list_ptrs);
+
+            /* Setting the entry of the node to point to itself */
+            init_entry(&temp->tr_list_ptrs);
             temp->is_in_tracked_object_list = false;
 
     
             /* If the node not in any list any more, free the node. */
             if(temp->is_in_scanned_device_list == false){
-
+                printf("Removing node by track list \n");
                 mp_free(&mempool, &temp);
 
             }
@@ -1368,8 +1383,8 @@ int main(int argc, char **argv) {
   
 
     /*Initialize the lists */
-    init_list(&scanned_list_head); 
-    init_list(&tracked_object_list_head);
+    init_entry(&scanned_list_head); 
+    init_entry(&tracked_object_list_head);
 
     /* Initialize the memory pool */
     if(mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_FOR_MEM_POOL) 

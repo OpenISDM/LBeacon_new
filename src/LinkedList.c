@@ -54,7 +54,7 @@
 
 
 
-inline void init_list(List_Entry *entry){
+void init_entry(List_Entry *entry){
         
         entry->next = entry;
         entry->prev = entry;
@@ -62,7 +62,8 @@ inline void init_list(List_Entry *entry){
 }
 
 
-inline void list_insert_(List_Entry *new_node, List_Entry *prev, 
+
+void list_insert_(List_Entry *new_node, List_Entry *prev, 
                          List_Entry *next) {
 
     next->prev = new_node;
@@ -73,7 +74,7 @@ inline void list_insert_(List_Entry *new_node, List_Entry *prev,
 }
 
 
-inline void list_insert_first(List_Entry *new_node, List_Entry *head) {
+void list_insert_first(List_Entry *new_node, List_Entry *head) {
 
     list_insert_(new_node, head, head->next);
 
@@ -82,14 +83,14 @@ inline void list_insert_first(List_Entry *new_node, List_Entry *head) {
 
 
 
-inline void list_insert_tail(List_Entry *new_node, List_Entry *head) {
+void list_insert_tail(List_Entry *new_node, List_Entry *head) {
 
     list_insert_(new_node, head->prev, head);
 
 }
 
 
-inline void list_remove_(List_Entry *prev, List_Entry *next) {
+void list_remove_(List_Entry *prev, List_Entry *next) {
 
     next->prev = prev;
     prev->next = next;
@@ -97,7 +98,7 @@ inline void list_remove_(List_Entry *prev, List_Entry *next) {
 }
 
 
-inline void list_remove_node(List_Entry *removed_node_ptrs) {
+void list_remove_node(List_Entry *removed_node_ptrs) {
 
     list_remove_(removed_node_ptrs->prev, removed_node_ptrs->next);
 
@@ -105,7 +106,7 @@ inline void list_remove_node(List_Entry *removed_node_ptrs) {
 }
 
 
-inline int get_list_length(List_Entry * entry) {
+int get_list_length(List_Entry * entry) {
 
     struct List_Entry *listptrs;
     int list_length = 0;
