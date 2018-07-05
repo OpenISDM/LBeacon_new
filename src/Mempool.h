@@ -16,7 +16,7 @@
 *      This file contains the function declarations and
 *      variables used in the Mempool.c file.
 *
-*      Note: The code is referred to the site:
+*      Note: The code is based on the code offered at the site:
 *      https://codereview.stackexchange.com/questions/48919/simple-memory-
 *      pool-%20using-no-extra-memory 
 *       
@@ -58,6 +58,7 @@
 typedef struct {
     void **head;
     void *memory;
+    size_t size;
 } Memory_Pool;
 
 
@@ -71,7 +72,7 @@ typedef struct {
 *
 *  mp - the specific memory pool to be utlized
 *  size - the size of the one slots 
-*  slots - the number or the size of the slots 
+*  slots - the number of slots in the memory pool
 *
 *  Return value:
 *
