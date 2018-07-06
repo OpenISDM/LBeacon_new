@@ -53,6 +53,20 @@
 #include "LinkedList.h"
 
 
+/*
+*  init_list:
+*
+*  This function initializes the list.
+*
+*  Parameters:
+*
+*  entry - the head of the list for determining which list is goning to be 
+*  initialized.
+*   
+*  Return value:
+*
+*  None
+*/
 
 inline void init_entry(List_Entry *entry){
         
@@ -62,6 +76,23 @@ inline void init_entry(List_Entry *entry){
 }
 
 
+
+/*
+*  list_insert_:
+*
+*  This function changes the links between node and the added 
+*  new node.
+*
+*  Parameters:
+*
+*  new_node - the struct of list entry for the node be added into the list.
+*  prev - the struct of list entry which the new node points to previously.
+*  next - the struct of list entry which the new node points to next.
+*   
+*  Return value:
+*
+*  None
+*/
 
 inline void list_insert_(List_Entry *new_node, List_Entry *prev, 
                          List_Entry *next) {
@@ -74,6 +105,23 @@ inline void list_insert_(List_Entry *new_node, List_Entry *prev,
 }
 
 
+
+/*
+*  list_insert_first:
+*
+*  This function calls the function of list_insert_ to add a new node at the 
+*  first of the list.
+*
+*  Parameters:
+*
+*  new_node - the struct of list entry for the node be added into the list.
+*  head - the struct of list entry which is the head of the list.
+*   
+*  Return value:
+*
+*  None
+*/
+
 inline void list_insert_first(List_Entry *new_node, List_Entry *head) {
 
     list_insert_(new_node, head, head->next);
@@ -82,6 +130,21 @@ inline void list_insert_first(List_Entry *new_node, List_Entry *head) {
 
 
 
+/*
+*  list_insert_tail:
+*
+*  This function calls the function of list_insert_ to add a new node at the 
+*  last of the list.
+*
+*  Parameters:
+*
+*  new_node - the struct of list entry for the node be added into the list.
+*  head - the struct of list entry which is the head of the list.
+*   
+*  Return value:
+*
+*  None
+*/
 
 inline void list_insert_tail(List_Entry *new_node, List_Entry *head) {
 
@@ -90,6 +153,25 @@ inline void list_insert_tail(List_Entry *new_node, List_Entry *head) {
 }
 
 
+
+/*
+*  list_remove_:
+*
+*  This function changes the links between the node and the node which 
+*  is going to be removed.
+*
+*  Parameters:
+*
+*  prev - the struct of list entry for the node which is going to be deleted 
+*  points to previously.
+*  next - the struct of list entry for the node which is going to be deleted 
+*  points to next.
+*   
+*  Return value:
+*
+*  None
+*/
+
 inline void list_remove_(List_Entry *prev, List_Entry *next) {
 
     next->prev = prev;
@@ -97,6 +179,24 @@ inline void list_remove_(List_Entry *prev, List_Entry *next) {
 
 }
 
+
+
+/*
+*  list_remove_node:
+*
+*  This function calls the function of remove_node__ to delete a node in the 
+*  list.
+*
+*  Parameters:
+*
+*  removed_node_ptrs - the struct of list entry for the node is going to be
+*  removed.
+*  
+*   
+*  Return value:
+*
+*  None
+*/
 
 inline void list_remove_node(List_Entry *removed_node_ptrs) {
 
@@ -107,6 +207,21 @@ inline void list_remove_node(List_Entry *removed_node_ptrs) {
 
 }
 
+
+/*
+ *  get_list_length:
+ *
+ *  This function returns the length of the list. 
+ *
+ *  Parameters:
+ *
+ *  entry - the head of the list for determining which list is goning to be 
+ *  modified.
+ *
+ *  Return value:
+ *
+ *  length - number of nodes in the list.
+ */
 
 inline int get_list_length(List_Entry * entry) {
 
