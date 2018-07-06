@@ -39,10 +39,22 @@
 #include "xbee_API.h"
 
 
-/*----------------------Configuration for xbee---------------------------*/
-/*-----------------------------------------------------------------------*/
-/* xbee_setup(struct xbee **retXbee, const char *xbee_mode               */
-/* , char *xbee_device, int xbee_baudrate)                               */
+/*
+ * xbee_initial
+ *     For initialize zigbee, include loading config.
+ * Parameter:
+ *     xbee_mode: we use xbeeZB as our device, this parameter is for setting
+ *                libxbee3 work mode.
+ *     xbee_device: This parameter is to define where is our zigbee device path.
+ *     xbee_baudrate: This parameter is to define what our zigbee working
+ *                    baudrate.
+ *     LogLevel: To decide libxbee3 whether need to export log or not.
+ *     xbee: A pointer to catch zigbee pointer.
+ *     pkt_Queue: A pointer of the packet queue we use.
+ * Return Value:
+ *     xbee_err: If return 0, everything work successfully.
+ *               If not 0, somthing wrong.
+ */
 xbee_err xbee_initial(char* xbee_mode, char* xbee_device, int xbee_baudrate
                         , int LogLevel, struct xbee** xbee, pkt_ptr pkt_Queue){
     printf("Start Connecting to xbee\n");
@@ -59,7 +71,8 @@ xbee_err xbee_initial(char* xbee_mode, char* xbee_device, int xbee_baudrate
     printf("xbee Connected\n");
 
     if((ret = xbee_validate(*xbee)) != XBEE_ENONE){
-        printf("Connection unvalidate\nret: %d (%s)\n", ret, xbee_errorToStr(ret));
+        printf("Connection unvalidate\nret: %d (%s)\n",
+        ret, xbee_errorToStr(ret));
         return ret;
     }
 
@@ -77,6 +90,17 @@ xbee_err xbee_initial(char* xbee_mode, char* xbee_device, int xbee_baudrate
     return ret;
 }
 
+/*
+ * xbee_connector
+ *     For connect to zigbee and assign it's destnation address.
+ * Parameter:
+ *     xbee: A pointer to catch zigbee pointer.
+ *     con: A pointer of the connector of zigbee.
+ *     pkt_Queue: A pointer of the packet queue we use.
+ * Return Value:
+ *     xbee_err: If return 0, everything work successfully.
+ *               If not 0, somthing wrong.
+ */
 xbee_err xbee_connector(struct xbee** xbee, struct xbee_con** con
                                                 , pkt_ptr pkt_Queue){
 

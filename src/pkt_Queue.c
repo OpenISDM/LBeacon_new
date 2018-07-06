@@ -13,7 +13,7 @@
  *
  * File Description:
  *
- *      This file contains the program for the waiting queue.
+ *   	This file contains the program for the waiting queue.
  *
  * File Name:
  *
@@ -32,12 +32,20 @@
  *      area.
  *
  * Authors:
- *      Gary Xiao       , garyh0205@hotmail.com
+ *      Gary Xiao		, garyh0205@hotmail.com
  */
 
 #include "pkt_Queue.h"
 
-/* Initialize Queue                                                          */
+/*
+ * init_Packet_Queue
+ *     Initialize packet queue that is for the packet waiting to send to the
+ *     Gateway or to the Beacon.
+ * Parameter:
+ *     pkt_queue : A struct stored the first and the last of the packet queue.
+ * Return Value:
+ *     None
+ */
 void init_Packet_Queue(pkt_ptr pkt_queue) {
     pkt_queue->locker = Lock_Queue;
     pkt_queue->len    = 0;
@@ -48,6 +56,16 @@ void init_Packet_Queue(pkt_ptr pkt_queue) {
     pkt_queue->locker = unLock_Queue;
 }
 
+/*
+ * Free_Packet_Queue
+ *     Release all the packets in the packet queue, the header and
+ *     the tail of the packet queue and release the struct stored the pointer of
+ *      the packet queue.
+ * Parameter:
+ *     pkt_queue : A struct stored the first and the last of the packet queue.
+ * Return Value:
+ *     None
+ */
 void Free_Packet_Queue(pkt_ptr pkt_queue){
 
     delallpkt(pkt_queue);
@@ -62,14 +80,23 @@ void Free_Packet_Queue(pkt_ptr pkt_queue){
     free(pkt_queue);
 }
 
-/* A function for create new packet in queue                                 */
+/*
+ * addpkt
+ *     Add new packet into the packet queue we assigned.
+ * Parameter:
+ *     pkt_queue : A struct stored the first and the last of the packet queue.
+ *     type      : Record the type of packets working environment.
+ *     raw_addr  : The destnation address of the packet.
+ *     content   : The content we decided to send.
+ * Return Value:
+ *     None
+ */
 void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
     Locker status;
     do{
         status = pkt_queue->locker;
         pkt_queue->locker = Lock_Queue;
     }while(status != unLock_Queue);
-
 
     printf("addpkt start\n");
     pPkt newpkt = malloc(sizeof(sPkt));
@@ -108,8 +135,15 @@ void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
     return;
 }
 
-/* A function for delete a sended Packet in queue                            */
-void delpkt(pkt_ptr pkt_queue) {
+/*
+ * delpkt
+ *     delete the first of the packet queue we assigned.
+ * Parameter:
+ *     pkt_queue : A struct stored the first and the last of the packet queue.
+ * Return Value:
+ *     None
+ */
+ void delpkt(pkt_ptr pkt_queue) {
     Locker status;
     do{
         status = pkt_queue->locker;
@@ -133,15 +167,30 @@ void delpkt(pkt_ptr pkt_queue) {
     return;
 }
 
+/*
+ * delallpkt
+ *     delete all packet in the packet queue we assigned.
+ * Parameter:
+ *     pkt_queue : A struct stored the first and the last of the packet queue.
+ * Return Value:
+ *     None
+ */
 void delallpkt(pkt_ptr pkt_queue) {
     while (pkt_queue->len != 0){
         delpkt(pkt_queue);
         printf("delall\n");
     }
     printf("End delall\n");
-    return;
 }
 
+/*
+ * print_address
+ *     Convert hex type address to char type address.
+ * Parameter:
+ *     address: A address stored in Hex.
+ * Return Value:
+ *     char_addr: A address stored in char convert from address.
+ */
 char* print_address(unsigned char* address){
     char* char_addr = malloc(sizeof(char)*17);
     memset(char_addr, 0, sizeof(char)*17);
@@ -151,6 +200,14 @@ char* print_address(unsigned char* address){
     return char_addr;
 }
 
+/*
+ * type_to_str
+ *     TO convert type to it's original type name.
+ * Parameter:
+ *     type: A variable stored packet needed send type.
+ * Return Value:
+ *     Return a char pointer which is it's type name.
+ */
 char* type_to_str(int type){
     switch(type){
         case Data:
@@ -164,7 +221,15 @@ char* type_to_str(int type){
     }
 }
 
-/* Fill the address from raw(char) to addr(Hex)                              */
+/*
+ * Fill_address
+ *     Convert the address from raw(char) to addr(Hex).
+ * Parameter:
+ *     raw: The original char type address.
+ *     addr: The destnation variable to store the converted result.
+ * Return Value:
+ *     None
+ */
 void Fill_Address(char *raw,unsigned char* addr){
     for(int i = 0;i < 8;i++){
         char tmp[2];
@@ -176,6 +241,14 @@ void Fill_Address(char *raw,unsigned char* addr){
     printf("\n");
 }
 
+/* display_pkt
+ *     display the packet we decide to see.
+ * Parameter:
+ *     content: The title we want to show in front of the packet content.
+ *     pkt: The packet we want to see it's content.
+ * Return Value:
+ *     None
+ */
 void display_pkt(char* content, pPkt pkt){
     char* char_addr = print_address(pkt->address);
     printf("------ %12s ------\n",content);
