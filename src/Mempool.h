@@ -84,13 +84,11 @@ int mp_init(Memory_Pool *mp, size_t size, size_t slots);
 /*
 *  mp_destroy:
 *
-*  This function reads the specified config file line by line until the
-*  end of file, and stores the data in the lines into the global variable of a
-*  Config struct.
+*  This function frees te memory occupied by the specified memory pool.
 *
 *  Parameters:
 *
-*  mp - the specific memory pool to be destroied 
+*  mp - the specific memory pool to be destroyed 
 *
 *  Return value:
 *
@@ -120,16 +118,16 @@ void *mp_alloc(Memory_Pool *mp);
 /*
 *  mp_free:
 *
-*  This function release the unused element back to the memory pool and place 
-*  it in the head of the list.
+*  This function release an unused slot back to the memory pool and place 
+*  it in the head of the free list.
 
 *  Parameters:
 *
-*  mp - the specific memory pool to be utlized
-*  mem - the specific element to be released
+*  mp - the pointer to the specific memory pool
+*  mem - the pointer to the strting address of the slot to be freed
 *
 *  Return value:
 *
-*  none
+*  Errorcode - error code or sucessful message 
 */
 void mp_free(Memory_Pool *mp, void *mem);
