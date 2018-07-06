@@ -58,7 +58,7 @@
 typedef struct {
     void **head;
     void *memory;
-    size_t size;
+    int size;
 } Memory_Pool;
 
 
@@ -76,7 +76,7 @@ typedef struct {
 *
 *  Return value:
 *
-*  Status integer - the error code or the successful message
+*  Status - the error code or the successful message
 */
 int mp_init(Memory_Pool *mp, size_t size, size_t slots);
 
@@ -101,8 +101,8 @@ void mp_destroy(Memory_Pool *mp);
 /*
 *  mp_alloc:
 *
-*  This function gets the space of the head in the memory pool and relinks
-*  the head to the next node in the pool.
+*  This function gets a free slot from the memory pool when a free slot
+*  is available and return NULL when no free slot is available.
 *
 *  Parameters:
 *
@@ -110,7 +110,7 @@ void mp_destroy(Memory_Pool *mp);
 *
 *  Return value:
 *
-*  temp - returns the pointer to the specific element 
+*  void - the pointer to the struct of a free slot or NULL 
 */
 void *mp_alloc(Memory_Pool *mp);
 
@@ -130,4 +130,4 @@ void *mp_alloc(Memory_Pool *mp);
 *
 *  Errorcode - error code or sucessful message 
 */
-void mp_free(Memory_Pool *mp, void *mem);
+int mp_free(Memory_Pool *mp, void *mem);

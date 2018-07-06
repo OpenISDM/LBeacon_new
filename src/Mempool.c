@@ -57,11 +57,11 @@
 *
 *  mp - the specific memory pool to be utlized
 *  size - the size of the one slots 
-*  slots - the number or the size of the slots 
+*  slots - the number of slots in the memory pool
 *
 *  Return value:
 *
-*  Status integer - the error code or the successful message
+*  Status - the error code or the successful message
 */
 
 int mp_init(Memory_Pool *mp, size_t size, size_t slots)
@@ -74,14 +74,23 @@ int mp_init(Memory_Pool *mp, size_t size, size_t slots)
 
     //initialize
     mp->head = NULL;
+    mp->size = size;
 
-    //add every slot to the list
-     char *ptr;
-     for (ptr = mp->memory; --slots; ptr+=size) {
-        *(void **)ptr = ptr+size;
-     }
-     *(void **)ptr = NULL;
-     mp->head = mp->memory;
+     //add every slot to the list
+    char *end = (char *)mp->memory + size * slots;
+    
+    for(char *ite = mp->memory; ite < end; ite += size){
+
+            //store first address
+            void *temp = mp->head;
+
+            //link the new node
+            mp->head = ite;
+
+            //link to the list from new node
+            *mp->head = temp;
+  
+    }
     
 
     return MEMORY_POOL_SUCCESS;
@@ -92,13 +101,11 @@ int mp_init(Memory_Pool *mp, size_t size, size_t slots)
 /*
 *  mp_destroy:
 *
-*  This function reads the specified config file line by line until the
-*  end of file, and stores the data in the lines into the global variable of a
-*  Config struct.
+*  This function frees te memory occupied by the specified memory pool.
 *
 *  Parameters:
 *
-*  mp - the specific memory pool to be destroied 
+*  mp - the specific memory pool to be destroyed 
 *
 *  Return value:
 *
@@ -119,8 +126,8 @@ void mp_destroy(Memory_Pool *mp)
 /*
 *  mp_alloc:
 *
-*  This function gets the space of the head in the memory pool and relinks
-*  the head to the next node in the pool.
+*  This function gets a free slot from the memory pool when a free slot
+*  is available and return NULL when no free slot is available.
 *
 *  Parameters:
 *
@@ -128,7 +135,7 @@ void mp_destroy(Memory_Pool *mp)
 *
 *  Return value:
 *
-*  temp - returns the pointer to the specific element 
+*  void - the pointer to the struct of a free slot or NULL 
 */
 
 void *mp_alloc(Memory_Pool *mp)
@@ -151,21 +158,33 @@ void *mp_alloc(Memory_Pool *mp)
 /*
 *  mp_free:
 *
-*  This function release the unused element back to the memory pool and place 
-*  it in the head of the list.
+*  This function release an unused slot back to the memory pool and place 
+*  it in the head of the free list.
 
 *  Parameters:
 *
-*  mp - the specific memory pool to be utlized
-*  mem - the specific element to be released
+*  mp - the pointer to the specific memory pool
+*  mem - the pointer to the strting address of the slot to be freed
 *
 *  Return value:
 *
-*  none
+*  Errorcode - error code or sucessful message 
 */
 
-void mp_free(Memory_Pool *mp, void *mem)
+int mp_free(Memory_Pool *mp, void *mem)
 {
+    
+
+    int offset = &mp->memory - &mem;
+    int diffrenceinbyte = offset * sizeof(int);
+    printf("Offset: %d \n", diffrenceinbyte);
+    
+    if(diffrenceinbyte / mp->size != 0){  
+        printf("Error \n");
+        return MEMORY_POOL_ERROR;
+
+    }
+
     //store first address
     void *temp = mp->head;
 
@@ -174,5 +193,7 @@ void mp_free(Memory_Pool *mp, void *mem)
 
     //link to the list from new node
     *mp->head = temp;
+
+    return MEMORY_POOL_SUCCESS; 
 }
 
