@@ -660,20 +660,21 @@ void *stop_ble_beacon(void *beacon_location);
 
 
 /*
-*  cleanup_scanned_list:
-*
-*  This function checks each entry in the scanned list to determine whether 
-*  the device with MAC address given by the ScannedDevice node at entry has
-*  been in the list for over TIMEOUT, if yes, the function removes the 
-*  ScannedDevice struct from the list. 
-*
-*  Parameters:
-*
-*  None
-*
-*  Return value:
-*
-*  None
+  cleanup_scanned_list:
+
+  This function checks each ScannedDevice node in the scanned list to 
+  determine whether the node has been in the list for over TIMEOUT, if yes, 
+  the function removes the ScannedDevice struct from the list. If the struct 
+  is no longer in the tracked_object_list, the function call the memory 
+  pool to release the memory space used by the struct.
+
+  Parameters:
+
+  None
+
+  Return value:
+
+  None
 */
 
 void *cleanup_scanned_list(void);

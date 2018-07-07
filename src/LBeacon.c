@@ -208,23 +208,25 @@ long long get_system_time() {
 
 
 /*
-*  send_to_push_dongle:
-*
-*  When called, this functions constructs a ScannedDevice struct using the
-*  input bluetooth_device_address as MAC address and current time as timestamp.
-*  It then checks whether there is a ScannedDevice struct in the scanned list
-*  with MAC address matching the input MAC address. If there is no such
-*  ScannedDevice struct, the function inserts the newly constructed struct at
-*  the head of the waiting list. It inserts new struct at the head of the
-*  lists regardless the results of above mentioned test.
-*
-*  Parameters:
-*
-*  bluetooth_device_address - bluetooth device address
-*
-*  Return value:
-*
-*  None
+  send_to_push_dongle:
+
+  When called, this functions first checks whether there is a ScannedDevice 
+  struct in the scanned list with MAC address matching the input bluetooth 
+  device address. If there is no such struct, this function allocates from 
+  memory pool space for a ScannedDeice struct, sets the MAC address of the 
+  new struct to the input MAC address, the initial scanned time and final
+  scanned time to the current time, and inserts the sruct at the head of of 
+  the scanned list and tail of the tracked object list. If a struct with MAC
+  address matching the input device address is found, this function sets the 
+  final scanned time of the struct to current time.
+
+  Parameters:
+
+  bluetooth_device_address - bluetooth device address
+
+  Return value:
+
+  None
 */
 
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
@@ -745,21 +747,23 @@ void *stop_ble_beacon(void *beacon_location) {
 }
 
 
+
 /*
-*  cleanup_scanned_list:
-*
-*  This function checks each entry in the scanned list to determine whether 
-*  the device with MAC address given by the ScannedDevice node at entry has
-*  been in the list for over TIMEOUT, if yes, the function removes the 
-*  ScannedDevice struct from the list. 
-*
-*  Parameters:
-*
-*  None
-*
-*  Return value:
-*
-*  None
+  cleanup_scanned_list:
+
+  This function checks each ScannedDevice node in the scanned list to 
+  determine whether the node has been in the list for over TIMEOUT, if yes, 
+  the function removes the ScannedDevice struct from the list. If the struct 
+  is no longer in the tracked_object_list, the function call the memory 
+  pool to release the memory space used by the struct.
+
+  Parameters:
+
+  None
+
+  Return value:
+
+  None
 */
 
 void *cleanup_scanned_list(void) {
