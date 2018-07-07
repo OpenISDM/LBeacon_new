@@ -237,75 +237,44 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     strcat(address, "\0");
 
     struct ScannedDevice *new_node;
-    new_node = check_is_in_list(&scanned_list_head, address, 0);
+    new_node = check_is_in_scanned_list(address);
    
     
-    /* If check_is_in_list() of Scanned List returns null, insert the new
-     * to the list. */
+    /* If check_is_in_scanned_list() of Scanned List returns null, insert the 
+       new to the list. */
     if (new_node == NULL) {
 
-        /* Check whether the node is already in the track_object_list, if no,
-         * alloc a memory space to the brand new node. If yes, get the 
-         * memory space of the node found in the track_obkect_list. */
-        new_node = check_is_in_list(&tracked_object_list_head, address, 1);
+      
 
-       if( new_node == NULL){
+        printf("******Get the memory from the pool. ****** \n");
+        new_node = (struct ScannedDevice*) mp_alloc(&mempool);
+        
 
-            printf("******Get the memory from the pool. ****** \n");
-            new_node = (struct ScannedDevice*) mp_alloc(&mempool);
-            
+        /* Get the initial time for the new node. */
+        new_node->initial_scanned_time = get_system_time();
+        new_node->final_scanned_time = get_system_time();
 
-            /* Initialize the entry that pointing to itself */
-            //init_entry(&new_node->sc_list_ptrs);
-            //init_entry(&new_node->tr_list_ptrs);
+        /* Copy the MAC address to the node */
+        strncpy(new_node->scanned_mac_address, 
+                address, 
+                LENGTH_OF_MAC_ADDRESS);
 
-            /* Get the initial time for the new node. */
-            new_node->initial_scanned_time = get_system_time();
-            new_node->final_scanned_time = get_system_time();
-
-            /* Copy the MAC address to the node */
-            strncpy(new_node->scanned_mac_address, 
-                    address, 
-                    LENGTH_OF_MAC_ADDRESS);
-
-            /* Insert to the track_object_list  */
-            list_insert_first(&new_node->tr_list_ptrs, 
-                                &tracked_object_list_head);
-
-             /* Set the flag in the struct to the true */
-             new_node->is_in_tracked_object_list = true;
-
-       }
-
+        
         /* Insert to the scanned list */
-        list_insert_first(&new_node->sc_list_ptrs, &scanned_list_head);
-        
-        /* Set the flag in the struct to the true */
-        new_node->is_in_scanned_device_list = true;
-        
-       
-       
+        list_insert_first(&new_node->sc_list_entry, &scanned_list_head);
+
+        /* Insert to the track_object_list  */
+        list_insert_first(&new_node->tr_list_entry, 
+                            &tracked_object_list_head);
+
+    
     }else{
         
-          /* For the case of one device stays at the same spot too long and 
-           * the data has been sent to gateway once, but the node is removed 
-           * frome the track_object_list. */
-        if(check_is_in_list(&tracked_object_list_head, address, 1) == NULL &&
-            new_node->is_in_tracked_object_list == false){
-
-            /* Insert to the track_object_list  */
-            list_insert_first(&new_node->tr_list_ptrs,
-                             &tracked_object_list_head);
-
-            new_node->is_in_tracked_object_list = true;
-        }
+    
 
          /* Update the final time */
          new_node->final_scanned_time = get_system_time();
         
-
-      
-
        
     }
    
@@ -360,36 +329,34 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 
 
 /*
-*  check_is_in_list:
-*
-*  This function checks whether the MAC address given as input is in the 
-*  specified list. If a node with MAC address matching the input address is 
-*  found in the list specified by the input parameter, the function returns 
-*  the pointer to the node with maching address, otherwise it returns NULL.
-*
-*  Parameters:
-*
-*  list - the list to be checked
-*  address - MAC address of a bluetooth device
-*  ptrs_type - an indicator of the pointer type of the specific list
-*
-*  Return value:
-*
-*  match_node - The node found that is matched up with the input address
-*               or NULL
-*  
-*
+  check_is_in_scanned_list:
+
+  This function checks whether the MAC address given as input is in the 
+  scanned list. If a node with MAC address matching the input address is 
+  found in the list, the function returns the pointer to the node with 
+  maching address, otherwise it returns NULL.
+
+  Parameters:
+
+  address - MAC address of a bluetooth device
+
+  Return value:
+
+  match_node - A pointer to the node found with MAC address matched up with 
+               the input address.
+  or NULL
+  
+
 */
 
-struct ScannedDevice *check_is_in_list(List_Entry *list, char address[], 
-                                                            int ptrs_type) {
+struct ScannedDevice *check_is_in_scanned_list(char address[]) {
 
     /* Create a temporary node and set as the head */
     struct List_Entry *listptrs;
     ScannedDevice *temp;
 
     /* If there is no node in the list, reutrn NULL directly. */
-    if(get_list_length(list) == 0){
+    if(get_list_length(&scanned_list_head) == 0){
        
         return NULL;
 
@@ -397,25 +364,9 @@ struct ScannedDevice *check_is_in_list(List_Entry *list, char address[],
 
    
     /* Go through list */
-    list_for_each(listptrs, list) {
+    list_for_each(listptrs, &scanned_list_head) {
 
-        /* Depends on the pointer types of the ScannedDevice, get the node
-         * from the specific list.  */
-        switch(ptrs_type){
-            
-            case 0:
-                
-                temp = ListEntry(listptrs, ScannedDevice, sc_list_ptrs);
-            
-            break;
-
-            case 1:
-               
-                temp = ListEntry(listptrs, ScannedDevice, tr_list_ptrs);
-            
-            break;
-
-        }
+        temp = ListEntry(listptrs, ScannedDevice, sc_list_entry);
         
         int len = strlen(address);
 
@@ -475,13 +426,13 @@ void print_list(List_Entry *entry, int ptrs_type){
             
             case 0:
                 
-                node = ListEntry(listptrs, ScannedDevice, sc_list_ptrs);
+                node = ListEntry(listptrs, ScannedDevice, sc_list_entry);
 
             break;
 
             case 1:
                
-                node = ListEntry(listptrs, ScannedDevice, tr_list_ptrs);
+                node = ListEntry(listptrs, ScannedDevice, tr_list_entry);
 
             break;
 
@@ -830,28 +781,15 @@ void *cleanup_scanned_list(void) {
         /* Go through list */
         list_for_each(listptrs, &scanned_list_head){
 
-            temp = ListEntry(listptrs, ScannedDevice, sc_list_ptrs);
+            temp = ListEntry(listptrs, ScannedDevice, sc_list_entry);
 
 
             /* Device has been in the scanned list for at least 30 seconds */
             if (get_system_time() - temp->final_scanned_time > TIMEOUT) {
 
-                /* Remove this scanned devices from the scanned list
-                 * and set is_in_scanned_device_list to false */
-                list_remove_node(&temp->sc_list_ptrs);
-                
-                /* Setting the entry of the node to point to itself */
-                //init_entry(&temp->sc_list_ptrs);
-                temp->is_in_scanned_device_list = false;
+                /* Remove this scanned devices from the scanned list */
+                list_remove_node(&temp->sc_list_entry);
             
-
-                /* If the node not in any list any more, free the node. */  
-                if(temp->is_in_tracked_object_list == false){
-                    
-                    printf("Removing node by scanned list \n");
-                    mp_free(&mempool, &temp);
-
-                }
 
             }
             else {
@@ -948,7 +886,7 @@ void *track_devices(char *file_name) {
                 break;
             }
 
-            temp = ListEntry(lisptrs, ScannedDevice, tr_list_ptrs);
+            temp = ListEntry(lisptrs, ScannedDevice, tr_list_entry);
 
 
            /* Convert the timestamp from list to string */
@@ -976,19 +914,7 @@ void *track_devices(char *file_name) {
             }
 
             /* Clean up the tracked_object_list */
-            list_remove_node(&temp->tr_list_ptrs);
-
-            /* Setting the entry of the node to point to itself */
-            //init_entry(&temp->tr_list_ptrs);
-            temp->is_in_tracked_object_list = false;
-
-    
-            /* If the node not in any list any more, free the node. */
-            if(temp->is_in_scanned_device_list == false){
-                printf("Removing node by track list \n");
-                mp_free(&mempool, &temp);
-
-            }
+            list_remove_node(&temp->tr_list_entry);
 
             
         }
