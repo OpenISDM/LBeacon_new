@@ -723,24 +723,23 @@ ErrorCode zigbee_connection(Zigbee zigbee, char *message);
 
 
 /*
-*  start_scanning:
-*
-*  This function scans continuously for bluetooth devices under the coverage
-*  of the  beacon until scanning is cancelled. Each scanned device fall under
-*  one of three cases: a bluetooth device with no RSSI value and a bluetooth
-*  device with a RSSI value, When the RSSI value of the device is within the
-*  threshold, the ScannedDevice struct of the device is added to the linked
-*  list of devices to which messages will be sent.
-*
-*  [N.B. This function is executed by the main thread. ]
-*
-*  Parameters:
-*
-*  None
-*
-*  Return value:
-*
-*  None
+  start_scanning:
+
+  This function scans continuously for bluetooth devices under the coverage
+  of the  beacon until scanning is cancelled. When the RSSI value of the 
+  device is within the threshold, this function calls send_to_push_dongle to
+  either add a new ScannedDevice struct of the device to scanned list and 
+  track_object_list or update the struct in the lists. 
+
+  [N.B. This function is executed by the main thread. ]
+
+  Parameters:
+
+  None
+
+  Return value:
+
+  None
 */
 
 void start_scanning();

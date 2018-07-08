@@ -251,6 +251,8 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
         printf("******Get the memory from the pool. ****** \n");
         new_node = (struct ScannedDevice*) mp_alloc(&mempool);
         
+        init_node(&new_node->sc_list_entry);
+        init_node(&new_node->tr_list_entry);
 
         /* Get the initial time for the new node. */
         new_node->initial_scanned_time = get_system_time();
@@ -280,7 +282,6 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
        
     }
    
-      
 
 }
 
@@ -791,9 +792,11 @@ void *cleanup_scanned_list(void) {
             /* Device has been in the scanned list for at least 30 seconds */
             if (get_system_time() - temp->final_scanned_time > TIMEOUT) {
 
+               
+                
                 /* Remove this scanned devices from the scanned list */
                 list_remove_node(&temp->sc_list_entry);
-            
+                
 
             }
             else {
@@ -871,7 +874,7 @@ void *track_devices(char *file_name) {
 
         }
         
-        pthread_mutex_lock(&lock);
+        
        
         
         /* Go through the track_object_list to get the content in the list 
@@ -917,9 +920,10 @@ void *track_devices(char *file_name) {
                 return;
             }
 
+            
             /* Clean up the tracked_object_list */
             list_remove_node(&temp->tr_list_entry);
-
+            
             
         }
     
@@ -937,7 +941,7 @@ void *track_devices(char *file_name) {
         
 
 
-        pthread_mutex_unlock(&lock);
+        
 
         /* Close the file for tracking */
         fclose(track_file);
@@ -1018,24 +1022,23 @@ ErrorCode zigbee_connection(Zigbee zigbee, char *message){
 
 
 /*
-*  start_scanning:
-*
-*  This function scans continuously for bluetooth devices under the coverage
-*  of the  beacon until scanning is cancelled. Each scanned device fall under
-*  one of three cases: a bluetooth device with no RSSI value and a bluetooth
-*  device with a RSSI value, When the RSSI value of the device is within the
-*  threshold, the ScannedDevice struct of the device is added to the linked
-*  list of devices to which messages will be sent.
-*
-*  [N.B. This function is executed by the main thread. ]
-*
-*  Parameters:
-*
-*  None
-*
-*  Return value:
-*
-*  None
+  start_scanning:
+
+  This function scans continuously for bluetooth devices under the coverage
+  of the  beacon until scanning is cancelled. When the RSSI value of the 
+  device is within the threshold, this function calls send_to_push_dongle to
+  either add a new ScannedDevice struct of the device to scanned list and 
+  track_object_list or update the struct in the lists. 
+
+  [N.B. This function is executed by the main thread. ]
+
+  Parameters:
+
+  None
+
+  Return value:
+
+  None
 */
 
 void start_scanning() {

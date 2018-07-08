@@ -53,6 +53,7 @@
 #include <string.h>
 
 
+
 /*
 * CONSTANTS
 */
@@ -69,6 +70,18 @@
 /*Macro for the method going through the list structure */
 #define list_for_each(pos, head)	\
 		for (pos = (head)->next; pos != (head); pos = pos->next)
+
+# define POISON_POINTER_DELTA 0
+
+/*
+ * These are non-NULL pointers that will result in page faults
+ * under normal circumstances, used to verify that nobody uses
+ * non-initialized list entries.
+ */
+#define LIST_POISON1  ((void *) 0x00100100 + POISON_POINTER_DELTA)
+#define LIST_POISON2  ((void *) 0x00200200 + POISON_POINTER_DELTA)
+
+
 
 
 
@@ -102,6 +115,22 @@ typedef struct List_Entry {
 *  None
 */
 void init_entry(List_Entry *entry);
+
+
+/*
+*  init_node:
+*
+*  This function initializes the node.
+*
+*  Parameters:
+*
+*  entry - the entry of the node
+*   
+*  Return value:
+*
+*  None
+*/
+void init_node(List_Entry *entry);
 
 /*
 *  list_insert_:
