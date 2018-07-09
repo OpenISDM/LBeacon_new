@@ -226,6 +226,7 @@ inline void list_remove_node(List_Entry *removed_node_ptrs) {
     removed_node_ptrs->prev = NULL;
     removed_node_ptrs->next = NULL;
 
+
     
 }
 

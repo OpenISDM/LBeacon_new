@@ -263,7 +263,8 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
                 address, 
                 LENGTH_OF_MAC_ADDRESS);
 
-        
+       
+
         /* Insert to the scanned list */
         list_insert_first(&new_node->sc_list_entry, &scanned_list_head);
 
@@ -271,17 +272,17 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
         list_insert_first(&new_node->tr_list_entry, 
                             &tracked_object_list_head);
 
+        
+
     
     }else{
         
-    
 
          /* Update the final time */
          new_node->final_scanned_time = get_system_time();
         
        
     }
-   
 
 }
 
@@ -792,11 +793,17 @@ void *cleanup_scanned_list(void) {
             /* Device has been in the scanned list for at least 30 seconds */
             if (get_system_time() - temp->final_scanned_time > TIMEOUT) {
 
-               
                 
                 /* Remove this scanned devices from the scanned list */
                 list_remove_node(&temp->sc_list_entry);
                 
+            /* Because of setting the current node's pointer to NULL, this 
+               function breaks the loop (list_for_each) in order to aviod 
+               continuously visiting to NULL.
+               The process will back to the beginning of while loop.
+            */
+                break;
+               
 
             }
             else {
@@ -923,7 +930,13 @@ void *track_devices(char *file_name) {
             
             /* Clean up the tracked_object_list */
             list_remove_node(&temp->tr_list_entry);
-            
+
+            /* Because of setting the current node's pointer to NULL, this 
+               function breaks the loop (list_for_each) in order to aviod 
+               continuously visiting to NULL.
+               The process will back to the beginning of while loop.
+            */
+            break;
             
         }
     
@@ -1312,6 +1325,8 @@ int main(int argc, char **argv) {
     /*Initialize the global flags */
     ready_to_work = true;
     is_polled_by_gateway = false;
+
+   
 
   
 
