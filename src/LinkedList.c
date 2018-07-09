@@ -246,7 +246,7 @@ inline void list_remove_node(List_Entry *removed_node_ptrs) {
  *  length - number of nodes in the list.
  */
 
-inline int get_list_length(List_Entry * entry) {
+inline int get_list_length(List_Entry *entry) {
 
     struct List_Entry *listptrs;
     int list_length = 0;
@@ -257,6 +257,38 @@ inline int get_list_length(List_Entry * entry) {
     }
 
     return list_length;
+}
+
+
+/*
+   check_is_in_list:
+ 
+   The generic function for checking wether the node is in the list. 
+ 
+   Parameters:
+ 
+   entry - the head of the list for determining which list is goning to be 
+   modified.
+ 
+   Return value:
+ 
+   true - the specific node is in the list.
+   false - the specific node is not in the list.
+   
+ */
+
+inline bool check_is_in_list(List_Entry *entry ){
+
+    if(entry->next == NULL && entry->prev == NULL){
+
+        return false;
+
+    }else{
+
+        return true;
+
+    }
+
 }
 
 

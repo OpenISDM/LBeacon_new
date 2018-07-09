@@ -241,4 +241,23 @@ void list_remove_node(List_Entry *removed_node_ptrs);
 int get_list_length(List_Entry *entry);
 
 
+/*
+   check_is_in_list:
+ 
+   The generic function for checking wether the node is in the list. 
+ 
+   Parameters:
+ 
+   entry - the head of the list for determining which list is goning to be 
+   modified.
+ 
+   Return value:
+ 
+   true - the specific node is in the list.
+   false - the specific node is not in the list.
+   
+ */
+bool check_is_in_list(List_Entry *entry );
+
+
 

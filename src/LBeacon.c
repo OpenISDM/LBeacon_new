@@ -796,6 +796,15 @@ void *cleanup_scanned_list(void) {
                 
                 /* Remove this scanned devices from the scanned list */
                 list_remove_node(&temp->sc_list_entry);
+
+
+                /* If the node no longer in the other list, free the space
+                   back to the memory pool. */
+                if(check_is_in_list(&temp->tr_list_entry) == false){
+
+                    mp_free(&mempool, &temp);
+
+                }
                 
             /* Because of setting the current node's pointer to NULL, this 
                function breaks the loop (list_for_each) in order to aviod 
@@ -930,6 +939,14 @@ void *track_devices(char *file_name) {
             
             /* Clean up the tracked_object_list */
             list_remove_node(&temp->tr_list_entry);
+
+            /* If the node no longer in the other list, free the space
+               back to the memory pool. */
+            if(check_is_in_list(&temp->sc_list_entry) == false){
+
+                mp_free(&mempool, &temp);
+
+            }
 
             /* Because of setting the current node's pointer to NULL, this 
                function breaks the loop (list_for_each) in order to aviod 
