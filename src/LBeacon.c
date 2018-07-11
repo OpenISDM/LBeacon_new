@@ -251,8 +251,9 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
         printf("******Get the memory from the pool. ****** \n");
         new_node = (struct ScannedDevice*) mp_alloc(&mempool);
         
-        init_node(&new_node->sc_list_entry);
-        init_node(&new_node->tr_list_entry);
+        /* Initialize the entry to point to itself */
+        init_entry(&new_node->sc_list_entry);
+        init_entry(&new_node->tr_list_entry);
 
         /* Get the initial time for the new node. */
         new_node->initial_scanned_time = get_system_time();

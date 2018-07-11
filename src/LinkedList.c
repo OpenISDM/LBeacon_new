@@ -75,27 +75,6 @@ inline void init_entry(List_Entry *entry){
 
 }
 
-/*
-*  init_node:
-*
-*  This function initializes the node.
-*
-*  Parameters:
-*
-*  entry - the entry of the node
-*   
-*  Return value:
-*
-*  None
-*/
-
-inline void init_node(List_Entry *entry){
-        
-        entry->next = NULL;
-        entry->prev = NULL;
-
-}
-
 
 
 /*
@@ -223,8 +202,8 @@ inline void list_remove_node(List_Entry *removed_node_ptrs) {
 
     list_remove_(removed_node_ptrs->prev, removed_node_ptrs->next);
     
-    removed_node_ptrs->prev = NULL;
-    removed_node_ptrs->next = NULL;
+    removed_node_ptrs->prev = removed_node_ptrs;
+    removed_node_ptrs->next = removed_node_ptrs;
 
 
     
@@ -279,7 +258,7 @@ inline int get_list_length(List_Entry *entry) {
 
 inline bool check_is_in_list(List_Entry *entry ){
 
-    if(entry->next == NULL && entry->prev == NULL){
+    if(entry->next == entry && entry->prev == entry){
 
         return false;
 

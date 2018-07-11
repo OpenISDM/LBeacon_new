@@ -38,13 +38,13 @@
 * Authors:
 *
 *      Han Wang, hollywang@iis.sinica.edu.tw
-*	   Jake Lee, jakelee@iis.sinica.edu.tw
+*     Jake Lee, jakelee@iis.sinica.edu.tw
 *      Johnson Su, johnsonsu@iis.sinica.edu.tw
 *      Shirley Huang, shirley.huang.93@gmail.com
 *      Han Hu, hhu14@illinois.edu
 *      Jeffrey Lin, lin.jeff03@gmail.com
 *      Howard Hsu, haohsu0823@gmail.com
-*	   
+*     
 */
 
 #include <stdbool.h>
@@ -64,12 +64,12 @@
 
 
 /*Macro for geting the master struct from the sub struct */
-#define ListEntry(ptr,type,member)	\
-		((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
+#define ListEntry(ptr,type,member)  \
+      ((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
 
 /*Macro for the method going through the list structure */
-#define list_for_each(pos, head)	\
-		for (pos = (head)->next; pos != (head); pos = pos->next)
+#define list_for_each(pos, head) \
+      for (pos = (head)->next; pos != (head); pos = pos->next)
 
 # define POISON_POINTER_DELTA 0
 
@@ -87,10 +87,10 @@
 
 
 /*Strcut for the head of list containing two pointers: next and prev */
-typedef struct List_Entry {	
-	struct List_Entry *next;
-	struct List_Entry *prev;
-	
+typedef struct List_Entry {   
+   struct List_Entry *next;
+   struct List_Entry *prev;
+   
 }List_Entry;
 
 
@@ -118,21 +118,6 @@ void init_entry(List_Entry *entry);
 
 
 /*
-*  init_node:
-*
-*  This function initializes the node.
-*
-*  Parameters:
-*
-*  entry - the entry of the node
-*   
-*  Return value:
-*
-*  None
-*/
-void init_node(List_Entry *entry);
-
-/*
 *  list_insert_:
 *
 *  This function changes the links between node and the added 
@@ -149,7 +134,7 @@ void init_node(List_Entry *entry);
 *  None
 */
 void list_insert_(List_Entry *new_node, List_Entry *prev,
-						 List_Entry *next);
+                   List_Entry *next);
 
 /*
 *  list_insert_first:
@@ -255,7 +240,7 @@ int get_list_length(List_Entry *entry);
  
    true - the specific node is in the list.
    false - the specific node is not in the list.
-   
+
  */
 bool check_is_in_list(List_Entry *entry );
 
