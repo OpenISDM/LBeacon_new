@@ -164,11 +164,6 @@ Config get_config(char *file_name) {
     memcpy(config.uuid, config_message[10], strlen(config_message[10]));
     config.uuid_length = strlen(config_message[10]);
 
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message[11] = strstr((char *)config_setting, DELIMITER);
-    config_message[11] = config_message[11] + strlen(DELIMITER);
-    memcpy(config.beacon_init, config_message[11], strlen(config_message[11]));
-    config.beacon_initialized_length = strlen(config_message[11]);
 
     fclose(file);
     }
@@ -361,7 +356,7 @@ struct ScannedDevice *check_is_in_scanned_list(char address[]) {
     ScannedDevice *temp;
 
     /* If there is no node in the list, reutrn NULL directly. */
-    if(get_list_length(&scanned_list_head) == 0){
+    if(check_is_in_list(&scanned_list_head) == false){
        
         return NULL;
 
@@ -778,7 +773,7 @@ void *cleanup_scanned_list(void) {
     while (ready_to_work == true) {
 
         /*Check whether the list is empty */
-        while(get_list_length(&scanned_list_head) == 0){
+        while(check_is_in_list(&scanned_list_head) == false){
             
             sleep(A_VERY_SHORT_TIME);
 
@@ -792,7 +787,7 @@ void *cleanup_scanned_list(void) {
 
 
             /* Device has been in the scanned list for at least 30 seconds */
-            if (get_system_time() - temp->final_scanned_time > TIMEOUT) {
+            if (get_system_time() - temp->initial_scanned_time > TIMEOUT) {
 
                 
                 /* Remove this scanned devices from the scanned list */
@@ -1385,30 +1380,9 @@ int main(int argc, char **argv) {
            g_config.file_name, g_config.file_name_length - 1);
 
 
-    /* Check whether the beacon has been initilizatized, If not, Generate a
-     * random coordinate */
-    
-    int init_becaon = atoi(g_config.beacon_init);
-    if(init_becaon == 0){
-
-         srand( (unsigned)time(NULL) );
-         float x_low = 21.000000,  x_up = 24.000000, x_result;
-         float y_low = 120.000000, y_up = 122.000000, y_result;
-         x_result = (x_up - x_low) * rand() / (RAND_MAX + 1.0) + x_low;
-         coordinate_X.f = x_result;
-         y_result = (y_up - y_low) * rand() / (RAND_MAX + 1.0) + y_low;
-         coordinate_Y.f = y_result;
-         coordinate_Z.f = (float)atof(g_config.coordinate_Z);
-
-    }else{
-      
-     /* If the beacon has been assigned a coordinate, get the specified 
-      * coordinate. */
-
-        coordinate_X.f = (float)atof(g_config.coordinate_X);
-        coordinate_Y.f = (float)atof(g_config.coordinate_Y);
-        coordinate_Z.f = (float)atof(g_config.coordinate_Z);
-    }
+    coordinate_X.f = (float)atof(g_config.coordinate_X);
+    coordinate_Y.f = (float)atof(g_config.coordinate_Y);
+    coordinate_Z.f = (float)atof(g_config.coordinate_Z);
 
 
     /* Allocate an array with the size of maximum number of devices */
@@ -1430,7 +1404,7 @@ int main(int argc, char **argv) {
 
     /* Store coordinates of the beacon location */
     sprintf(hex_c,
-            "E2C56DB5DFFB%02x%02x%02x%02xD0F548D2B060%02x%02x%02x%02x",
+            "OPENISDMN402%02x%02x%02x%02xD0F5%02x%02x%02x%02x48D2B060",
             coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
             coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
             coordinate_Y.b[2], coordinate_Y.b[3]);

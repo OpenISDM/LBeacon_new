@@ -21,7 +21,7 @@
 *      LBeacon.h
 *
 * Version:
-*
+* 
 *       1.2
 *
 * Abstract:
@@ -45,7 +45,7 @@
 *      Han Hu, hhu14@illinois.edu
 *      Jeffrey Lin, lin.jeff03@gmail.com
 *      Howard Hsu, haohsu0823@gmail.com
-*
+*      
 */
 
 
@@ -90,8 +90,8 @@
 * CONSTANTS
 */
 
-/* Command opcode pack/unpack from HCI library. ogf and ocf stand for Opcode
-   group field and Opcofe command field, respectively. See Bluetooth
+/* Command opcode pack/unpack from HCI library. ogf and ocf stand for Opcode 
+   group field and Opcofe command field, respectively. See Bluetooth 
    specification - core version 4.0, vol.2, part E Chapter 5.4 for details. */
 #define cmd_opcode_pack(ogf, ocf) (uint16_t)((ocf & 0x03ff) | (ogf << 10))
 
@@ -127,7 +127,7 @@
 /* Length of time in Epoch */
 #define LENGTH_OF_TIME 10
 
-/* Nominal transmission range limited. Only devices in this RSSI range are
+/* Nominal transmission range limited. Only devices in this RSSI range are 
    allowed to be discovered and sent */
 #define RSSI_RANGE -60
 
@@ -176,7 +176,7 @@
 /* This union will convert floats into Hex code used for the beacon
 * location */
 union {
-
+    
     float f;
     unsigned char b[sizeof(float)];
     int d[2];
@@ -184,14 +184,14 @@ union {
 } coordinate_X;
 
 union {
-
+    
     float f;
     unsigned char b[sizeof(float)];
 
 } coordinate_Y;
 
 union {
-
+    
     float f;
     unsigned char b[sizeof(float)];
 
@@ -206,7 +206,7 @@ union {
 /* The configuration file structure */
 
 typedef struct Config {
-
+   
     /* String representation of the X coordinate of the beacon location */
     char coordinate_X[CONFIG_BUFFER_SIZE];
 
@@ -274,19 +274,12 @@ typedef struct Config {
     /* TString length needed to store uuid */
     int uuid_length;
 
-    /* The indicator for checking the beacon whether is initialized */
-    char beacon_init[CONFIG_BUFFER_SIZE];
-
-    /* The length of the indicator for initialization */
-    int beacon_initialized_length;
-
-
 
 } Config;
 
 /* The structure for storing information and status of a thread */
 typedef struct ThreadStatus {
-
+    
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
     bool idle;
     bool is_waiting_to_send;
@@ -297,17 +290,17 @@ typedef struct ThreadStatus {
 /* Struct for storing MAC address of the user's device and the time instant
  * at which the address is scanned */
 typedef struct ScannedDevice {
-
+    
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
     long long initial_scanned_time;
     long long final_scanned_time;
     struct List_Entry sc_list_entry;
     struct List_Entry tr_list_entry;
 
-/* Pad added to make the struct size an integer multiple of 32 byte, size
+/* Pad added to make the struct size an integer multiple of 32 byte, size 
    of D -cache line.
    int pad[30];
-*/
+*/    
 
 } ScannedDevice;
 
@@ -315,14 +308,14 @@ typedef struct ScannedDevice {
 typedef struct Zigbee {
 
     /* Struct of xbee main part which is defined in "libxbee" library */
-    struct xbee *xbee;
+    struct xbee *xbee; 
 
     /* Struct of xbee connector which is defined in "libxbee" library */
     struct xbee_con *con;
 
     /* Struct of queue of packet which is defined in pkt_Queue.h */
     pkt_ptr pkt_Queue;
-
+    
 } Zigbee;
 
 
@@ -370,14 +363,14 @@ Zigbee zigbee;
 /* Two lists of struct for recording scanned devices */
 
 /* Head of scanned_list that holds the scanned device structs of devices found
-   in recent scans. The MAC address elements of all the structs in this this
+   in recent scans. The MAC address elements of all the structs in this this 
    list are distinct. */
 List_Entry scanned_list_head;
 
-/* Head of tracking_object_list that holds the scanned device structs of
-   devices discovered in recent scans. The MAC address elements of some
-   structs in the list may ve identical but their associate timestamps
-   indicate disjoint time intervals. The contents of the list await to be
+/* Head of tracking_object_list that holds the scanned device structs of 
+   devices discovered in recent scans. The MAC address elements of some 
+   structs in the list may ve identical but their associate timestamps 
+   indicate disjoint time intervals. The contents of the list await to be 
    sent via the gateway to the server to be processed there. */
 List_Entry tracked_object_list_head;
 
@@ -385,19 +378,19 @@ List_Entry tracked_object_list_head;
 /* Global flags for communication among threads */
 
 /* A global flag that is initially set to true by the main thread. It is set
-   to false by any thread when the thread encounters a fatal error,
+   to false by any thread when the thread encounters a fatal error, 
    indicating that it is about to exit. */
 bool ready_to_work;
 
-/* A global falg to inform the track_object_thread to transmit all or part of
+/* A global falg to inform the track_object_thread to transmit all or part of 
    the contents of tracked object list to the gateway */
 bool is_polled_by_gateway;
 
 /* The memory pool for the allocation of all nodes in scanned_device_list and
    tracked_object_list */
 Memory_Pool mempool;
-
-/* A lock for the processing of writing data */
+ 
+/* A lock for the processing of writing data */ 
 pthread_mutex_t lock;
 
 
@@ -510,14 +503,14 @@ long long get_system_time();
 /*
   send_to_push_dongle:
 
-  When called, this functions first checks whether there is a ScannedDevice
-  struct in the scanned list with MAC address matching the input bluetooth
-  device address. If there is no such struct, this function allocates from
-  memory pool space for a ScannedDeice struct, sets the MAC address of the
+  When called, this functions first checks whether there is a ScannedDevice 
+  struct in the scanned list with MAC address matching the input bluetooth 
+  device address. If there is no such struct, this function allocates from 
+  memory pool space for a ScannedDeice struct, sets the MAC address of the 
   new struct to the input MAC address, the initial scanned time and final
-  scanned time to the current time, and inserts the sruct at the head of of
+  scanned time to the current time, and inserts the sruct at the head of of 
   the scanned list and tail of the tracked object list. If a struct with MAC
-  address matching the input device address is found, this function sets the
+  address matching the input device address is found, this function sets the 
   final scanned time of the struct to current time.
 
   Parameters:
@@ -536,7 +529,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
 *  print_RSSI_value:
 *
 *  This function prints the RSSI value along with the MAC address of the
-*  user's scanned bluetooth device.
+*  user's scanned bluetooth device. 
 *
 *  Parameters:
 *
@@ -558,9 +551,9 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 /*
   check_is_in_scanned_list:
 
-  This function checks whether the MAC address given as input is in the
-  scanned list. If a node with MAC address matching the input address is
-  found in the list, the function returns the pointer to the node with
+  This function checks whether the MAC address given as input is in the 
+  scanned list. If a node with MAC address matching the input address is 
+  found in the list, the function returns the pointer to the node with 
   maching address, otherwise it returns NULL.
 
   Parameters:
@@ -569,10 +562,10 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 
   Return value:
 
-  match_node - A pointer to the node found with MAC address matched up with
+  match_node - A pointer to the node found with MAC address matched up with 
                the input address.
   or NULL
-
+  
 
 */
 
@@ -582,13 +575,13 @@ struct ScannedDevice *check_is_in_scanned_list(char address[]);
 /*
  *  print_list:
  *
- *  This function prints the data in the specified list in the order of head
- *  to tail. fpitr is used to access the function to be used for printing
+ *  This function prints the data in the specified list in the order of head 
+ *  to tail. fpitr is used to access the function to be used for printing 
  *  current node data.
  *
  *  Parameters:
  *
- *  entry - the head of the list for determining which list is goning to be
+ *  entry - the head of the list for determining which list is goning to be 
  *  modified.
  *  ptrs_type - an indicator of the pointer type of the specific list
  *
@@ -609,7 +602,7 @@ void print_list(List_Entry *entry, int ptrs_type);
 *  Parameters:
 *
 *  advertising_interval - the time interval for which the LBeacon can
-*  advertise
+*  advertise 
 *  advertising_uuid - universally unique identifier for advertising
 *  rssi_value - RSSI value of the bluetooth device
 *
@@ -644,7 +637,7 @@ ErrorCode disable_advertising();
 /*
 *  stop_ble_beacon:
 *
-*  This function allows avertising to be stopped with ctrl-c if a precious
+*  This function allows avertising to be stopped with ctrl-c if a precious 
 *  call to enable_advertising was a success.
 *
 *  Parameters:
@@ -662,10 +655,10 @@ void *stop_ble_beacon(void *beacon_location);
 /*
   cleanup_scanned_list:
 
-  This function checks each ScannedDevice node in the scanned list to
-  determine whether the node has been in the list for over TIMEOUT, if yes,
-  the function removes the ScannedDevice struct from the list. If the struct
-  is no longer in the tracked_object_list, the function call the memory
+  This function checks each ScannedDevice node in the scanned list to 
+  determine whether the node has been in the list for over TIMEOUT, if yes, 
+  the function removes the ScannedDevice struct from the list. If the struct 
+  is no longer in the tracked_object_list, the function call the memory 
   pool to release the memory space used by the struct.
 
   Parameters:
@@ -685,8 +678,8 @@ void *cleanup_scanned_list(void);
 *  track_devices:
 *
 *  This function tracks the MAC addresses of scanned (is discovered) bluetooth
-*  devices under a location beacon. An output file will contain for each
-*  timestamp, the MAC addresses of the bluetooth devices discovered at the
+*  devices under a location beacon. An output file will contain for each 
+*  timestamp, the MAC addresses of the bluetooth devices discovered at the 
 *  given timestamp.
 *
 *  Parameters:
@@ -704,14 +697,14 @@ void *track_devices(char *file_name);
 /*
 *  zigbee_connection:
 *
-*  When called, this function sends a containing the specified message packet
-*  to the gateway via xbee module and and receives command or data from the
-*  gateway.
+*  When called, this function sends a containing the specified message packet 
+*  to the gateway via xbee module and and receives command or data from the 
+*  gateway. 
 *
 *  Parameters:
 *
 *  zigbee - the struct of necessary parameter and data
-*  message - the message be sent to the gateway
+*  message - the message be sent to the gateway 
 *
 *  Return value:
 *
@@ -726,10 +719,10 @@ ErrorCode zigbee_connection(Zigbee zigbee, char *message);
   start_scanning:
 
   This function scans continuously for bluetooth devices under the coverage
-  of the  beacon until scanning is cancelled. When the RSSI value of the
+  of the  beacon until scanning is cancelled. When the RSSI value of the 
   device is within the threshold, this function calls send_to_push_dongle to
-  either add a new ScannedDevice struct of the device to scanned list and
-  track_object_list or update the struct in the lists.
+  either add a new ScannedDevice struct of the device to scanned list and 
+  track_object_list or update the struct in the lists. 
 
   [N.B. This function is executed by the main thread. ]
 
@@ -761,7 +754,7 @@ void start_scanning();
 *  ErrorCode: The error code for the corresponding error
 */
 
-ErrorCode startThread(pthread_t threads, void * (*threadfunct)(void*),
+ErrorCode startThread(pthread_t threads, void * (*threadfunct)(void*), 
                         void *arg);
 
 
@@ -848,3 +841,4 @@ extern int pthread_detach(pthread_t thread);
 /* This function is called to create a new thread*/
 extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     void *(*start_routine) (void *), void *arg);
+
