@@ -96,7 +96,7 @@ static void  bsem_wait(struct bsem *bsem_p);
 /* =================================== API ======================================= */
 
 
-typedef struct thpool_* threadpool;
+typedef struct thpool_* Threadpool;
 
 
 /**
