@@ -824,6 +824,48 @@ void *cleanup_scanned_list(void) {
 }
 
 
+/*
+  conmunication_unit:
+
+  This function checks each ScannedDevice node in the scanned list to 
+  determine whether the node has been in the list for over TIMEOUT, if yes, 
+  the function removes the ScannedDevice struct from the list. If the struct 
+  is no longer in the tracked_object_list, the function call the memory 
+  pool to release the memory space used by the struct.
+
+  Parameters:
+
+  None
+
+  Return value:
+
+  None
+*/
+
+void *conmunication_unit(void) {
+
+
+    zigbee_init(zigbee);
+
+    thpool = thpool_init(2);
+
+    while(ready_to_work == true){
+
+        while(is_polled_by_gateway == false){
+
+            sleep(TIMEOUT);
+
+        }
+
+
+    }
+
+    zigbee_free(zigbee);
+
+    return;
+
+}
+
 
 /*
 *  track_devices:

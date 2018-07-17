@@ -83,6 +83,7 @@
 #include "Utilities.h"
 #include "xbee_API.h"
 #include "Mempool.h"
+#include "thpool.h"
 
 
 
@@ -389,6 +390,8 @@ bool is_polled_by_gateway;
 /* The memory pool for the allocation of all nodes in scanned_device_list and
    tracked_object_list */
 Memory_Pool mempool;
+
+Threadpool thpool;
  
 /* A lock for the processing of writing data */ 
 pthread_mutex_t lock;
