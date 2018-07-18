@@ -750,61 +750,279 @@ void cleanup_exit();
 
 //Node *add_node(struct List_Entry *entry);
 
-/* This function is called to insert a node at the head of the list.*/
+/*
+  list_insert_first:
+
+  This function calls the function of list_insert_ to add a new node at the 
+  first of the list.
+
+  Parameters:
+
+  new_node - the struct of list entry for the node be added into the list.
+  head - the struct of list entry which is the head of the list.
+   
+  Return value:
+
+  None
+*/
 extern void list_insert_head(List_Entry *new_node, List_Entry *head);
 
-/* This function is called to remove a node from the list.*/
+
+/*
+  list_remove_node:
+
+  This function calls the function of remove_node__ to delete a node in the list.
+
+  Parameters:
+
+  removed_node_ptrs - the struct of list entry for the node is going to be removed.
+  
+  Return value:
+
+  None
+*/
 extern void list_remove_node(List_Entry *removed_node_ptrs);
 
-/* This function is called to get the length of the specified list. */
+
+/*
+  get_list_length:
+
+  This function returns the length of the list. 
+
+  Parameters:
+
+  entry - the head of the list for determining which list is goning to be 
+  modified.
+
+  Return value:
+
+  length - number of nodes in the list.
+*/
 extern int get_list_length(List_Entry *entry);
 
-/* This function is called to open a specified directory */
+
+/* 
+  opendir:
+
+  This function is called to open a specified directory. 
+
+  Parameters:
+
+  dirname - the name of the directory which is goning to be opened.
+
+  Return value:
+
+  dirp - a pointer to the directory stream.
+*/
 extern DIR *opendir(const char *dirname);
 
-/* This function is called to create an obexftp client.*/
+
+/* 
+  obexftp_open:
+
+  This function is called to create an obexftp client.
+
+  Parameters:
+
+  transport - the transport type that will be used
+  ctrans - optional custom transport
+  infocb - optional info callback
+  infocb_data - optional info callback data
+
+  Return value:
+
+  cli - a new allocated ObexFTP client instance, NULL on error.
+*/
 extern obexftp_client_t * obexftp_open(int transport, obex_ctrans_t *ctrans,
     obexftp_info_cb_t infocb, void *infocb_data);
 
-/* This function is called to fill block of memory*/
+
+/* 
+  memset:
+
+  This function is called to fill block of memory.
+
+  Parameters:
+
+  ptr - the pointer points to the memory area
+  value - the constant byte to replace the memory area
+  num - how many bytes of the memory area that needs to be filled
+
+  Return value:
+
+  dst - a pointer to the memory area
+*/
 extern void * memset(void * ptr, int value, size_t num);
 
-/* This function is called to allocate memory block.*/
-extern void* malloc(size_t size);
 
-/* This function is called to deallocate memory block.*/
-extern void free(void* ptr);
+/*
+  hci_open_dev:
+  
+  This function is called to open a Bluetooth socket with the specified resource number.
 
-/* This function is called to open a Bluetooth socket with the specified resource
-*  number*/
+  Parameters:
+
+  dev_id - the id of the Bluetooth socket device
+
+  Return value:
+
+  dd - device descriptor of the Bluetooth socket
+*/
 extern int hci_open_dev(int dev_id);
 
-/* This function is called to clear filter */
-extern void hci_filter_clear(struct hci_filter *    f);
 
-/* This function is called to let filter set ptype */
+/* 
+  hci_filter_clear:
+
+  This function is called to clear filter.
+
+  Parameters:
+
+  f - the filter to be cleaned
+
+  Return value:
+
+  None
+*/
+extern void hci_filter_clear(struct hci_filter *f);
+
+
+/* 
+  hci_filter_set_ptype:
+
+  This function is called to let filter set ptype.
+
+  Parameters:
+
+  t - the type
+  f - the filter to be set
+
+  Return value:
+
+  None
+*/
 extern void hci_filter_set_ptype(int t, struct hci_filter *f);
 
-/* This function is called to let filter set event */
+
+/* 
+  hci_filter_set_event:
+
+  This function is called to let filter set event
+
+  Parameters:
+
+  e - the event
+  f - the filter to be set
+
+  Return value:
+
+  None
+*/
 extern void hci_filter_set_event(int e, struct hci_filter *f);
 
-/* This function is called to configure inquiry mode */
+
+/* 
+  hci_write_inquiry_mode:
+
+  This function is called to configure inquiry mode
+
+  Parameters:
+
+  dd - device descriptor of the open HCI socket
+  mode - new inquiry mode
+  to - send request to this
+
+  Return value:
+
+  None
+*/
 extern int hci_write_inquiry_mode(int dd, uint8_t mode, int to);
 
-/* This function is called to send cmd */
+
+/* 
+  hci_send_cmd:
+
+  This function is called to send cmd
+
+  Parameters:
+
+  dd - device descriptor of the open HCI socket
+  ogf - opcode group field 
+  ocf - opcode command field
+  plen - the length of the command parameters 
+  param - the parameters that function runs with
+
+  Return value:
+
+  0 for success. error number for error.
+*/
 extern int  hci_send_cmd(int dd, uint16_t ogf, uint16_t ocf, uint8_t plen,
     void *param);
 
-/* This function is called to initialize thread attributes object*/
+
+/* 
+  pthread_attr_init:
+
+  This function is called to initialize thread attributes object
+
+  Parameters:
+
+  attr - the thread attributes object to be initiallized
+
+  Return value:
+
+  0 for success. error number for error.
+*/
 extern int pthread_attr_init(pthread_attr_t *attr);
 
-/* This function is called to destroy thread attributes object*/
+
+/* 
+  pthread_attr_destroy:
+
+  This function is called to destroy thread attributes object
+
+  Parameters:
+
+  attr - the thread attributes object to be destroyed
+
+  Return value:
+
+  0 for success. error number for error.
+*/
 extern int pthread_attr_destroy(pthread_attr_t *attr);
 
-/* This function is called to detach a thread*/
+
+/* 
+  pthread_detach:
+
+  This function is called to detach a thread
+
+  Parameters:
+
+  thread - a thread to be detached
+
+  Return value:
+
+  0 for success. error number for error.
+*/
 extern int pthread_detach(pthread_t thread);
 
-/* This function is called to create a new thread*/
+
+/* 
+  pthread_create:
+
+  This function is called to create a new thread
+
+  Parameters:
+
+  thread - a pointer to the new thread
+  attr - set thread properties
+  arg - the parameters that function runs with
+
+  Return value:
+
+  0 for success. error number for error and the contents of *thread are undefined.
+*/
 extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     void *(*start_routine) (void *), void *arg);
 
