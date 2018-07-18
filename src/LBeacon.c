@@ -798,7 +798,7 @@ void *cleanup_scanned_list(void) {
                    back to the memory pool. */
                 if(check_is_in_list(&temp->tr_list_entry) == false){
 
-                    mp_free(&mempool, &temp);
+                    mp_free(&mempool, temp);
 
                 }
                 
@@ -983,7 +983,7 @@ void track_devices_in_file(char *file_name) {
                back to the memory pool. */
             if(check_is_in_list(&temp->sc_list_entry) == false){
 
-                mp_free(&mempool, &temp);
+                mp_free(&mempool, temp);
 
             }
 

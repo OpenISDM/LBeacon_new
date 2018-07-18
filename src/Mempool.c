@@ -173,24 +173,18 @@ void *mp_alloc(Memory_Pool *mp)
 
 int mp_free(Memory_Pool *mp, void *mem)
 {
-    
-
-    int offset = &mp->memory - &mem;
-    int diffrenceinbyte = offset * sizeof(int);
-    printf("Offset: %d \n", diffrenceinbyte);
-    
-    if(diffrenceinbyte / mp->size != 0){  
+    //check if mem is correct
+    //calculate the offset from mem to mp->memory
+    int diffrenceinbyte = (mem - mp->memory) * sizeof(mem);
+    if((diffrenceinbyte % mp->size) != 0){  
         printf("Error \n");
         return MEMORY_POOL_ERROR;
-
     }
 
     //store first address
     void *temp = mp->head;
-
     //link new node
     mp->head = mem;
-
     //link to the list from new node
     *mp->head = temp;
 
