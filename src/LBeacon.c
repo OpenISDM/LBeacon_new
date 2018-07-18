@@ -847,6 +847,11 @@ void *communication_unit(void) {
     /* Struct for storing necessary objects for zigbee connection */
     Zigbee zigbee;
     Threadpool thpool;
+    FILE *file_to_send;
+    
+    
+
+    char zig_message[MESSAGE_LENGTH];
 
     zigbee_init(zigbee);
 
@@ -854,13 +859,29 @@ void *communication_unit(void) {
 
     while(ready_to_work == true){
 
-        while(is_polled_by_gateway == false){
+        while(is_polled_by_gateway == true){
 
             sleep(TIMEOUT);
 
         }
 
-        //track_devices_in_file("output.txt");
+        if(track_devices_in_file("output.txt") == true ){ 
+
+            file_to_send = fopen("output.txt", "r");
+
+            if (file_to_send == NULL) {
+
+                /* Error handling */
+                perror(errordesc[E_OPEN_FILE].message);
+                cleanup_exit();
+                return;
+            }
+
+            fgets(zig_message, sizeof(zig_message), file_to_send);
+            printf("Message: %s  ", zig_message);
+
+        }
+
 
 
 
@@ -890,7 +911,7 @@ void *communication_unit(void) {
 *  None
 */
 
-void track_devices_in_file(char *file_name) {
+bool track_devices_in_file(char *file_name) {
 
     FILE *track_file;
     
@@ -1014,11 +1035,12 @@ void track_devices_in_file(char *file_name) {
 
         /* Close the file for tracking */
         fclose(track_file);
-    
+        
+        return true;
     }
 
     
-    return;
+    return false;
 
 }
 
@@ -1274,7 +1296,9 @@ ErrorCode startThread(pthread_t threads ,void * (*threadfunct)(void*), void *arg
 void cleanup_exit(){
 
     ready_to_work = false;
+    is_polled_by_gateway = false;
     
+    /* Free the memory pool */
     mp_destroy(&mempool);
     
     /* Release the handler for Bluetooth */ 

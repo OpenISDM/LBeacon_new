@@ -136,8 +136,6 @@
    stays in the push list */
 #define TIMEOUT 30000
 
-#define MAXIMUM_NUMBER_OF_DEVICES 10
-
 /* Number of characters in a Bluetooth MAC address */
 #define LENGTH_OF_MAC_ADDRESS 18
 
@@ -155,6 +153,9 @@
 
 /* The number of slots for the memory pool */
 #define SLOTS_FOR_MEM_POOL 1024
+
+/* The length of the message to be sent to the gateway */
+#define MESSAGE_LENGTH 512
 
 /* Timeout interval in ms */
 #define A_LONG_TIME 30000
@@ -341,7 +342,7 @@ int g_size_of_file = 0;
 Config g_config;
 
 /* An array of struct for storing information and status of each thread */
-ThreadStatus g_idle_handler[MAXIMUM_NUMBER_OF_DEVICES];
+ThreadStatus g_idle_handler[MAX_NO_OBJECTS];
 
 
 /* Two lists of struct for recording scanned devices */
@@ -374,9 +375,6 @@ bool is_polled_by_gateway;
    tracked_object_list */
 Memory_Pool mempool;
 
- 
-/* A lock for the processing of writing data */ 
-pthread_mutex_t lock;
 
 
 
@@ -676,7 +674,7 @@ void *cleanup_scanned_list(void);
 *  None
 */
 
-void track_devices_in_file(char *file_name);
+bool track_devices_in_file(char *file_name);
 
 
 
@@ -747,8 +745,6 @@ void cleanup_exit();
 /*
 * EXTERNAL FUNCTIONS
 */
-
-//Node *add_node(struct List_Entry *entry);
 
 /*
   list_insert_first:
@@ -1025,4 +1021,3 @@ extern int pthread_detach(pthread_t thread);
 */
 extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     void *(*start_routine) (void *), void *arg);
-
