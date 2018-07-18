@@ -825,7 +825,7 @@ void *cleanup_scanned_list(void) {
 
 
 /*
-  conmunication_unit:
+  communication_unit:
 
   This function checks each ScannedDevice node in the scanned list to 
   determine whether the node has been in the list for over TIMEOUT, if yes, 
@@ -842,8 +842,11 @@ void *cleanup_scanned_list(void) {
   None
 */
 
-void *conmunication_unit(void) {
+void *communication_unit(void) {
 
+    /* Struct for storing necessary objects for zigbee connection */
+    Zigbee zigbee;
+    Threadpool thpool;
 
     zigbee_init(zigbee);
 
@@ -856,6 +859,9 @@ void *conmunication_unit(void) {
             sleep(TIMEOUT);
 
         }
+
+        //track_devices_in_file("output.txt");
+
 
 
     }
@@ -884,7 +890,7 @@ void *conmunication_unit(void) {
 *  None
 */
 
-void *track_devices(char *file_name) {
+void track_devices_in_file(char *file_name) {
 
     FILE *track_file;
     
@@ -969,11 +975,6 @@ void *track_devices(char *file_name) {
             strcat(zig_message, timestamp_init_str);
             strcat(zig_message, timestamp_end_str);
 
-            if(zigbee_connection(zigbee, zig_message) != 0){
-                perror(errordesc[E_ZIGBEE_CONNECT].message);
-                return;
-            }
-
             
             /* Clean up the tracked_object_list */
             list_remove_node(&temp->tr_list_entry);
@@ -1021,72 +1022,6 @@ void *track_devices(char *file_name) {
 
 }
 
-
-/*
-*  zigbee_connection:
-*
-*  When called, this function sends a containing the specified message packet 
-*  to the gateway via xbee module and and receives command or data from the 
-*  gateway. 
-*
-*  Parameters:
-*
-*  zigbee - the struct of necessary parameter and data
-*  message - the message be sent to the gateway 
-*
-*  Return value:
-*
-*  ErrorCode: The error code for the corresponding error
-*
-*/
-
-ErrorCode zigbee_connection(Zigbee zigbee, char *message){
-    
-
-        
-    /* Pointer point_to_CallBack will store the callback function.       */
-    /* If pointer point_to_CallBack is NULL, break the Loop              */
-        
-    void *point_to_CallBack;
-
-    if ((ret = xbee_conCallbackGet(zigbee.con, (xbee_t_conCallback*)            
-        &point_to_CallBack))!= XBEE_ENONE) {
-
-        xbee_log(zigbee.xbee, -1, "xbee_conCallbackGet() returned: %d", ret);
-        return;
-        
-    }
-
-    if (point_to_CallBack == NULL){
-            
-        printf("Stop Xbee...\n");
-        return;
-    
-    }
-
-
-    addpkt(zigbee.pkt_Queue, Data, Gateway, message);
-
-    /* If there are remain some packet need to send in the Queue,            */
-    /* send the packet                                                   */
-    if(zigbee.pkt_Queue->front->next != NULL){
-
-        xbee_conTx(zigbee.con, NULL, zigbee.pkt_Queue->front->next->content);
-
-        delpkt(zigbee.pkt_Queue);
-        
-    }
-    else{
-        
-        xbee_log(zigbee.xbee, -1, "xbee packet Queue is NULL.");
-        
-    }
-        
-    usleep(2000000);   
- 
-
-   return WORK_SCUCESSFULLY;
-}
 
 
 /*
@@ -1345,20 +1280,6 @@ void cleanup_exit(){
     /* Release the handler for Bluetooth */ 
     free(g_push_file_path);
     
-    /* Free Packet Queue for zigbee connection */
-    Free_Packet_Queue(zigbee.pkt_Queue);
-
-    /* Close connection  */
-    if ((ret = xbee_conEnd(zigbee.con)) != XBEE_ENONE) {
-        xbee_log(zigbee.xbee, 10, "xbee_conEnd() returned: %d", ret);
-        return;
-    }
-    printf("Stop connection Succeeded\n");
-
-    /* Close xbee                                                            */
-    xbee_shutdown(zigbee.xbee);
-    printf("Shutdown Xbee Succeeded\n");
-
    
     return;
 
@@ -1443,47 +1364,12 @@ int main(int argc, char **argv) {
     }
 
 
-
     /* Store coordinates of the beacon location */
     sprintf(hex_c,
             "OPENISDMN402%02x%02x%02x%02xD0F5%02x%02x%02x%02x48D2B060",
             coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
             coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
             coordinate_Y.b[2], coordinate_Y.b[3]);
-
-
-     /* Parameters for Zigbee initialization */
-    char* xbee_mode  = "xbeeZB";
-    char* xbee_device = "/dev/ttyAMA0"; 
-    int xbee_baudrate = 9600;
-    int LogLevel = 100;
-
-    
-    zigbee.pkt_Queue = malloc(sizeof(spkt_ptr));
-
-    xbee_initial(xbee_mode, xbee_device, xbee_baudrate
-                            , LogLevel, &(zigbee.xbee), zigbee.pkt_Queue);
-    
-    printf("Start establishing Connection to xbee\n");
-
-
-    /*--------------Configuration for connection in Data mode--------------*/
-    /* In this mode we aim to get Data.                                    */
-    /*---------------------------------------------------------------------*/
-
-    printf("Establishing Connection...\n");
-
-    xbee_connector(&(zigbee.xbee), &(zigbee.con), zigbee.pkt_Queue);
-
-    printf("Connection Successfully Established\n");
-
-    /* Start the chain reaction!                                           */
-
-    if((ret = xbee_conValidate(zigbee.con)) != XBEE_ENONE){
-        xbee_log(zigbee.xbee, 1, "con unvalidate ret : %d", ret);
-        return;
-    }
-
 
 
 
@@ -1513,10 +1399,10 @@ int main(int argc, char **argv) {
 
 
     /* Create the thread for track device */
-    pthread_t track_devices_thread;
+    pthread_t track_communication_thread;
 
-    return_value = startThread(track_devices_thread, 
-                                    track_devices, "output.txt");
+    return_value = startThread(track_communication_thread, 
+                                    communication_unit, NULL);
 
     if(return_value != WORK_SCUCESSFULLY){
          perror(errordesc[E_START_THREAD].message);

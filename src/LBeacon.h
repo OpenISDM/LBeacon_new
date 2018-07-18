@@ -81,8 +81,8 @@
 #include <unistd.h>
 #include "LinkedList.h"
 #include "Utilities.h"
-#include "xbee_API.h"
 #include "Mempool.h"
+#include "Communication.h"
 #include "thpool.h"
 
 
@@ -305,20 +305,6 @@ typedef struct ScannedDevice {
 
 } ScannedDevice;
 
-/* Struct of parameters for Zigbee Initialization */
-typedef struct Zigbee {
-
-    /* Struct of xbee main part which is defined in "libxbee" library */
-    struct xbee *xbee; 
-
-    /* Struct of xbee connector which is defined in "libxbee" library */
-    struct xbee_con *con;
-
-    /* Struct of queue of packet which is defined in pkt_Queue.h */
-    pkt_ptr pkt_Queue;
-    
-} Zigbee;
-
 
 
 /*
@@ -357,9 +343,6 @@ Config g_config;
 /* An array of struct for storing information and status of each thread */
 ThreadStatus g_idle_handler[MAXIMUM_NUMBER_OF_DEVICES];
 
-/* Struct for storing necessary objects for zigbee connection */
-Zigbee zigbee;
-
 
 /* Two lists of struct for recording scanned devices */
 
@@ -391,7 +374,6 @@ bool is_polled_by_gateway;
    tracked_object_list */
 Memory_Pool mempool;
 
-Threadpool thpool;
  
 /* A lock for the processing of writing data */ 
 pthread_mutex_t lock;
@@ -678,7 +660,7 @@ void *cleanup_scanned_list(void);
 
 
 /*
-*  track_devices:
+*  track_devices_in_file:
 *
 *  This function tracks the MAC addresses of scanned (is discovered) bluetooth
 *  devices under a location beacon. An output file will contain for each 
@@ -694,28 +676,9 @@ void *cleanup_scanned_list(void);
 *  None
 */
 
-void *track_devices(char *file_name);
+void track_devices_in_file(char *file_name);
 
 
-/*
-*  zigbee_connection:
-*
-*  When called, this function sends a containing the specified message packet 
-*  to the gateway via xbee module and and receives command or data from the 
-*  gateway. 
-*
-*  Parameters:
-*
-*  zigbee - the struct of necessary parameter and data
-*  message - the message be sent to the gateway 
-*
-*  Return value:
-*
-*  ErrorCode: The error code for the corresponding error
-*
-*/
-
-ErrorCode zigbee_connection(Zigbee zigbee, char *message);
 
 
 /*
