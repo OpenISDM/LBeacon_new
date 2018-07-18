@@ -39,12 +39,12 @@ int zigbee_init(Zigbee zigbee){
         return;
     }
 
-    return 1;
+    return XBEE_SUCCESSFULLY;
 }
 
 
 /*
-*  zigbee_connection:
+*  zigbee_send_file:
 *
 *  When called, this function sends a containing the specified message packet 
 *  to the gateway via xbee module and and receives command or data from the 
@@ -61,7 +61,7 @@ int zigbee_init(Zigbee zigbee){
 *
 */
 
-int zigbee_connection(Zigbee zigbee, char *message){
+void *zigbee_send_file(Zigbee zigbee){
     
 
         
@@ -81,12 +81,12 @@ int zigbee_connection(Zigbee zigbee, char *message){
     if (point_to_CallBack == NULL){
             
         printf("Stop Xbee...\n");
-        return 0;
+        return XBEE_ERROR;
     
     }
 
 
-    addpkt(zigbee.pkt_Queue, Data, Gateway, message);
+    addpkt(zigbee.pkt_Queue, Data, Gateway, zigbee.zig_message);
 
     /* If there are remain some packet need to send in the Queue,            */
     /* send the packet                                                   */
@@ -103,10 +103,11 @@ int zigbee_connection(Zigbee zigbee, char *message){
         
     }
         
-    usleep(2000000);   
+    /* A short time interval between transmission */
+    usleep(XBEE_TIMEOUT);   
  
 
-   return 1;
+   return XBEE_SUCCESSFULLY;
 }
 
 void zigbee_free(Zigbee zigbee){

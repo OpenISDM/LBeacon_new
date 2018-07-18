@@ -849,10 +849,6 @@ void *communication_unit(void) {
     Threadpool thpool;
     FILE *file_to_send;
     
-    
-
-    char zig_message[MESSAGE_LENGTH];
-
     zigbee_init(zigbee);
 
     thpool = thpool_init(2);
@@ -865,6 +861,8 @@ void *communication_unit(void) {
 
         }
 
+        /* If the file is ready, send the content in the file to the
+           gateway. */
         if(track_devices_in_file("output.txt") == true ){ 
 
             file_to_send = fopen("output.txt", "r");
@@ -877,17 +875,28 @@ void *communication_unit(void) {
                 return;
             }
 
-            fgets(zig_message, sizeof(zig_message), file_to_send);
-            printf("Message: %s  ", zig_message);
+            /* Read the file to get the content for the message to send */
+            fgets(zigbee.zig_message, sizeof(zigbee.zig_message), 
+                    file_to_send);
+            
+            printf("Message: %s", zigbee.zig_message);
 
+            if(thpool_add_work(thpool, (void*)zigbee_send_file, &zigbee) == 0){
+                
+            }
+
+            printf("Thread is running: %d \n", thpool_num_threads_working(thpool));
         }
 
 
-
+        fclose(file_to_send);
 
     }
 
     zigbee_free(zigbee);
+
+    /* Free the thread pool */
+    thpool_destroy(thpool);
 
     return;
 
@@ -941,7 +950,7 @@ bool track_devices_in_file(char *file_name) {
      
 
         /* Create a new file with tracked_object_list's data*/        
-        track_file = fopen(file_name, "a+");
+        track_file = fopen(file_name, "w");
         
         if(track_file == NULL){
 
@@ -1295,6 +1304,7 @@ ErrorCode startThread(pthread_t threads ,void * (*threadfunct)(void*), void *arg
 
 void cleanup_exit(){
 
+    /* Set two flags to false */
     ready_to_work = false;
     is_polled_by_gateway = false;
     

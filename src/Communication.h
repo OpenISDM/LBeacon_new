@@ -4,6 +4,14 @@
 #include <string.h>
 #include "xbee_API.h"
 
+/* The length of the message to be sent to the gateway */
+#define MESSAGE_LENGTH 512
+
+#define XBEE_TIMEOUT 2000000
+
+#define XBEE_SUCCESSFULLY 1
+#define XBEE_ERROR 0
+
 /* Struct of parameters for Zigbee Initialization */
 typedef struct Zigbee {
 
@@ -15,12 +23,12 @@ typedef struct Zigbee {
 
     /* Struct of queue of packet which is defined in pkt_Queue.h */
     pkt_ptr pkt_Queue;
+
+    char zig_message[MESSAGE_LENGTH];
     
 } Zigbee;
 
 
-Zigbee zigbee;
-
 int zigbee_init(Zigbee zigbee);
-int zigbee_connection(Zigbee zigbee, char *message);
+void *zigbee_send_file(Zigbee zigbee);
 void zigbee_free(Zigbee zigbee);

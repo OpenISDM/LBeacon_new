@@ -154,8 +154,6 @@
 /* The number of slots for the memory pool */
 #define SLOTS_FOR_MEM_POOL 1024
 
-/* The length of the message to be sent to the gateway */
-#define MESSAGE_LENGTH 512
 
 /* Timeout interval in ms */
 #define A_LONG_TIME 30000
@@ -1021,3 +1019,5 @@ extern int pthread_detach(pthread_t thread);
 */
 extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     void *(*start_routine) (void *), void *arg);
+
+extern void *zigbee_send_file(Zigbee zigbee);
