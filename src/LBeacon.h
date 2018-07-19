@@ -1,51 +1,51 @@
 /*
-* Copyright (c) 2016 Academia Sinica, Institute of Information Science
-*
-* License:
-*
-*      GPL 3.0 : The content of this file is subject to the terms and
-*      conditions defined in file 'COPYING.txt', which is part of this source
-*      code package.
-*
-* Project Name:
-*
-*      BeDIPS
-*
-* File Description:
-*
-*      This header file contains function declarations and
-*      variables used in the LBeacon.c file.
-*
-* File Name:
-*
-*      LBeacon.h
-*
-* Version:
-* 
-*       1.2
-*
-* Abstract:
-*
-*      BeDIPS uses LBeacons to deliver 3D coordinates and textual
-*      descriptions of their locations to users' devices. Basically, a
-*      LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
-*      coordinates and location description of every LBeacon are retrieved
-*      from BeDIS (Building/environment Data and Information System) and
-*      stored locally during deployment and maintenance times. Once
-*      initialized, each LBeacon broadcasts its coordinates and location
-*      description to Bluetooth enabled user devices within its coverage
-*      area.
-*
-* Authors:
-*
-*      Han Wang, hollywang@iis.sinica.edu.tw
-*      Jake Lee, jakelee@iis.sinica.edu.tw
-*      Johnson Su, johnsonsu@iis.sinica.edu.tw
-*      Shirley Huang, shirley.huang.93@gmail.com
-*      Han Hu, hhu14@illinois.edu
-*      Jeffrey Lin, lin.jeff03@gmail.com
-*      Howard Hsu, haohsu0823@gmail.com
-*      
+Copyright (c) 2016 Academia Sinica, Institute of Information Science
+
+License:
+
+    GPL 3.0 : The content of this file is subject to the terms and
+    conditions defined in file 'COPYING.txt', which is part of this source
+    code package.
+
+Project Name:
+
+    BeDIPS
+
+File Description:
+
+    This header file contains function declarations and
+    variables used in the LBeacon.c file.
+
+File Name:
+
+    LBeacon.h
+
+Version:
+ 
+    1.2
+
+Abstract:
+
+    BeDIPS uses LBeacons to deliver 3D coordinates and textual
+    descriptions of their locations to users' devices. Basically, a
+    LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
+    coordinates and location description of every LBeacon are retrieved
+    from BeDIS (Building/environment Data and Information System) and
+    stored locally during deployment and maintenance times. Once
+    initialized, each LBeacon broadcasts its coordinates and location
+    description to Bluetooth enabled user devices within its coverage
+    area.
+
+Authors:
+
+    Han Wang, hollywang@iis.sinica.edu.tw
+    Jake Lee, jakelee@iis.sinica.edu.tw
+    Johnson Su, johnsonsu@iis.sinica.edu.tw
+    Shirley Huang, shirley.huang.93@gmail.com
+    Han Hu, hhu14@illinois.edu
+    Jeffrey Lin, lin.jeff03@gmail.com
+    Howard Hsu, haohsu0823@gmail.com
+      
 */
 
 
@@ -113,7 +113,7 @@
 #define EIR_FLAGS 0X01
 
 /* BlueZ bluetooth extended inquiry response protocol: Manufacturer Specific
- v Data */
+  Data */
 #define EIR_MANUFACTURE_SPECIFIC_DATA 0xFF
 
 /* BlueZ bluetooth extended inquiry response protocol: complete local name */
@@ -145,7 +145,7 @@
 /* Time interval for the LBeacon to advertise*/
 #define ADVERTISING_INTERVAL 300
 
-/* RSSI value for the calibration */
+/* RSSI value for TX power of calibration and broadcast  */
 #define RSSI_VALUE -50
 
 /* The maximum number for  concureent zigbee transmission at one time */
@@ -154,12 +154,14 @@
 /* The number of slots for the memory pool */
 #define SLOTS_FOR_MEM_POOL 1024
 
+/* The timeout for waiting in the thread */
+#define TIMEOUT_WAITING 3000
 
-/* Timeout interval in ms */
+/* Timeout interval in s */
 #define A_LONG_TIME 30000
 #define A_SHORT_TIME 5000
 #define A_VERY_SHORT_TIME 300
-#define A_VERY_VERY_SHORT_TIME 30
+
 
 /* The macro of comparing two integer for minimum */
 #define min(a,b) \
@@ -174,7 +176,7 @@
 */
 
 /* This union will convert floats into Hex code used for the beacon
-* location */
+ location */
 union {
     
     float f;
@@ -297,6 +299,7 @@ typedef struct ScannedDevice {
     struct List_Entry sc_list_entry;
     struct List_Entry tr_list_entry;
 
+
 /* Pad added to make the struct size an integer multiple of 32 byte, size 
    of D -cache line.
    int pad[30];
@@ -374,6 +377,9 @@ bool is_polled_by_gateway;
 Memory_Pool mempool;
 
 
+pthread_mutex_t  track_lock;
+pthread_mutex_t  scanned_lock;    
+
 
 
 /*
@@ -445,37 +451,37 @@ extern int errno;
 */
 
 /*
-*  get_config:
-*
-*  This function reads the specified config file line by line until the
-*  end of file, and stores the data in the lines into the global variable of a
-*  Config struct.
-*
-*  Parameters:
-*
-*  file_name - the name of the config file that stores all the beacon data
-*
-*  Return value:
-*
-*  config - Config struct including file path, coordinates, etc.
+  get_config:
+
+  This function reads the specified config file line by line until the
+  end of file, and stores the data in the lines into the global variable of a
+  Config struct.
+
+  Parameters:
+
+  file_name - the name of the config file that stores all the beacon data
+
+  Return value: 
+
+  config - Config struct including file path, coordinates, etc.
 */
 
 Config get_config(char *file_name);
 
 
 /*
-*  get_system_time:
-*
-*  This helper function fetches the current time according to the system
-*  clock in terms of the number of milliseconds since January 1, 1970.
-*
-*  Parameters:
-*
-*  None
-*
-*  Return value:
-*
-*  system_time - system time in milliseconds
+  get_system_time:
+ 
+  This helper function fetches the current time according to the system
+  clock in terms of the number of milliseconds since January 1, 1970.
+ 
+  Parameters:
+ 
+  None
+ 
+  Return value:
+ 
+  system_time - system time in milliseconds
 */
 
 long long get_system_time();
@@ -507,20 +513,20 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
 
 
 /*
-*  print_RSSI_value:
-*
-*  This function prints the RSSI value along with the MAC address of the
-*  user's scanned bluetooth device. 
-*
-*  Parameters:
-*
-*  bluetooth_device_address - bluetooth device address
-*  has_rssi - whether the bluetooth device has an RSSI value or not
-*  rssi - RSSI value of bluetooth device
-*
-*  Return value:
-*
-*  None
+  print_RSSI_value:
+
+  This function prints the RSSI value along with the MAC address of the
+  user's scanned bluetooth device. 
+
+  Parameters:
+
+  bluetooth_device_address - bluetooth device address
+  has_rssi - whether the bluetooth device has an RSSI value or not
+  rssi - RSSI value of bluetooth device
+
+  Return value:
+
+  None
 */
 
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
@@ -553,44 +559,25 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 struct ScannedDevice *check_is_in_scanned_list(char address[]);
 
 
-/*
- *  print_list:
- *
- *  This function prints the data in the specified list in the order of head 
- *  to tail. fpitr is used to access the function to be used for printing 
- *  current node data.
- *
- *  Parameters:
- *
- *  entry - the head of the list for determining which list is goning to be 
- *  modified.
- *  ptrs_type - an indicator of the pointer type of the specific list
- *
- *  Return value:
- *
- *  None
- */
-
-void print_list(List_Entry *entry, int ptrs_type);
 
 
 /*
-*  enable_advertising:
-*
-*  This function enables the LBeacon to start advertising, sets the time
-*  interval for advertising, and calibrates the RSSI value.
-*
-*  Parameters:
-*
-*  advertising_interval - the time interval for which the LBeacon can
-*  advertise 
-*  advertising_uuid - universally unique identifier for advertising
-*  rssi_value - RSSI value of the bluetooth device
-*
-*  Return value:
-*
-*  ErrorCode: The error code for the corresponding error
-*
+  enable_advertising:
+
+  This function enables the LBeacon to start advertising, sets the time
+  interval for advertising, and calibrates the RSSI value.
+
+  Parameters:
+
+  advertising_interval - the time interval for which the LBeacon can
+  advertise 
+  advertising_uuid - universally unique identifier for advertising
+  rssi_value - RSSI value of the bluetooth device
+
+  Return value:
+
+  ErrorCode: The error code for the corresponding error
+
 */
 
 ErrorCode enable_advertising(int advertising_interval, char *advertising_uuid,
@@ -598,36 +585,36 @@ ErrorCode enable_advertising(int advertising_interval, char *advertising_uuid,
 
 
 /*
-*  disable_advertising:
-*
-*  This function disables the advertising capabilities of the beacon.
-*
-*  Parameters:
-*
-*  None
-*
-*  Return value:
-*
-*  ErrorCode: The error code for the corresponding error
-*
+  disable_advertising:
+
+  This function disables the advertising capabilities of the beacon.
+
+  Parameters:
+
+  None
+
+  Return value:
+
+  ErrorCode: The error code for the corresponding error
+
 */
 
 ErrorCode disable_advertising();
 
 
 /*
-*  stop_ble_beacon:
-*
-*  This function allows avertising to be stopped with ctrl-c if a precious 
-*  call to enable_advertising was a success.
-*
-*  Parameters:
-*
-*  beacon_location - advertising uuid
-*
-*  Return value:
-*
-*  None
+  stop_ble_beacon:
+
+  This function allows avertising to be stopped with ctrl-c if a precious 
+  call to enable_advertising was a success.
+
+  Parameters:
+
+  beacon_location - advertising uuid
+
+  Return value:
+
+  None
 */
 
 void *stop_ble_beacon(void *beacon_location);
@@ -656,25 +643,65 @@ void *cleanup_scanned_list(void);
 
 
 /*
-*  track_devices_in_file:
-*
-*  This function tracks the MAC addresses of scanned (is discovered) bluetooth
-*  devices under a location beacon. An output file will contain for each 
-*  timestamp, the MAC addresses of the bluetooth devices discovered at the 
-*  given timestamp.
-*
-*  Parameters:
-*
-*  file_name - name of the file where all the data will be stored
-*
-*  Return value:
-*
-*  None
+  communication_unit:
+
+  This function checks each ScannedDevice node in the scanned list to 
+  determine whether the node has been in the list for over TIMEOUT, if yes, 
+  the function removes the ScannedDevice struct from the list. If the struct 
+  is no longer in the tracked_object_list, the function call the memory 
+  pool to release the memory space used by the struct.
+
+  Parameters:
+
+  None
+
+  Return value:
+
+  None
+*/
+
+void *communication_unit(void);
+
+
+
+/*
+  track_devices_in_file:
+
+  This function tracks the MAC addresses of scanned (is discovered) bluetooth
+  devices under a location beacon. An output file will contain for each 
+  timestamp, the MAC addresses of the bluetooth devices discovered at the 
+  given timestamp.
+
+  Parameters:
+
+  file_name - name of the file where all the data will be stored
+
+  Return value:
+
+  None
 */
 
 bool track_devices_in_file(char *file_name);
 
 
+/*
+  free_list:
+
+  This function frees the nodes in the specific list. Set the node pointers 
+  to itself. 
+
+  Parameters:
+
+  entry - the head of the list for determining which list is goning to be 
+  modified.
+  numnode - the number of the node to be freed.
+
+  Return value:
+
+  None
+ */
+
+void free_List(List_Entry *entry, int numnode);
 
 
 /*
@@ -701,19 +728,19 @@ void start_scanning();
 
 
 /*
-*  startThread:
-*
-*  This function initializes the threads.
-*
-*  Parameters:
-*
-*  threads - name of the thread
-*  threadfunct - the function for thread to do
-*  arg - the argument for thread's function
-*
-*  Return value:
-*
-*  ErrorCode: The error code for the corresponding error
+  startThread:
+
+  This function initializes the threads.
+
+  Parameters:
+
+  threads - name of the thread
+  threadfunct - the function for thread to do
+  arg - the argument for thread's function
+
+  Return value:
+
+  ErrorCode: The error code for the corresponding error
 */
 
 ErrorCode startThread(pthread_t threads, void * (*threadfunct)(void*), 
@@ -721,17 +748,17 @@ ErrorCode startThread(pthread_t threads, void * (*threadfunct)(void*),
 
 
 /*
-*  cleanup_exit:
-*
-*  This function releases all the resources.
-*
-*  Parameters:
-*
-*  None
-*
-*  Return value:
-*
-*  None
+  cleanup_exit:
+
+  This function releases all the resources.
+
+  Parameters:
+
+  None
+
+  Return value:
+
+  None
 */
 
 void cleanup_exit();
@@ -1020,4 +1047,21 @@ extern int pthread_detach(pthread_t thread);
 extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     void *(*start_routine) (void *), void *arg);
 
+
+/*
+  zigbee_send_file:
+
+  When called, this function sends a containing the specified message packet 
+  to the gateway via xbee module and and receives command or data from the 
+  gateway. 
+
+  Parameters:
+
+  zigbee - the struct of necessary parameter and data
+
+  Return value:
+
+  None
+
+*/
 extern void *zigbee_send_file(Zigbee zigbee);

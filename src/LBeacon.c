@@ -54,21 +54,7 @@
 #include "LBeacon.h"
 
 
-/*
-*  get_config:
-*
-*  This function reads the specified config file line by line until the
-*  end of file, and stores the data in the lines into the global variable of a
-*  Config struct.
-*
-*  Parameters:
-*
-*  file_name - the name of the config file that stores all the beacon data
-*
-*  Return value:
-*
-*  config - Config struct including file path, coordinates, etc.
-*/
+
 
 Config get_config(char *file_name) {
 
@@ -172,20 +158,7 @@ Config get_config(char *file_name) {
 }
 
 
-/*
-*  get_system_time:
-*
-*  This helper function fetches the current time according to the system
-*  clock in terms of the number of milliseconds since January 1, 1970.
-*
-*  Parameters:
-*
-*  None
-*
-*  Return value:
-*
-*  system_time - system time in milliseconds
-*/
+
 
 long long get_system_time() {
     /* A struct that stores the time */
@@ -202,27 +175,7 @@ long long get_system_time() {
 }
 
 
-/*
-  send_to_push_dongle:
 
-  When called, this functions first checks whether there is a ScannedDevice 
-  struct in the scanned list with MAC address matching the input bluetooth 
-  device address. If there is no such struct, this function allocates from 
-  memory pool space for a ScannedDeice struct, sets the MAC address of the 
-  new struct to the input MAC address, the initial scanned time and final
-  scanned time to the current time, and inserts the sruct at the head of of 
-  the scanned list and tail of the tracked object list. If a struct with MAC
-  address matching the input device address is found, this function sets the 
-  final scanned time of the struct to current time.
-
-  Parameters:
-
-  bluetooth_device_address - bluetooth device address
-
-  Return value:
-
-  None
-*/
 
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 
@@ -259,8 +212,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
                 address, 
                 LENGTH_OF_MAC_ADDRESS);
 
-       
-
+        
         /* Insert to the scanned list */
         list_insert_first(&new_node->sc_list_entry, &scanned_list_head);
 
@@ -268,7 +220,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
         list_insert_first(&new_node->tr_list_entry, 
                             &tracked_object_list_head);
 
-        
+       
 
     
     }else{
@@ -283,22 +235,6 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 }
 
 
-/*
-*  print_RSSI_value:
-*
-*  This function prints the RSSI value along with the MAC address of the
-*  user's scanned bluetooth device. 
-*
-*  Parameters:
-*
-*  bluetooth_device_address - bluetooth device address
-*  has_rssi - whether the bluetooth device has an RSSI value or not
-*  rssi - RSSI value of bluetooth device
-*
-*  Return value:
-*
-*  None
-*/
 
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi) {
@@ -327,27 +263,6 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 
 
 
-
-/*
-  check_is_in_scanned_list:
-
-  This function checks whether the MAC address given as input is in the 
-  scanned list. If a node with MAC address matching the input address is 
-  found in the list, the function returns the pointer to the node with 
-  maching address, otherwise it returns NULL.
-
-  Parameters:
-
-  address - MAC address of a bluetooth device
-
-  Return value:
-
-  match_node - A pointer to the node found with MAC address matched up with 
-               the input address.
-  or NULL
-  
-
-*/
 
 struct ScannedDevice *check_is_in_scanned_list(char address[]) {
 
@@ -388,85 +303,6 @@ struct ScannedDevice *check_is_in_scanned_list(char address[]) {
 }
 
 
-/*
- *  print_list:
- *
- *  This function prints the data in the specified list in the order of head 
- *  to tail. fpitr is used to access the function to be used for printing 
- *  current node data.
- *
- *  Parameters:
- *
- *  entry - the head of the list for determining which list is goning to be 
- *  modified.
- *  ptrs_type - an indicator of the pointer type of the specific list
- *
- *  Return value:
- *
- *  None
- */
-
-void print_list(List_Entry *entry, int ptrs_type){
-
-    
-    struct List_Entry *listptrs;
-    struct ScannedDevice *node;
-
-    /*Check whether the list is empty */
-    if (get_list_length(entry) == 0 ) {
-        return;
-    }
-
-
-    list_for_each(listptrs, entry){
-
-        /* For the input parameter of the macro, depends on the pointer types 
-         * of the ScannedDevice, get the node from the specific list.  */
-        switch(ptrs_type){
-            
-            case 0:
-                
-                node = ListEntry(listptrs, ScannedDevice, sc_list_entry);
-
-            break;
-
-            case 1:
-               
-                node = ListEntry(listptrs, ScannedDevice, tr_list_entry);
-
-            break;
-
-
-        }
-
-        printf(" %s \t", &node->scanned_mac_address);
-
-    }
-
-    printf("\n");
-
-}
-
-
-
-/*
-*  enable_advertising:
-*
-*  This function enables the LBeacon to start advertising, sets the time
-*  interval for advertising, and calibrates the RSSI value.
-*
-*  Parameters:
-*
-*  advertising_interval - the time interval for which the LBeacon can
-*  advertise 
-*  advertising_uuid - universally unique identifier for advertising
-*  rssi_value - RSSI value of the bluetooth device
-*
-*  Return value:
-*
-*  ErrorCode: The error code for the corresponding error
-*
-*/
 
 ErrorCode enable_advertising(int advertising_interval, char *advertising_uuid,
 
@@ -623,20 +459,6 @@ ErrorCode enable_advertising(int advertising_interval, char *advertising_uuid,
 }
 
 
-/*
-*  disable_advertising:
-*
-*  This function disables the advertising capabilities of the beacon.
-*
-*  Parameters:
-*
-*  None
-*
-*  Return value:
-*
-*  ErrorCode: The error code for the corresponding error
-*
-*/
 
 ErrorCode disable_advertising() {
 
@@ -691,20 +513,7 @@ ErrorCode disable_advertising() {
 }
 
 
-/*
-*  stop_ble_beacon:
-*
-*  This function allows avertising to be stopped with ctrl-c if a precious 
-*  call to enable_advertising was a success.
-*
-*  Parameters:
-*
-*  beacon_location - advertising uuid
-*
-*  Return value:
-*
-*  None
-*/
+
 
 void *stop_ble_beacon(void *beacon_location) {
 
@@ -746,23 +555,7 @@ void *stop_ble_beacon(void *beacon_location) {
 
 
 
-/*
-  cleanup_scanned_list:
 
-  This function checks each ScannedDevice node in the scanned list to 
-  determine whether the node has been in the list for over TIMEOUT, if yes, 
-  the function removes the ScannedDevice struct from the list. If the struct 
-  is no longer in the tracked_object_list, the function call the memory 
-  pool to release the memory space used by the struct.
-
-  Parameters:
-
-  None
-
-  Return value:
-
-  None
-*/
 
 void *cleanup_scanned_list(void) {
 
@@ -775,10 +568,11 @@ void *cleanup_scanned_list(void) {
         /*Check whether the list is empty */
         while(check_is_in_list(&scanned_list_head) == false){
             
-            sleep(A_VERY_SHORT_TIME);
+            sleep(TIMEOUT_WAITING);
 
         }
  
+       pthread_mutex_lock(&scanned_lock);
 
         /* Go through list */
         list_for_each(listptrs, &scanned_list_head){
@@ -816,6 +610,10 @@ void *cleanup_scanned_list(void) {
             }
         }
 
+        pthread_mutex_unlock(&scanned_lock);
+
+        
+
     }
 
 
@@ -824,23 +622,7 @@ void *cleanup_scanned_list(void) {
 }
 
 
-/*
-  communication_unit:
 
-  This function checks each ScannedDevice node in the scanned list to 
-  determine whether the node has been in the list for over TIMEOUT, if yes, 
-  the function removes the ScannedDevice struct from the list. If the struct 
-  is no longer in the tracked_object_list, the function call the memory 
-  pool to release the memory space used by the struct.
-
-  Parameters:
-
-  None
-
-  Return value:
-
-  None
-*/
 
 void *communication_unit(void) {
 
@@ -851,13 +633,15 @@ void *communication_unit(void) {
     
     zigbee_init(zigbee);
 
+    /* Initialize the thread pool and create two sub-threads waiting for the 
+       new work/job assigned. */
     thpool = thpool_init(2);
 
     while(ready_to_work == true){
 
-        while(is_polled_by_gateway == true){
+        while(is_polled_by_gateway == false){
 
-            sleep(TIMEOUT);
+            sleep(TIMEOUT_WAITING);
 
         }
 
@@ -871,7 +655,7 @@ void *communication_unit(void) {
 
                 /* Error handling */
                 perror(errordesc[E_OPEN_FILE].message);
-                cleanup_exit();
+               
                 return;
             }
 
@@ -879,20 +663,40 @@ void *communication_unit(void) {
             fgets(zigbee.zig_message, sizeof(zigbee.zig_message), 
                     file_to_send);
             
-            printf("Message: %s", zigbee.zig_message);
 
-            if(thpool_add_work(thpool, (void*)zigbee_send_file, &zigbee) == 0){
+            /* Add the work  to the thread pool. According to the code we 
+               refered, once the work is added to the jobqueue, the idle 
+               thread would take in the action. */  
+
+            if(thpool_add_work(thpool, 
+                                (void*)zigbee_send_file, &zigbee) != 0){
+
+                /* Error handling */
+                perror(errordesc[E_OPEN_FILE].message);
+                
+                return;
                 
             }
 
-            printf("Thread is running: %d \n", thpool_num_threads_working(thpool));
+        }else{
+
+            /* If the file is not ready yet, do nothing and wait for the 
+               sign. */
+
+            sleep(TIMEOUT_WAITING);
+            continue;
+
+
         }
 
 
-        fclose(file_to_send);
+    } // end of the while 
 
-    }
+    /*Close the file for transmission */
+    fclose(file_to_send);
 
+    /* After the ready_to_work is set to false, clean up the zigbee and the 
+       thread pool */
     zigbee_free(zigbee);
 
     /* Free the thread pool */
@@ -903,177 +707,154 @@ void *communication_unit(void) {
 }
 
 
-/*
-*  track_devices:
-*
-*  This function tracks the MAC addresses of scanned (is discovered) bluetooth
-*  devices under a location beacon. An output file will contain for each 
-*  timestamp, the MAC addresses of the bluetooth devices discovered at the 
-*  given timestamp.
-*
-*  Parameters:
-*
-*  file_name - name of the file where all the data will be stored
-*
-*  Return value:
-*
-*  None
-*/
 
 bool track_devices_in_file(char *file_name) {
 
     FILE *track_file;
     
+    /* A lcoal list for the track object */
+    List_Entry local_object_list_head;
+
     /* Create a temporary node and set as the head */
-    struct List_Entry *lisptrs;
+    struct List_Entry *lisptrs, *tailptrs;
     ScannedDevice *temp;
     int number_in_list;
     int number_to_send;
     char timestamp_init_str[LENGTH_OF_TIME];
     char timestamp_end_str[LENGTH_OF_TIME];
 
-    while(ready_to_work == true){
+    /* Initilize the local list */
+    init_entry(&local_object_list_head);
+    number_in_list = get_list_length(&tracked_object_list_head);
+    number_to_send = min(MAX_NO_OBJECTS, number_in_list);
 
+    printf("Number in list: %d\n", number_in_list);
 
-         number_in_list = get_list_length(&tracked_object_list_head);
-         number_to_send = min(MAX_NO_OBJECTS, number_in_list);
-
-         printf("Number in list: %d\n", number_in_list);
-
-        /*Check whether is polled by gateway, if not yet, sleep for while */
-        if(number_in_list == 0){  
+    /*Check the list if it is empty, if yes, return false */
+    if(number_in_list == 0){  
         
-            sleep(A_VERY_SHORT_TIME);
-            continue;
-        }
+       return false;
         
-     
-
-        /* Create a new file with tracked_object_list's data*/        
-        track_file = fopen(file_name, "w");
+    }
         
-        if(track_file == NULL){
 
-            track_file = fopen(file_name, "wt");
+    /* Create a new file with tracked_object_list's data*/        
+    track_file = fopen(file_name, "w");
         
-        }
-        if(track_file == NULL){
+    if(track_file == NULL){
+
+        track_file = fopen(file_name, "wt");
         
-            perror(errordesc[E_OPEN_FILE].message);
-            return;
-
-        }
+    }
+    if(track_file == NULL){
         
-        
-       
-        
-        /* Go through the track_object_list to get the content in the list 
-         * for writing the file and zigbee connection. 
-         * 
-         * [Note] Here is some difference with the pseudocode by Jane:
-         * When gateway is polling, instead of go thorgh list twice for 
-         * writing content to file and zigbee as dscribed in the pseudocode, 
-         * I implement it in the way that I go through the track_object_list 
-         * once, once getting the content, write it in the file and wrap it 
-         * to the gateway at the same time.  */
-        list_for_each(lisptrs, &tracked_object_list_head){
+        perror(errordesc[E_OPEN_FILE].message);
+        return false;
 
-            
-            if(number_to_send <= 0){
-                break;
-            }
-
-            temp = ListEntry(lisptrs, ScannedDevice, tr_list_entry);
-
-
-           /* Convert the timestamp from list to string */
-            unsigned timestamp_init = (unsigned)&temp->initial_scanned_time;
-            unsigned timestamp_end = (unsigned)&temp->final_scanned_time;
-            sprintf(timestamp_init_str, ", %u", timestamp_init);
-            sprintf(timestamp_end_str, ", %u", timestamp_end);
-
-            /* Write the content to the file */
-            fputs(&temp->scanned_mac_address[0], track_file);               
-            fputs(timestamp_init_str, track_file);
-            fputs(timestamp_end_str, track_file);
-            fputs("\n", track_file);
-
-            /* Wrap the content in the track_object_list to the string for 
-             * the zigbee transmistion. */ 
-            char *zig_message[80];
-            strcpy(zig_message, &temp->scanned_mac_address[0]);
-            strcat(zig_message, timestamp_init_str);
-            strcat(zig_message, timestamp_end_str);
-
-            
-            /* Clean up the tracked_object_list */
-            list_remove_node(&temp->tr_list_entry);
-
-            /* If the node no longer in the other list, free the space
-               back to the memory pool. */
-            if(check_is_in_list(&temp->sc_list_entry) == false){
-
-                mp_free(&mempool, temp);
-
-            }
-
-            /* Because of setting the current node's pointer to NULL, this 
-               function breaks the loop (list_for_each) in order to aviod 
-               continuously visiting to NULL.
-               The process will back to the beginning of while loop.
-            */
-            break;
-            
-        }
+    }
     
-        /* Check is there any left to send, if no, set the is_polled_by_gateway
-         * to false */
-        if(number_in_list > number_to_send){
+    pthread_mutex_lock(&track_lock);
+
+    lisptrs = (&tracked_object_list_head)->next;
+
+    /* Set the pointer of the local list head to the current */
+    local_object_list_head.next = lisptrs;
+    int node_count;
+    
+    /* Go through the track_object_list to copy the content to the local list.*/
+    for (node_count = 1; node_count <= number_to_send || 
+                        lisptrs != (&tracked_object_list_head); 
+                        lisptrs = lisptrs->next){
+
+
+
+        temp = ListEntry(lisptrs, ScannedDevice, tr_list_entry);
+
+
+        /* Convert the timestamp from list to string */
+        unsigned timestamp_init = (unsigned)&temp->initial_scanned_time;
+        unsigned timestamp_end = (unsigned)&temp->final_scanned_time;
+        sprintf(timestamp_init_str, ", %u", timestamp_init);
+        sprintf(timestamp_end_str, ", %u", timestamp_end);
+
+        /* Write the content to the file */
+        fputs(&temp->scanned_mac_address[0], track_file);               
+        fputs(timestamp_init_str, track_file);
+        fputs(timestamp_end_str, track_file);
+        fputs(";", track_file);
+
+        /* If the node is the last in the list */
+        if(node_count == number_to_send){
+
+            /* A marker for the last pointer */
+            tailptrs = lisptrs;
             
-            is_polled_by_gateway = true;
-        
-        }else{
-            
-            is_polled_by_gateway = false;
-        
         }
-        
+        node_count++;
 
-
-        
-
-        /* Close the file for tracking */
-        fclose(track_file);
-        
-        return true;
     }
 
+    /* Set the track_object_list_head points to the last */
+    tracked_object_list_head.next = lisptrs;
+    /*Set the last node pointing to the local_object_list_head */
+    tailptrs->next = &local_object_list_head;
+
+    pthread_mutex_unlock(&track_lock);
     
-    return false;
+
+    /* Check is there any left to send, if no, set the is_polled_by_gateway
+       to false */
+    if(number_in_list > number_to_send){
+            
+        is_polled_by_gateway = true;
+        
+    }else{
+            
+        is_polled_by_gateway = false;
+        
+    }
+        
+    /* Free the local list */
+    free_List(&local_object_list_head, number_to_send);
+
+    /* If the node no longer in the other list, free the space
+       back to the memory pool. */
+    if(check_is_in_list(&temp->sc_list_entry) == false){
+
+        mp_free(&mempool, temp);
+
+    }
+
+
+    /* Close the file for tracking */
+    fclose(track_file);
+        
+    return true;
 
 }
 
 
+void free_List(List_Entry *entry, int numnode){
 
-/*
-  start_scanning:
+    /* Create a temporary node and set as the head */
+    struct List_Entry *lisptrs;
+    ScannedDevice *temp;
 
-  This function scans continuously for bluetooth devices under the coverage
-  of the  beacon until scanning is cancelled. When the RSSI value of the 
-  device is within the threshold, this function calls send_to_push_dongle to
-  either add a new ScannedDevice struct of the device to scanned list and 
-  track_object_list or update the struct in the lists. 
+   
+    while(numnode != 0){
 
-  [N.B. This function is executed by the main thread. ]
+        /* Always get the head of the list */ 
+        lisptrs = entry->next;
+        list_remove_node(lisptrs);
 
-  Parameters:
+        numnode --;
 
-  None
+    }
 
-  Return value:
+    return;
+}
 
-  None
-*/
+
 
 void start_scanning() {
 
@@ -1253,21 +1034,6 @@ void start_scanning() {
 }
 
 
-/*
-*  startThread:
-*
-*  This function initializes the threads.
-*
-*  Parameters:
-*
-*  threads - name of the thread
-*  threadfunct - the function for thread to do
-*  arg - the argument for thread's function
-*
-*  Return value:
-*
-*  ErrorCode: The error code for the corresponding error
-*/
 
 ErrorCode startThread(pthread_t threads ,void * (*threadfunct)(void*), void *arg){
 
@@ -1336,9 +1102,7 @@ int main(int argc, char **argv) {
     ready_to_work = true;
     is_polled_by_gateway = false;
 
-   
 
-  
 
     /*Initialize the lists */
     init_entry(&scanned_list_head); 
@@ -1348,13 +1112,16 @@ int main(int argc, char **argv) {
     if(mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_FOR_MEM_POOL) 
             == NULL){
 
-
         /* Error handling */
         perror(errordesc[E_MALLOC].message);
         cleanup_exit();
         return E_MALLOC;
+
     }
     
+    /* Initialize two locks for two lists */
+    pthread_mutex_init(&track_lock,NULL);
+    pthread_mutex_init(&scanned_lock,NULL);
 
     /* Load config struct */
     g_config = get_config(CONFIG_FILE_NAME);

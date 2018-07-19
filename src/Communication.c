@@ -1,4 +1,47 @@
+/*
+ Copyright (c) 2016 Academia Sinica, Institute of Information Science
 
+ License:
+
+      GPL 3.0 : The content of this file is subject to the terms and
+      cnditions defined in file 'COPYING.txt', which is part of this source
+      code package.
+
+ Project Name:
+
+      BeDIPS
+
+ File Description:
+
+      This file contains the program to allow transmission between 
+       LBeacon and Gateway. 
+
+ File Name:
+
+      Communication.c
+
+ Version:
+ 
+       1.2
+
+ Abstract:
+
+      BeDIPS uses LBeacons to deliver 3D coordinates and textual
+      descriptions of their locations to users' devices. Basically, a
+      LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
+      coordinates and location description of every LBeacon are retrieved
+      from BeDIS (Building/environment Data and Information System) and
+      stored locally during deployment and maintenance times. Once
+      initialized, each LBeacon broadcasts its coordinates and location
+      description to Bluetooth enabled user devices within its coverage
+      area.
+
+ Authors:
+
+      Han Wang, hollywang@iis.sinica.edu.tw
+      Gary Xiao, garyh0205@hotmail.com      
+      
+*/
 
 
 #include "Communication.h"
@@ -43,23 +86,7 @@ int zigbee_init(Zigbee zigbee){
 }
 
 
-/*
-*  zigbee_send_file:
-*
-*  When called, this function sends a containing the specified message packet 
-*  to the gateway via xbee module and and receives command or data from the 
-*  gateway. 
-*
-*  Parameters:
-*
-*  zigbee - the struct of necessary parameter and data
-*  message - the message be sent to the gateway 
-*
-*  Return value:
-*
-*  ErrorCode: The error code for the corresponding error
-*
-*/
+
 
 void *zigbee_send_file(Zigbee zigbee){
     
