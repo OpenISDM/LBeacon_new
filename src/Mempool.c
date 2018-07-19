@@ -175,7 +175,7 @@ int mp_free(Memory_Pool *mp, void *mem)
 {
     //check if mem is correct
     //calculate the offset from mem to mp->memory
-    int diffrenceinbyte = (mem - mp->memory) * sizeof(mem);
+    int diffrenceinbyte = ((int*)mem - (int*)mp->memory) * sizeof(int);
     if((diffrenceinbyte % mp->size) != 0){  
         printf("Error \n");
         return MEMORY_POOL_ERROR;
