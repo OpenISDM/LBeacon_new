@@ -645,11 +645,11 @@ void *cleanup_scanned_list(void);
 /*
   communication_unit:
 
-  This function checks each ScannedDevice node in the scanned list to 
-  determine whether the node has been in the list for over TIMEOUT, if yes, 
-  the function removes the ScannedDevice struct from the list. If the struct 
-  is no longer in the tracked_object_list, the function call the memory 
-  pool to release the memory space used by the struct.
+  This function checks whether is_polled_by_gateway flag is set to true. If
+  receiving the signal from gateway, this function calls the 
+  track_devices_in_file fuction and gets the content in the file to transmit 
+  to the gateway. The transmission work is assigned to the idle thread that
+  created by the thread pool.
 
   Parameters:
 
