@@ -176,7 +176,7 @@ int thpool_add_work(Threadpool threadpool, void (*function_p)(void*), void* arg_
  * @param threadpool     the threadpool to wait for
  * @return nothing
  */
-void thpool_wait(threadpool);
+void thpool_wait(Threadpool threadpool);
 
 
 /**
@@ -200,7 +200,7 @@ void thpool_wait(threadpool);
  * @param threadpool    the threadpool where the threads should be paused
  * @return nothing
  */
-void thpool_pause(threadpool);
+void thpool_pause(Threadpool threadpool);
 
 
 /**
@@ -216,7 +216,7 @@ void thpool_pause(threadpool);
  * @param threadpool     the threadpool where the threads should be unpaused
  * @return nothing
  */
-void thpool_resume(threadpool);
+void thpool_resume(Threadpool threadpool);
 
 
 /**
@@ -238,7 +238,7 @@ void thpool_resume(threadpool);
  * @param threadpool     the threadpool to destroy
  * @return nothing
  */
-void thpool_destroy(threadpool);
+void thpool_destroy(Threadpool threadpool);
 
 
 /**
@@ -259,7 +259,7 @@ void thpool_destroy(threadpool);
  * @param threadpool     the threadpool of interest
  * @return integer       number of threads working
  */
-int thpool_num_threads_working(threadpool);
+int thpool_num_threads_working(Threadpool threadpool);
 
 
 

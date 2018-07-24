@@ -645,11 +645,11 @@ void *cleanup_scanned_list(void);
 /*
   communication_unit:
 
-  This function checks whether is_polled_by_gateway flag is set to true. If
-  receiving the signal from gateway, this function calls the 
-  track_devices_in_file fuction and gets the content in the file to transmit 
-  to the gateway. The transmission work is assigned to the idle thread that
-  created by the thread pool.
+  This function checks each ScannedDevice node in the scanned list to 
+  determine whether the node has been in the list for over TIMEOUT, if yes, 
+  the function removes the ScannedDevice struct from the list. If the struct 
+  is no longer in the tracked_object_list, the function call the memory 
+  pool to release the memory space used by the struct.
 
   Parameters:
 
@@ -771,55 +771,6 @@ void cleanup_exit();
 * EXTERNAL FUNCTIONS
 */
 
-/*
-  list_insert_first:
-
-  This function calls the function of list_insert_ to add a new node at the 
-  first of the list.
-
-  Parameters:
-
-  new_node - the struct of list entry for the node be added into the list.
-  head - the struct of list entry which is the head of the list.
-   
-  Return value:
-
-  None
-*/
-extern void list_insert_head(List_Entry *new_node, List_Entry *head);
-
-
-/*
-  list_remove_node:
-
-  This function calls the function of remove_node__ to delete a node in the list.
-
-  Parameters:
-
-  removed_node_ptrs - the struct of list entry for the node is going to be removed.
-  
-  Return value:
-
-  None
-*/
-extern void list_remove_node(List_Entry *removed_node_ptrs);
-
-
-/*
-  get_list_length:
-
-  This function returns the length of the list. 
-
-  Parameters:
-
-  entry - the head of the list for determining which list is goning to be 
-  modified.
-
-  Return value:
-
-  length - number of nodes in the list.
-*/
-extern int get_list_length(List_Entry *entry);
 
 
 /* 

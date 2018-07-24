@@ -135,7 +135,6 @@ inline int get_list_length(List_Entry *entry) {
 
 
 
-
 inline bool check_is_in_list(List_Entry *entry ){
 
     if(entry->next == entry && entry->prev == entry){

@@ -116,7 +116,7 @@ __attribute__((always_inline)) void init_entry(List_Entry *entry);
  
   None
 */
-__attribute__((always_inline)) void list_insert_(List_Entry *new_node, List_Entry *prev,
+__attribute__((always_inline))  void list_insert_(List_Entry *new_node, List_Entry *prev,
                    List_Entry *next);
 
 /*

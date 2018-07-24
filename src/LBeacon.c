@@ -58,7 +58,7 @@
 
 Config get_config(char *file_name) {
 
-    /* Return value that contains a struct of all config information */
+    /* Return value is a struct containing all config information */
     Config config;
 
     FILE *file = fopen(file_name, "r");
@@ -190,8 +190,9 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     new_node = check_is_in_scanned_list(address);
    
     
-    /* If check_is_in_scanned_list() of Scanned List returns null, insert the 
-       new to the list. */
+    /* If check_is_in_scanned_list() returns null, allocate memory form
+       memory pool for a new node, initilize the node, and insert the 
+       new  node to the scanned list. */
     if (new_node == NULL) {
 
       
@@ -199,11 +200,11 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
         printf("******Get the memory from the pool. ****** \n");
         new_node = (struct ScannedDevice*) mp_alloc(&mempool);
         
-        /* Initialize the entry to point to itself */
+        /* Initialize the list entries */
         init_entry(&new_node->sc_list_entry);
         init_entry(&new_node->tr_list_entry);
 
-        /* Get the initial time for the new node. */
+        /* Get the initial scan time for the new node. */
         new_node->initial_scanned_time = get_system_time();
         new_node->final_scanned_time = get_system_time();
 
