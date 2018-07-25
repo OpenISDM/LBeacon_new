@@ -97,7 +97,7 @@ typedef struct List_Entry {
  
   None
 */
-__attribute__((always_inline)) void init_entry(List_Entry *entry);
+ void init_entry(List_Entry *entry);
 
 
 /*
@@ -116,7 +116,7 @@ __attribute__((always_inline)) void init_entry(List_Entry *entry);
  
   None
 */
-__attribute__((always_inline))  void list_insert_(List_Entry *new_node, List_Entry *prev,
+  void list_insert_(List_Entry *new_node, List_Entry *prev,
                    List_Entry *next);
 
 /*
@@ -134,7 +134,7 @@ __attribute__((always_inline))  void list_insert_(List_Entry *new_node, List_Ent
  
   None
 */
-__attribute__((always_inline)) void list_insert_first(List_Entry *new_node, List_Entry *head);
+ void list_insert_first(List_Entry *new_node, List_Entry *head);
 
 /*
   list_insert_tail:
@@ -151,7 +151,7 @@ __attribute__((always_inline)) void list_insert_first(List_Entry *new_node, List
 
   None
 */
-__attribute__((always_inline)) void list_insert_tail(List_Entry *new_node, List_Entry *head);
+ void list_insert_tail(List_Entry *new_node, List_Entry *head);
 
 /*
   list_remove_:
@@ -170,7 +170,7 @@ __attribute__((always_inline)) void list_insert_tail(List_Entry *new_node, List_
 
   None
 */
-__attribute__((always_inline)) void list_remove_(List_Entry *prev, List_Entry *next);
+ void list_remove_(List_Entry *prev, List_Entry *next);
 
 
 /*
@@ -189,7 +189,7 @@ __attribute__((always_inline)) void list_remove_(List_Entry *prev, List_Entry *n
 
   None
 */
-__attribute__((always_inline)) void list_remove_node(List_Entry *removed_node_ptrs);
+ void list_remove_node(List_Entry *removed_node_ptrs);
 
 
 /*
@@ -206,24 +206,6 @@ __attribute__((always_inline)) void list_remove_node(List_Entry *removed_node_pt
  
   length - number of nodes in the list.
  */
-__attribute__((always_inline)) int get_list_length(List_Entry *entry);
+ int get_list_length(List_Entry *entry);
 
-
-/*
-  check_is_in_list:
- 
-  The generic function for checking wether the node is in the list. 
- 
-  Parameters:
- 
-  entry - the head of the list for determining which list is goning to be 
-  modified.
- 
-  Return value:
- 
-  true - the specific node is in the list.
-  false - the specific node is not in the list.
-
- */
-__attribute__((always_inline)) bool check_is_in_list(List_Entry *entry );
 

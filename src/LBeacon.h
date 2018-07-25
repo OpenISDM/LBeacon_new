@@ -377,8 +377,7 @@ bool is_polled_by_gateway;
 Memory_Pool mempool;
 
 
-pthread_mutex_t  track_lock;
-pthread_mutex_t  scanned_lock;    
+pthread_mutex_t  list_lock;    
 
 
 
@@ -487,6 +486,31 @@ Config get_config(char *file_name);
 long long get_system_time();
 
 
+
+
+/*
+  print_RSSI_value:
+
+  This function prints the RSSI value along with the MAC address of the
+  user's scanned bluetooth device. 
+
+  Parameters:
+
+  bluetooth_device_address - bluetooth device address
+  has_rssi - whether the bluetooth device has an RSSI value or not
+  rssi - RSSI value of bluetooth device
+
+  Return value:
+
+  None
+*/
+
+void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
+    int rssi);
+
+
+
+
 /*
   send_to_push_dongle:
 
@@ -510,27 +534,6 @@ long long get_system_time();
 */
 
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
-
-
-/*
-  print_RSSI_value:
-
-  This function prints the RSSI value along with the MAC address of the
-  user's scanned bluetooth device. 
-
-  Parameters:
-
-  bluetooth_device_address - bluetooth device address
-  has_rssi - whether the bluetooth device has an RSSI value or not
-  rssi - RSSI value of bluetooth device
-
-  Return value:
-
-  None
-*/
-
-void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
-    int rssi);
 
 
 

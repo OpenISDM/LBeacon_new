@@ -177,6 +177,35 @@ long long get_system_time() {
 
 
 
+void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
+    int rssi) {
+
+    /* Scanned MAC address */
+    char address[LENGTH_OF_MAC_ADDRESS];
+
+    /* Converts the bluetooth device address to string */
+    ba2str(bluetooth_device_address, address);
+    strcat(address, "\0");
+
+    /* Print bluetooth device's RSSI value */
+    printf("%17s", address);
+    if (has_rssi) {
+        printf(" RSSI:%d", rssi);
+    }
+    else {
+        printf(" RSSI:n/a");
+    }
+    printf("\n");
+    fflush(NULL);
+
+    return;
+
+}
+
+
+
+
+
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 
     /* Stores the MAC address as a string */
@@ -214,51 +243,29 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
                 LENGTH_OF_MAC_ADDRESS);
 
         
-        /* Insert to the scanned list */
+        pthread_mutex_lock(&list_lock);
+        /* Insert the new code to the scanned list */
         list_insert_first(&new_node->sc_list_entry, &scanned_list_head);
 
-        /* Insert to the track_object_list  */
+        /* Insert the new node to the track_object_list  */
         list_insert_first(&new_node->tr_list_entry, 
                             &tracked_object_list_head);
 
+        pthread_mutex_unlock(&list_lock);
        
 
     
     }else{
         
 
-         /* Update the final time */
-         new_node->final_scanned_time = get_system_time();
+        pthread_mutex_lock(&list_lock);
+         
+        /* Update the final scan time */
+        new_node->final_scanned_time = get_system_time();
         
+        pthread_mutex_unlock(&list_lock);
        
     }
-
-}
-
-
-
-void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
-    int rssi) {
-
-    /* Scanned MAC address */
-    char address[LENGTH_OF_MAC_ADDRESS];
-
-    /* Converts the bluetooth device address to string */
-    ba2str(bluetooth_device_address, address);
-    strcat(address, "\0");
-
-    /* Print bluetooth device's RSSI value */
-    printf("%17s", address);
-    if (has_rssi) {
-        printf(" RSSI:%d", rssi);
-    }
-    else {
-        printf(" RSSI:n/a");
-    }
-    printf("\n");
-    fflush(NULL);
-
-    return;
 
 }
 
@@ -272,7 +279,7 @@ struct ScannedDevice *check_is_in_scanned_list(char address[]) {
     ScannedDevice *temp;
 
     /* If there is no node in the list, reutrn NULL directly. */
-    if(check_is_in_list(&scanned_list_head) == false){
+    if(scanned_list_head.next == scanned_list_head.prev){
        
         return NULL;
 
@@ -567,13 +574,13 @@ void *cleanup_scanned_list(void) {
     while (ready_to_work == true) {
 
         /*Check whether the list is empty */
-        while(check_is_in_list(&scanned_list_head) == false){
+        while(scanned_list_head.next == scanned_list_head.prev){
             
             sleep(TIMEOUT_WAITING);
 
         }
  
-       pthread_mutex_lock(&scanned_lock);
+       pthread_mutex_lock(&list_lock);
 
         /* Go through list */
         list_for_each(listptrs, &scanned_list_head){
@@ -591,7 +598,8 @@ void *cleanup_scanned_list(void) {
 
                 /* If the node no longer in the other list, free the space
                    back to the memory pool. */
-                if(check_is_in_list(&temp->tr_list_entry) == false){
+                if(&temp->tr_list_entry.next 
+                                        == &temp->tr_list_entry.prev){
 
                     mp_free(&mempool, temp);
 
@@ -611,7 +619,7 @@ void *cleanup_scanned_list(void) {
             }
         }
 
-        pthread_mutex_unlock(&scanned_lock);
+        pthread_mutex_unlock(&list_lock);
 
         
 
@@ -754,7 +762,7 @@ bool track_devices_in_file(char *file_name) {
 
     }
     
-    pthread_mutex_lock(&track_lock);
+    pthread_mutex_lock(&list_lock);
 
     lisptrs = (&tracked_object_list_head)->next;
 
@@ -800,7 +808,7 @@ bool track_devices_in_file(char *file_name) {
     /*Set the last node pointing to the local_object_list_head */
     tailptrs->next = &local_object_list_head;
 
-    pthread_mutex_unlock(&track_lock);
+    pthread_mutex_unlock(&list_lock);
     
 
     /* Check is there any left to send, if no, set the is_polled_by_gateway
@@ -820,7 +828,7 @@ bool track_devices_in_file(char *file_name) {
 
     /* If the node no longer in the other list, free the space
        back to the memory pool. */
-    if(check_is_in_list(&temp->sc_list_entry) == false){
+    if(&temp->sc_list_entry.next == &temp->sc_list_entry.prev){
 
         mp_free(&mempool, temp);
 
@@ -1121,8 +1129,8 @@ int main(int argc, char **argv) {
     }
     
     /* Initialize two locks for two lists */
-    pthread_mutex_init(&track_lock,NULL);
-    pthread_mutex_init(&scanned_lock,NULL);
+    pthread_mutex_init(&list_lock,NULL);
+
 
     /* Load config struct */
     g_config = get_config(CONFIG_FILE_NAME);
