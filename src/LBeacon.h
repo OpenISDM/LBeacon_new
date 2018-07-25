@@ -128,6 +128,12 @@ Authors:
 /* Length of time in Epoch */
 #define LENGTH_OF_TIME 10
 
+/* Number of digits of MAC address to compare */ 
+#define NO_DIGITS_TO_COMPARE 2
+
+/* Number of worker threads in the thread pool used by communication unit */
+#define NO_WORK_THREADS 2
+
 /* Nominal transmission range limited. Only devices in this RSSI range are 
    allowed to be discovered and sent */
 #define RSSI_RANGE -60
@@ -646,13 +652,13 @@ void *cleanup_scanned_list(void);
 
 
 /*
-  communication_unit:
+  manage_communication:
 
-  This function checks each ScannedDevice node in the scanned list to 
-  determine whether the node has been in the list for over TIMEOUT, if yes, 
-  the function removes the ScannedDevice struct from the list. If the struct 
-  is no longer in the tracked_object_list, the function call the memory 
-  pool to release the memory space used by the struct.
+  This is the start function of the main thread in the communication unit of 
+  LBeacon. After initlizaiing the zigbee struct, it creates a thread pool 
+  with NO_WORK_THREADS worker threads, then while beacon is ready to work,
+  the function waits for poll from the gateway, when polled, the function 
+  creates appropriate work items to be executed by the worker thread. 
 
   Parameters:
 
@@ -663,12 +669,12 @@ void *cleanup_scanned_list(void);
   None
 */
 
-void *communication_unit(void);
+void *manage_communication(void);
 
 
 
 /*
-  track_devices_in_file:
+  copy_object_data_to_file:
 
   This function tracks the MAC addresses of scanned (is discovered) bluetooth
   devices under a location beacon. An output file will contain for each 
@@ -684,7 +690,7 @@ void *communication_unit(void);
   None
 */
 
-bool track_devices_in_file(char *file_name);
+bool copy_object_data_to_file(char *file_name);
 
 
 /*

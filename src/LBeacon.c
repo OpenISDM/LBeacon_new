@@ -293,12 +293,12 @@ struct ScannedDevice *check_is_in_scanned_list(char address[]) {
         
         int len = strlen(address);
 
-        char *addr_last_two = &address[len - 2];
-        char *temp_last_two = &temp->scanned_mac_address[len - 2];
+        char *addr_last_two = &address[len - NO_DIGITS_TO_COMPARE];
+        char *temp_last_two = &temp->scanned_mac_address[len - NO_DIGITS_TO_COMPARE];
 
         /* Compare the last two digits of the MAC address */
-        if ((!strncmp(address, temp->scanned_mac_address, 2))&&
-            (!strncmp(addr_last_two, temp_last_two, 2))) {
+        if ((!strncmp(address, temp->scanned_mac_address, NO_DIGITS_TO_COMPARE))&&
+            (!strncmp(addr_last_two, temp_last_two, NO_DIGITS_TO_COMPARE))) {
 
             return temp;
 
@@ -312,9 +312,9 @@ struct ScannedDevice *check_is_in_scanned_list(char address[]) {
 
 
 
-ErrorCode enable_advertising(int advertising_interval, char *advertising_uuid,
-
-    int rssi_value) {
+ErrorCode enable_advertising(int advertising_interval, 
+                             char *advertising_uuid,
+                             int rssi_value) {
 
     int dongle_device_id = hci_get_route(NULL);
     int device_handle = 0;
@@ -592,7 +592,7 @@ void *cleanup_scanned_list(void) {
             if (get_system_time() - temp->initial_scanned_time > TIMEOUT) {
 
                 
-                /* Remove this scanned devices from the scanned list */
+                /* Remove this scanned device node from the scanned list */
                 list_remove_node(&temp->sc_list_entry);
 
 
@@ -633,7 +633,7 @@ void *cleanup_scanned_list(void) {
 
 
 
-void *communication_unit(void) {
+void *manage_communication(void) {
 
     /* Struct for storing necessary objects for zigbee connection */
     Zigbee zigbee;
@@ -644,11 +644,20 @@ void *communication_unit(void) {
 
     /* Initialize the thread pool and create two sub-threads waiting for the 
        new work/job assigned. */
-    thpool = thpool_init(2);
+    thpool = thpool_init(NO_WORK_THREADS); 
+    if(thpool == NULL){
+        
+        /* Could not create thread pool, handle error */
+        perror(errordesc[E_OPEN_FILE].message);
+        cleanup_exit();
+
+        return;
+        
+    }
 
     while(ready_to_work == true){
 
-        while(is_polled_by_gateway == false){
+        while(is_polled_by_gateway == true){
 
             sleep(TIMEOUT_WAITING);
 
@@ -656,7 +665,7 @@ void *communication_unit(void) {
 
         /* If the file is ready, send the content in the file to the
            gateway. */
-        if(track_devices_in_file("output.txt") == true ){ 
+        if(copy_object_data_to_file("output.txt") == true ){ 
 
             file_to_send = fopen("output.txt", "r");
 
@@ -672,6 +681,7 @@ void *communication_unit(void) {
             fgets(zigbee.zig_message, sizeof(zigbee.zig_message), 
                     file_to_send);
             
+            printf("Message: %s \n", zigbee.zig_message);
 
             /* Add the work  to the thread pool. According to the code we 
                refered, once the work is added to the jobqueue, the idle 
@@ -717,20 +727,21 @@ void *communication_unit(void) {
 
 
 
-bool track_devices_in_file(char *file_name) {
+bool copy_object_data_to_file(char *file_name) {
 
     FILE *track_file;
     
-    /* A lcoal list for the track object */
+    /* Head of a local list for track object */
     List_Entry local_object_list_head;
 
-    /* Create a temporary node and set as the head */
+    /* Two pointers to be used locally */
     struct List_Entry *lisptrs, *tailptrs;
+    
     ScannedDevice *temp;
     int number_in_list;
     int number_to_send;
-    char timestamp_init_str[LENGTH_OF_TIME];
-    char timestamp_end_str[LENGTH_OF_TIME];
+    char timestamp_initial_str[LENGTH_OF_TIME];
+    char timestamp_final_str[LENGTH_OF_TIME];
 
     /* Initilize the local list */
     init_entry(&local_object_list_head);
@@ -747,7 +758,7 @@ bool track_devices_in_file(char *file_name) {
     }
         
 
-    /* Create a new file with tracked_object_list's data*/        
+    /* Create a new file to store data in the tracked_object_list */        
     track_file = fopen(file_name, "w");
         
     if(track_file == NULL){
@@ -764,33 +775,19 @@ bool track_devices_in_file(char *file_name) {
     
     pthread_mutex_lock(&list_lock);
 
-    lisptrs = (&tracked_object_list_head)->next;
+    lisptrs = tracked_object_list_head.next;
 
     /* Set the pointer of the local list head to the current */
     local_object_list_head.next = lisptrs;
+    
+
     int node_count;
     
-    /* Go through the track_object_list to copy the content to the local list.*/
+    /* Go through the track_object_list to move the nodes in the list
+       to local list */
     for (node_count = 1; node_count <= number_to_send || 
                         lisptrs != (&tracked_object_list_head); 
                         lisptrs = lisptrs->next){
-
-
-
-        temp = ListEntry(lisptrs, ScannedDevice, tr_list_entry);
-
-
-        /* Convert the timestamp from list to string */
-        unsigned timestamp_init = (unsigned)&temp->initial_scanned_time;
-        unsigned timestamp_end = (unsigned)&temp->final_scanned_time;
-        sprintf(timestamp_init_str, ", %u", timestamp_init);
-        sprintf(timestamp_end_str, ", %u", timestamp_end);
-
-        /* Write the content to the file */
-        fputs(&temp->scanned_mac_address[0], track_file);               
-        fputs(timestamp_init_str, track_file);
-        fputs(timestamp_end_str, track_file);
-        fputs(";", track_file);
 
         /* If the node is the last in the list */
         if(node_count == number_to_send){
@@ -809,20 +806,28 @@ bool track_devices_in_file(char *file_name) {
     tailptrs->next = &local_object_list_head;
 
     pthread_mutex_unlock(&list_lock);
-    
 
-    /* Check is there any left to send, if no, set the is_polled_by_gateway
-       to false */
-    if(number_in_list > number_to_send){
-            
-        is_polled_by_gateway = true;
-        
-    }else{
-            
-        is_polled_by_gateway = false;
-        
+
+    list_for_each(lisptrs, &local_object_list_head){
+
+
+        temp = ListEntry(lisptrs, ScannedDevice, tr_list_entry);
+
+        /* Convert the timestamp from list to string */
+        unsigned timestamp_init = (unsigned)&temp->initial_scanned_time;
+        unsigned timestamp_end = (unsigned)&temp->final_scanned_time;
+        sprintf(timestamp_initial_str, ", %u", timestamp_init);
+        sprintf(timestamp_final_str, ", %u", timestamp_end);
+
+        /* Write the content to the file */
+        fputs(&temp->scanned_mac_address[0], track_file);               
+        fputs(timestamp_initial_str, track_file);
+        fputs(timestamp_final_str, track_file);
+        fputs(";", track_file);
+
     }
-        
+
+
     /* Free the local list */
     free_List(&local_object_list_head, number_to_send);
 
@@ -1212,7 +1217,7 @@ int main(int argc, char **argv) {
     pthread_t track_communication_thread;
 
     return_value = startThread(track_communication_thread, 
-                                    communication_unit, NULL);
+                                    manage_communication, NULL);
 
     if(return_value != WORK_SCUCESSFULLY){
          perror(errordesc[E_START_THREAD].message);
