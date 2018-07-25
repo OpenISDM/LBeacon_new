@@ -657,11 +657,22 @@ void *manage_communication(void) {
 
     while(ready_to_work == true){
 
-        while(is_polled_by_gateway == true){
+        /* Checking the call back from the gateway. If not getting anything 
+           from the gateway, sleep for  a short time. If polled, according
+           to the received message, different action would take. */
+        int polled_type = receive_call_back(zigbee);
 
+        if( polled_type ==  0){
+
+            printf("Polled is going to sleep \n");
             sleep(TIMEOUT_WAITING);
+        
+        }else{
+
+
 
         }
+
 
         /* If the file is ready, send the content in the file to the
            gateway. */

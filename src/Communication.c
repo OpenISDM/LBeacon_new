@@ -86,12 +86,9 @@ int zigbee_init(Zigbee zigbee){
 }
 
 
+int receive_call_back(Zigbee zigbee){
 
 
-void *zigbee_send_file(Zigbee zigbee){
-    
-
-        
     /* Pointer point_to_CallBack will store the callback function.       */
     /* If pointer point_to_CallBack is NULL, break the Loop              */
         
@@ -108,11 +105,18 @@ void *zigbee_send_file(Zigbee zigbee){
     if (point_to_CallBack == NULL){
             
         printf("Stop Xbee...\n");
-        return XBEE_ERROR;
+        return 0;
     
     }
 
+    return 0;
 
+}
+
+void *zigbee_send_file(Zigbee zigbee){
+    
+   
+    /* Add the packet that to be sent to the gateway */
     addpkt(zigbee.pkt_Queue, Data, Gateway, zigbee.zig_message);
 
     /* If there are remain some packet need to send in the Queue,            */
@@ -136,6 +140,7 @@ void *zigbee_send_file(Zigbee zigbee){
 
    return XBEE_SUCCESSFULLY;
 }
+
 
 void zigbee_free(Zigbee zigbee){
 

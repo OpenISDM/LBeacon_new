@@ -382,9 +382,18 @@ bool is_polled_by_gateway;
    tracked_object_list */
 Memory_Pool mempool;
 
-
+/* The lock for the list */
 pthread_mutex_t  list_lock;    
 
+
+typedef enum PolledDataType {
+
+    NOT_YET_POLLED = 0,
+    TRACK_OBJECT_DATA = 1,
+    HEALTH_REPORT = 2,
+    MAX_NO_DATA_TYPE = 3
+
+} PolledDataType;
 
 
 /*
