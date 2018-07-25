@@ -12,6 +12,9 @@
 
 #include "thpool.h"
 
+/* The memory pool for the allocation of all nodes in scanned_device_list and
+ tracked_object_list */
+Memory_Pool mempool;
 
 /* ========================== THREADPOOL ============================ */
 
@@ -26,9 +29,16 @@ struct thpool_* thpool_init(int num_threads){
 		num_threads = 0;
 	}
 
+    /* Initialize the memory pool */
+    if(mp_init(&mempool, SIZE_FOR_MEM_POOL, SLOTS_FOR_MEM_POOL)
+       == NULL){
+        
+        return NULL;
+    }
+    
 	/* Make new thread pool */
 	thpool_* thpool_p;
-	thpool_p = (struct thpool_*)malloc(sizeof(struct thpool_));
+	thpool_p = (struct thpool_*)mp_alloc(&mempool);
 	if (thpool_p == NULL){
 		err("thpool_init(): Could not allocate memory for thread pool\n");
 		return NULL;
@@ -44,7 +54,7 @@ struct thpool_* thpool_init(int num_threads){
 	}
 
 	/* Make threads in pool */
-	thpool_p->threads = (struct thread**)malloc(num_threads * sizeof(struct thread *));
+	thpool_p->threads = (struct thread**)mp_alloc(&mempool);
 	if (thpool_p->threads == NULL){
 		err("thpool_init(): Could not allocate memory for threads\n");
 		jobqueue_destroy(&thpool_p->jobqueue);
@@ -73,7 +83,7 @@ struct thpool_* thpool_init(int num_threads){
 int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), void* arg_p){
 	job* newjob;
 
-	newjob=(struct job*)malloc(sizeof(struct job));
+	newjob=(struct job*)mp_alloc(&mempool);
 	if (newjob==NULL){
 		err("thpool_add_work(): Could not allocate memory for new job\n");
 		return -1;
@@ -134,8 +144,8 @@ void thpool_destroy(thpool_* thpool_p){
 	for (n=0; n < threads_total; n++){
 		thread_destroy(thpool_p->threads[n]);
 	}
-	free(thpool_p->threads);
-	free(thpool_p);
+	mp_free(&mempool, thpool_p->threads);
+	mp_free(&mempool, thpool_p);
 }
 
 
@@ -177,8 +187,7 @@ int thpool_num_threads_working(thpool_* thpool_p){
  * @return 0 on success, -1 otherwise.
  */
 static int thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
-
-	*thread_p = (struct thread*)malloc(sizeof(struct thread));
+	*thread_p = (struct thread*)mp_alloc(&mempool);
 	if (thread_p == NULL){
 		err("thread_init(): Could not allocate memory for thread\n");
 		return -1;
@@ -255,7 +264,7 @@ static void* thread_do(struct thread* thread_p){
 				func_buff = job_p->function;
 				arg_buff  = job_p->arg;
 				func_buff(arg_buff);
-				free(job_p);
+				mp_free(&mempool ,job_p);
 			}
 
 			pthread_mutex_lock(&thpool_p->thcount_lock);
@@ -277,7 +286,7 @@ static void* thread_do(struct thread* thread_p){
 
 /* Frees a thread  */
 static void thread_destroy (thread* thread_p){
-	free(thread_p);
+	mp_free(&mempool, thread_p);
 }
 
 
@@ -293,7 +302,7 @@ static int jobqueue_init(jobqueue* jobqueue_p){
 	jobqueue_p->front = NULL;
 	jobqueue_p->rear  = NULL;
 
-	jobqueue_p->has_jobs = (struct bsem*)malloc(sizeof(struct bsem));
+	jobqueue_p->has_jobs = (struct bsem*)mp_alloc(&mempool);
 	if (jobqueue_p->has_jobs == NULL){
 		return -1;
 	}
@@ -309,7 +318,7 @@ static int jobqueue_init(jobqueue* jobqueue_p){
 static void jobqueue_clear(jobqueue* jobqueue_p){
 
 	while(jobqueue_p->len){
-		free(jobqueue_pull(jobqueue_p));
+		mp_free(&mempool, jobqueue_pull(jobqueue_p));
 	}
 
 	jobqueue_p->front = NULL;
@@ -385,7 +394,7 @@ static struct job* jobqueue_pull(jobqueue* jobqueue_p){
 /* Free all queue resources back to the system */
 static void jobqueue_destroy(jobqueue* jobqueue_p){
 	jobqueue_clear(jobqueue_p);
-	free(jobqueue_p->has_jobs);
+	mp_free(&mempool, jobqueue_p->has_jobs);
 }
 
 
