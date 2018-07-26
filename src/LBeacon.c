@@ -1,54 +1,54 @@
 /*
-* Copyright (c) 2016 Academia Sinica, Institute of Information Science
-*
-* License:
-*
-*      GPL 3.0 : The content of this file is subject to the terms and
-*      cnditions defined in file 'COPYING.txt', which is part of this source
-*      code package.
-*
-* Project Name:
-*
-*      BeDIPS
-*
-* File Description:
-*
-*      This file contains the program to allow the beacon to discover
-*   bluetooth devices and then scan the Bluetooth addresses of the devices.
-*   Depending on the RSSI value of each discovered and scanned deviced,
-*   the beacon determines whether it should send location related files to
-*   the device.
-*
-* File Name:
-*
-*      LBeacon.c
-*
-* Version:
-* 
-*       1.2
-*
-* Abstract:
-*
-*      BeDIPS uses LBeacons to deliver 3D coordinates and textual
-*      descriptions of their locations to users' devices. Basically, a
-*      LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
-*      coordinates and location description of every LBeacon are retrieved
-*      from BeDIS (Building/environment Data and Information System) and
-*      stored locally during deployment and maintenance times. Once
-*      initialized, each LBeacon broadcasts its coordinates and location
-*      description to Bluetooth enabled user devices within its coverage
-*      area.
-*
-* Authors:
-*
-*      Han Wang, hollywang@iis.sinica.edu.tw
-*      Jake Lee, jakelee@iis.sinica.edu.tw
-*      Johnson Su, johnsonsu@iis.sinica.edu.tw
-*      Shirley Huang, shirley.huang.93@gmail.com
-*      Han Hu, hhu14@illinois.edu
-*      Jeffrey Lin, lin.jeff03@gmail.com
-*      Howard Hsu, haohsu0823@gmail.com
-*      
+ Copyright (c) 2016 Academia Sinica, Institute of Information Science
+
+ License:
+
+      GPL 3.0 : The content of this file is subject to the terms and
+      cnditions defined in file 'COPYING.txt', which is part of this source
+      code package.
+
+ Project Name:
+
+      BeDIPS
+
+ File Description:
+
+      This file contains the program to allow the beacon to discover
+   bluetooth devices and then scan the Bluetooth addresses of the devices.
+   Depending on the RSSI value of each discovered and scanned deviced,
+   the beacon determines whether it should send location related files to
+   the device.
+
+ File Name:
+
+      LBeacon.c
+
+ Version:
+ 
+       1.2
+
+ Abstract:
+
+      BeDIPS uses LBeacons to deliver 3D coordinates and textual
+      descriptions of their locations to users' devices. Basically, a
+      LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
+      coordinates and location description of every LBeacon are retrieved
+      from BeDIS (Building/environment Data and Information System) and
+      stored locally during deployment and maintenance times. Once
+      initialized, each LBeacon broadcasts its coordinates and location
+      description to Bluetooth enabled user devices within its coverage
+      area.
+
+ Authors:
+
+      Han Wang, hollywang@iis.sinica.edu.tw
+      Jake Lee, jakelee@iis.sinica.edu.tw
+      Johnson Su, johnsonsu@iis.sinica.edu.tw
+      Shirley Huang, shirley.huang.93@gmail.com
+      Han Hu, hhu14@illinois.edu
+      Jeffrey Lin, lin.jeff03@gmail.com
+      Howard Hsu, haohsu0823@gmail.com
+      
 */
 
 #include "LBeacon.h"
@@ -639,6 +639,7 @@ void *manage_communication(void) {
     Zigbee zigbee;
     Threadpool thpool;
     FILE *file_to_send;
+    int polled_type;
     
     /* Initialize the zigbee */
     if(zigbee_init(zigbee) == 0){
@@ -671,7 +672,7 @@ void *manage_communication(void) {
            a short time. If polled, according to the received message, 
            different action would take. */
         
-        int polled_type = 0;
+        
         polled_type = receive_call_back(zigbee);
         
         
@@ -1100,22 +1101,6 @@ ErrorCode startThread(pthread_t threads ,void * (*threadfunct)(void*), void *arg
 
 }
 
-
-
-
-/*
-*  cleanup_exit:
-*
-*  This function releases all the resources.
-*
-*  Parameters:
-*
-*  None
-*
-*  Return value:
-*
-*  None
-*/
 
 void cleanup_exit(){
 
