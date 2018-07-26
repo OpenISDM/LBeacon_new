@@ -87,27 +87,39 @@ int zigbee_init(Zigbee zigbee){
 
 
 int receive_call_back(Zigbee zigbee){
-
-
-    /* Pointer point_to_CallBack will store the callback function.       */
-    /* If pointer point_to_CallBack is NULL, break the Loop              */
-        
+   
+   /* Check the connection of call back is enable */ 
     void *point_to_CallBack;
 
     if ((ret = xbee_conCallbackGet(zigbee.con, (xbee_t_conCallback*)            
         &point_to_CallBack))!= XBEE_ENONE) {
 
         xbee_log(zigbee.xbee, -1, "xbee_conCallbackGet() returned: %d", ret);
-        printf("Nothing is doing\n" );
+        
         return 0;
         
     }
-
 
     if (point_to_CallBack == NULL){
             
         printf("Stop Xbee...\n");
         return 0;
+    
+    }
+    /* Get the polled type form the gateway */
+    int call_back_type = CallBack(zigbee.xbee, zigbee.con, zigbee.pkt_Queue, NULL);
+
+    switch(call_back_type){
+
+        case TRACK_OBJECT_DATA:
+          
+          return TRACK_OBJECT_DATA;
+          break;
+
+        case HEALTH_REPORT:
+
+          return HEALTH_REPORT;
+          break;
     
     }
 
@@ -117,7 +129,7 @@ int receive_call_back(Zigbee zigbee){
 
 void *zigbee_send_file(Zigbee zigbee){
     
-
+    /* Add the content that to be sent to the gateway to the packet queue */
     addpkt(zigbee.pkt_Queue, Data, Gateway, zigbee.zig_message);
 
     /* If there are remain some packet need to send in the Queue,            */
@@ -138,7 +150,7 @@ void *zigbee_send_file(Zigbee zigbee){
     usleep(2000000);   
  
 
-   return 1;
+   return;
 }
 
 

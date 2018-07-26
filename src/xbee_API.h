@@ -1,39 +1,39 @@
 /*
-   Copyright (c) 2016 Academia Sinica, Institute of Information Science
- 
-   License:
- 
-        GPL 3.0 : The content of this file is subject to the terms and
-        cnditions defined in file 'COPYING.txt', which is part of this
-        source code package.
- 
-   Project Name:
- 
-        BeDIPS
- 
-   File Description:
- 
-    	This file contains the header of  function declarations and variable
-        used in xbee_API.c
- 
-   File Name:
- 
-        xbee_API.h
- 
-   Abstract:
- 
-        BeDIPS uses LBeacons to deliver 3D coordinates and textual
-        descriptions of their locations to users' devices. Basically, a
-        LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
-        coordinates and location description of every LBeacon are retrieved
-        from BeDIS (Building/environment Data and Information System) and
-        stored locally during deployment and maintenance times. Once
-        initialized, each LBeacon broadcasts its coordinates and location
-        description to Bluetooth enabled user devices within its coverage
-        area.
- 
-   Authors:
-        Gary Xiao		, garyh0205@hotmail.com
+ * Copyright (c) 2016 Academia Sinica, Institute of Information Science
+ *
+ * License:
+ *
+ *      GPL 3.0 : The content of this file is subject to the terms and
+ *      cnditions defined in file 'COPYING.txt', which is part of this
+ *      source code package.
+ *
+ * Project Name:
+ *
+ *      BeDIPS
+ *
+ * File Description:
+ *
+ *    This file contains the header of  function declarations and variable
+ *      used in xbee_API.c
+ *
+ * File Name:
+ *
+ *      xbee_API.h
+ *
+ * Abstract:
+ *
+ *      BeDIPS uses LBeacons to deliver 3D coordinates and textual
+ *      descriptions of their locations to users' devices. Basically, a
+ *      LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
+ *      coordinates and location description of every LBeacon are retrieved
+ *      from BeDIS (Building/environment Data and Information System) and
+ *      stored locally during deployment and maintenance times. Once
+ *      initialized, each LBeacon broadcasts its coordinates and location
+ *      description to Bluetooth enabled user devices within its coverage
+ *      area.
+ *
+ * Authors:
+ *      Gary Xiao   , garyh0205@hotmail.com
  */
 
 #include <stdio.h>
@@ -59,7 +59,7 @@ xbee_err xbee_connector(struct xbee** xbee, struct xbee_con** con
                                                 , pkt_ptr pkt_Queue);
 
 /* CallBack for Data Received */
-void CallBack(struct xbee *xbee, struct xbee_con *con, struct xbee_pkt **pkt
-, void **data);
+int CallBack(struct xbee *xbee, struct xbee_con *con, struct xbee_pkt **pkt,
+       void **data);
 
 #endif

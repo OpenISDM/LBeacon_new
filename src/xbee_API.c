@@ -1,60 +1,48 @@
 /*
-  Copyright (c) 2016 Academia Sinica, Institute of Information Science
- 
-  License:
- 
-       GPL 3.0 : The content of this file is subject to the terms and
-       cnditions defined in file 'COPYING.txt', which is part of this
-       source code package.
- 
-  Project Name:
- 
-       BeDIPS
- 
-  File Description:
- 
-    	This file contains the program to connect to xbee by API mode and in
-       the project, we use it for data transmission most.
- 
-  File Name:
- 
-       xbee_API.c
- 
-  Abstract:
- 
-       BeDIPS uses LBeacons to deliver 3D coordinates and textual
-       descriptions of their locations to users' devices. Basically, a
-       LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
-       coordinates and location description of every LBeacon are retrieved
-       from BeDIS (Building/environment Data and Information System) and
-       stored locally during deployment and maintenance times. Once
-       initialized, each LBeacon broadcasts its coordinates and location
-       description to Bluetooth enabled user devices within its coverage
-       area.
- 
-  Authors:
-       Gary Xiao		, garyh0205@hotmail.com
-*/
+ * Copyright (c) 2016 Academia Sinica, Institute of Information Science
+ *
+ * License:
+ *
+ *      GPL 3.0 : The content of this file is subject to the terms and
+ *      cnditions defined in file 'COPYING.txt', which is part of this
+ *      source code package.
+ *
+ * Project Name:
+ *
+ *      BeDIPS
+ *
+ * File Description:
+ *
+ *      This file contains the program to connect to xbee by API mode and in
+ *      the project, we use it for data transmission most.
+ *
+ * File Name:
+ *
+ *      xbee_API.c
+ *
+ * Abstract:
+ *
+ *      BeDIPS uses LBeacons to deliver 3D coordinates and textual
+ *      descriptions of their locations to users' devices. Basically, a
+ *      LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
+ *      coordinates and location description of every LBeacon are retrieved
+ *      from BeDIS (Building/environment Data and Information System) and
+ *      stored locally during deployment and maintenance times. Once
+ *      initialized, each LBeacon broadcasts its coordinates and location
+ *      description to Bluetooth enabled user devices within its coverage
+ *      area.
+ *
+ * Authors:
+ *      Gary Xiao       , garyh0205@hotmail.com
+ */
 
 #include "xbee_API.h"
 
 
-/*
- * xbee_initial
- *     For initialize zigbee, include loading config.
- * Parameter:
- *     xbee_mode: we use xbeeZB as our device, this parameter is for setting
- *                libxbee3 work mode.
- *     xbee_device: This parameter is to define where is our zigbee device path.
- *     xbee_baudrate: This parameter is to define what our zigbee working
- *                    baudrate.
- *     LogLevel: To decide libxbee3 whether need to export log or not.
- *     xbee: A pointer to catch zigbee pointer.
- *     pkt_Queue: A pointer of the packet queue we use.
- * Return Value:
- *     xbee_err: If return 0, everything work successfully.
- *               If not 0, somthing wrong.
- */
+/*----------------------Configuration for xbee---------------------------*/
+/*-----------------------------------------------------------------------*/
+/* xbee_setup(struct xbee **retXbee, const char *xbee_mode               */
+/* , char *xbee_device, int xbee_baudrate)                               */
 xbee_err xbee_initial(char* xbee_mode, char* xbee_device, int xbee_baudrate
                         , int LogLevel, struct xbee** xbee, pkt_ptr pkt_Queue){
     printf("Start Connecting to xbee\n");
@@ -71,8 +59,7 @@ xbee_err xbee_initial(char* xbee_mode, char* xbee_device, int xbee_baudrate
     printf("xbee Connected\n");
 
     if((ret = xbee_validate(*xbee)) != XBEE_ENONE){
-        printf("Connection unvalidate\nret: %d (%s)\n",
-        ret, xbee_errorToStr(ret));
+        printf("Connection unvalidate\nret: %d (%s)\n", ret, xbee_errorToStr(ret));
         return ret;
     }
 
@@ -90,17 +77,6 @@ xbee_err xbee_initial(char* xbee_mode, char* xbee_device, int xbee_baudrate
     return ret;
 }
 
-/*
- * xbee_connector
- *     For connect to zigbee and assign it's destnation address.
- * Parameter:
- *     xbee: A pointer to catch zigbee pointer.
- *     con: A pointer of the connector of zigbee.
- *     pkt_Queue: A pointer of the packet queue we use.
- * Return Value:
- *     xbee_err: If return 0, everything work successfully.
- *               If not 0, somthing wrong.
- */
 xbee_err xbee_connector(struct xbee** xbee, struct xbee_con** con
                                                 , pkt_ptr pkt_Queue){
 
@@ -152,7 +128,7 @@ xbee_err xbee_connector(struct xbee** xbee, struct xbee_con** con
     }
 
     /* Set CallBack Function to call CallBack if packet received              */
-    if((ret = xbee_conCallbackSet(*con, CallBack, NULL)) != XBEE_ENONE) {
+    if((ret = xbee_conCallbackSet(*con, (xbee_t_conCallback)CallBack, NULL)) != XBEE_ENONE) {
         xbee_log(*xbee, -1, "xbee_conCallbackSet() returned: %d", ret);
         return ret;
     }
@@ -191,19 +167,28 @@ xbee_err xbee_connector(struct xbee** xbee, struct xbee_con** con
 /* ------------------------------------------------------------------------- */
 
 /*  Data Transmission                                                        */
-void CallBack(struct xbee *xbee, struct xbee_con *con, struct xbee_pkt **pkt
+int CallBack(struct xbee *xbee, struct xbee_con *con, struct xbee_pkt **pkt
                                                             , void **data) {
     printf("Enter CallBack Data\n");
     if ((*pkt)->dataLen > 0) {
 
+        printf("Received Data: %s\n",((*pkt)->data));
+
         /* If data[0] == '@', callback will be end.                          */
         if ((*pkt)->data[0] == '@') {
+            /* Disable the call back function */
             xbee_conCallbackSet(con, NULL, NULL);
-            printf("*** DISABLED CALLBACK... ***\n");
-        }
+        
+        }else if((*pkt)->data[0] == 'T'){
+
+             return 1;
+        
+        }else if((*pkt)->data[0] == 'H'){
+
+            return 2;
+        } 
         xbee_log(xbee, -1, "rx: [%s]\n", (*pkt)->data);
 
-        /* If data is received, how to deal with the data.                   */
-        printf("Received Data: %s\n",((*pkt)->data));
+       
     }
 }

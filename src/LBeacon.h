@@ -415,8 +415,9 @@ typedef enum ErrorCode {
     E_ADVERTISE_MODE = 14,
     E_START_THREAD = 15,
     E_INIT_THREAD_POOL = 16,
-    E_ZIGBEE_CONNECT = 17,
-    MAX_ERROR_CODE = 18
+    E_INIT_ZIGBEE = 17,
+    E_ZIGBEE_CONNECT = 18,
+    MAX_ERROR_CODE = 19
 
 } ErrorCode;
 
@@ -444,8 +445,9 @@ struct _errordesc {
     {E_ADVERTISE_MODE, "Error setting advertise mode"},
     {E_START_THREAD, "Error creating thread"},
     {E_INIT_THREAD_POOL, "Error initializing thread pool"},
+    {E_INIT_ZIGBEE, "Error initializing the zigbee"},
     {E_ZIGBEE_CONNECT, "Error zigbee connection"},
-    {MAX_ERROR_CODE, "The element is invalid"},
+    {MAX_ERROR_CODE, "The element is invalid"}
 
 };
 

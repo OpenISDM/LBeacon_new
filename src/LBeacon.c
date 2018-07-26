@@ -640,7 +640,16 @@ void *manage_communication(void) {
     Threadpool thpool;
     FILE *file_to_send;
     
-    zigbee_init(zigbee);
+    /* Initialize the zigbee */
+    if(zigbee_init(zigbee) == 0){
+
+         /* Could not initialize the zigbee, handle error */
+        perror(errordesc[E_INIT_ZIGBEE].message);
+        cleanup_exit();
+
+        return;
+
+    }
 
     /* Initialize the thread pool and create two sub-threads waiting for the 
        new work/job assigned. */
@@ -657,12 +666,14 @@ void *manage_communication(void) {
     
     while(ready_to_work == true){
 
-        /* Checking the call back from the gateway. If not getting anything 
-           from the gateway, sleep for  a short time. If polled, according
-           to the received message, different action would take. */
+        /* Instead of chaging the global flag, checking the call back from 
+           the gateway. If not getting anything from the gateway, sleep for 
+           a short time. If polled, according to the received message, 
+           different action would take. */
+        
         int polled_type = 0;
         polled_type = receive_call_back(zigbee);
-        printf("Polled: %d \n", polled_type);
+        
         
         while(polled_type == NOT_YET_POLLED){
 
@@ -700,6 +711,15 @@ void *manage_communication(void) {
             
                 printf("Message: %s \n", zigbee.zig_message);
 
+                /* Add the work item to the work thread */
+                if(thpool_add_work(thpool, (void*)zigbee_send_file, &zigbee) != 0){
+
+                    /* Error handling */
+                    perror(errordesc[E_OPEN_FILE].message);
+                    cleanup_exit();
+                    return;
+                
+                }
 
              break;
 
@@ -718,16 +738,7 @@ void *manage_communication(void) {
         
         }
         
-        /* Add the work item to the work thread */
-        if(thpool_add_work(thpool, (void*)zigbee_send_file, &zigbee) != 0){
-
-            /* Error handling */
-            perror(errordesc[E_OPEN_FILE].message);
-            cleanup_exit();
-            return;
-                
-        }
-
+    
 
     } // end of the while 
 
@@ -797,9 +808,11 @@ void copy_object_data_to_file(char *file_name) {
     
     pthread_mutex_lock(&list_lock);
 
+    /* Temporary pointer points to the head of the track_object_list */
     lisptrs = tracked_object_list_head.next;
 
-    /* Set the pointer of the local list head to the current */
+    /* Set the pointer of the local list head to the head of the 
+       track_object_list */
     local_object_list_head.next = lisptrs;
     
     int node_count;
