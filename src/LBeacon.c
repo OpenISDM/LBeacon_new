@@ -717,7 +717,6 @@ void *manage_communication(void) {
             break;
         
         }
-
         
         /* Add the work item to the work thread */
         if(thpool_add_work(thpool, (void*)zigbee_send_file, &zigbee) != 0){
@@ -1109,7 +1108,7 @@ void cleanup_exit(){
 
     /* Set two flags to false */
     ready_to_work = false;
-    is_polled_by_gateway = false;
+  
     
     /* Free the memory pool */
     mp_destroy(&mempool);
@@ -1135,9 +1134,9 @@ int main(int argc, char **argv) {
     /* Return value of pthread_create used to check for errors */
     int return_value;
 
-    /*Initialize the global flags */
+    /*Initialize the global flag */
     ready_to_work = true;
-    is_polled_by_gateway = false;
+   
 
 
 

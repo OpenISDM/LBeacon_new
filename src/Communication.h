@@ -74,6 +74,18 @@ typedef struct Zigbee {
 } Zigbee;
 
 
+typedef enum PolledDataType {
+
+    NOT_YET_POLLED = 0,
+    TRACK_OBJECT_DATA = 1,
+    HEALTH_REPORT = 2,
+    MAX_NO_DATA_TYPE = 3
+
+} PolledDataType;
+
+
+
+
 
 /*
   zigbee_init:
@@ -92,6 +104,23 @@ typedef struct Zigbee {
 */
 int zigbee_init(Zigbee zigbee);
 
+
+/*
+  receive_call_back:
+
+  This function receives the poiter to the packet sent by the gateway and 
+  return different indicatior for different polled data type.   
+
+  Parameters:
+
+  zigbee - the struct of necessary parameter and data
+
+
+  Return value:
+
+  polled_data: The indicator of the polled data
+
+*/
 
 int receive_call_back(Zigbee zigbee);
 
