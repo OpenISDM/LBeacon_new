@@ -68,6 +68,7 @@ typedef struct Zigbee {
     /* Struct of queue of packet which is defined in pkt_Queue.h */
     pkt_ptr pkt_Queue;
 
+    /* The message to be sent to the gateway. */
     char zig_message[MESSAGE_LENGTH];
     
 } Zigbee;
@@ -90,6 +91,9 @@ typedef struct Zigbee {
 
 */
 int zigbee_init(Zigbee zigbee);
+
+
+int receive_call_back(Zigbee zigbee);
 
 /*
   zigbee_send_file:

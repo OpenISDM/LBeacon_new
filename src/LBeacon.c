@@ -245,10 +245,10 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
         
         pthread_mutex_lock(&list_lock);
         /* Insert the new code to the scanned list */
-        list_insert_first(&new_node->sc_list_entry, &scanned_list_head);
+        insert_list_first(&new_node->sc_list_entry, &scanned_list_head);
 
         /* Insert the new node to the track_object_list  */
-        list_insert_first(&new_node->tr_list_entry, 
+        insert_list_first(&new_node->tr_list_entry, 
                             &tracked_object_list_head);
 
         pthread_mutex_unlock(&list_lock);
@@ -593,7 +593,7 @@ void *cleanup_scanned_list(void) {
 
                 
                 /* Remove this scanned device node from the scanned list */
-                list_remove_node(&temp->sc_list_entry);
+                remove_list_node(&temp->sc_list_entry);
 
 
                 /* If the node no longer in the other list, free the space
@@ -648,75 +648,85 @@ void *manage_communication(void) {
     if(thpool == NULL){
         
         /* Could not create thread pool, handle error */
-        perror(errordesc[E_OPEN_FILE].message);
+        perror(errordesc[E_INIT_THREAD_POOL].message);
         cleanup_exit();
 
         return;
         
     }
-
+    
     while(ready_to_work == true){
 
         /* Checking the call back from the gateway. If not getting anything 
            from the gateway, sleep for  a short time. If polled, according
            to the received message, different action would take. */
-        int polled_type = receive_call_back(zigbee);
-
-        if( polled_type ==  0){
+        int polled_type = 0;
+        polled_type = receive_call_back(zigbee);
+        printf("Polled: %d \n", polled_type);
+        
+        while(polled_type == NOT_YET_POLLED){
 
             printf("Polled is going to sleep \n");
             sleep(TIMEOUT_WAITING);
         
-        }else{
-
-
-
         }
 
+        /* According to the polled data type, different work item to be 
+        prepared */
+        switch(polled_type){
 
-        /* If the file is ready, send the content in the file to the
-           gateway. */
-        if(copy_object_data_to_file("output.txt") == true ){ 
+            case TRACK_OBJECT_DATA:
 
-            file_to_send = fopen("output.txt", "r");
+                /* Function call to execute copy_track_object_to_data in order
+                   to create file to be transmit */
+                copy_object_data_to_file("output.txt");
 
-            if (file_to_send == NULL) {
 
-                /* Error handling */
-                perror(errordesc[E_OPEN_FILE].message);
-               
-                return;
-            }
+                /* Open the file is going to sent to the gateway */
+                file_to_send = fopen("output.txt", "r");
+                if (file_to_send == NULL) {
 
-            /* Read the file to get the content for the message to send */
-            fgets(zigbee.zig_message, sizeof(zigbee.zig_message), 
-                    file_to_send);
+                    /* Error handling */
+                    perror(errordesc[E_OPEN_FILE].message);
+                    strcpy(zigbee.zig_message, 
+                                "Nothing can be found in this LBeacon");
+                    
+                    return;
+                    }
+
+                /* Read the file to get the content for the message to send */
+                fgets(zigbee.zig_message, sizeof(zigbee.zig_message), 
+                                                            file_to_send);
             
-            printf("Message: %s \n", zigbee.zig_message);
+                printf("Message: %s \n", zigbee.zig_message);
 
-            /* Add the work  to the thread pool. According to the code we 
-               refered, once the work is added to the jobqueue, the idle 
-               thread would take in the action. */  
 
-            if(thpool_add_work(thpool, 
-                                (void*)zigbee_send_file, &zigbee) != 0){
+             break;
 
-                /* Error handling */
-                perror(errordesc[E_OPEN_FILE].message);
+            case HEALTH_REPORT:
+
+            /* TODO:
+               Create the file for the health report. The files contains the 
+               error log. will be done as soon as possible */ 
+
+
+            break;
+
+            default:
+
+            break;
+        
+        }
+
+        
+        /* Add the work item to the work thread */
+        if(thpool_add_work(thpool, (void*)zigbee_send_file, &zigbee) != 0){
+
+            /* Error handling */
+            perror(errordesc[E_OPEN_FILE].message);
+            cleanup_exit();
+            return;
                 
-                return;
-                
-            }
-
-        }else{
-
-            /* If the file is not ready yet, do nothing and wait for the 
-               sign. */
-
-            sleep(TIMEOUT_WAITING);
-            continue;
-
-
         }
 
 
@@ -738,7 +748,7 @@ void *manage_communication(void) {
 
 
 
-bool copy_object_data_to_file(char *file_name) {
+void copy_object_data_to_file(char *file_name) {
 
     FILE *track_file;
     
@@ -757,14 +767,16 @@ bool copy_object_data_to_file(char *file_name) {
     /* Initilize the local list */
     init_entry(&local_object_list_head);
     number_in_list = get_list_length(&tracked_object_list_head);
+    
+    /* Get the smaller amount for transmission */
     number_to_send = min(MAX_NO_OBJECTS, number_in_list);
 
     printf("Number in list: %d\n", number_in_list);
 
     /*Check the list if it is empty, if yes, return false */
     if(number_in_list == 0){  
-        
-       return false;
+       sleep(30); 
+       return;
         
     }
         
@@ -791,7 +803,6 @@ bool copy_object_data_to_file(char *file_name) {
     /* Set the pointer of the local list head to the current */
     local_object_list_head.next = lisptrs;
     
-
     int node_count;
     
     /* Go through the track_object_list to move the nodes in the list
@@ -811,14 +822,15 @@ bool copy_object_data_to_file(char *file_name) {
 
     }
 
-    /* Set the track_object_list_head points to the last */
+    /* Set the track_object_list_head points to the last node */
     tracked_object_list_head.next = lisptrs;
     /*Set the last node pointing to the local_object_list_head */
     tailptrs->next = &local_object_list_head;
 
     pthread_mutex_unlock(&list_lock);
 
-
+    /* Go throngh the local object list to get the content and to write
+       the file */
     list_for_each(lisptrs, &local_object_list_head){
 
 
@@ -853,8 +865,8 @@ bool copy_object_data_to_file(char *file_name) {
 
     /* Close the file for tracking */
     fclose(track_file);
-        
-    return true;
+    
+    return;
 
 }
 
@@ -870,7 +882,7 @@ void free_List(List_Entry *entry, int numnode){
 
         /* Always get the head of the list */ 
         lisptrs = entry->next;
-        list_remove_node(lisptrs);
+        remove_list_node(lisptrs);
 
         numnode --;
 

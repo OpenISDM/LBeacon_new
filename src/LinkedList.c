@@ -64,7 +64,7 @@ inline void init_entry(List_Entry *entry){
 
 
 
-inline void list_insert_(List_Entry *new_node, List_Entry *prev, 
+inline void insert_entry_list(List_Entry *new_node, List_Entry *prev, 
                          List_Entry *next) {
 
     next->prev = new_node;
@@ -77,26 +77,26 @@ inline void list_insert_(List_Entry *new_node, List_Entry *prev,
 
 
 
-inline void list_insert_first(List_Entry *new_node, List_Entry *head) {
+inline void insert_list_first(List_Entry *new_node, List_Entry *head) {
 
-    list_insert_(new_node, head, head->next);
-
-}
-
-
-
-
-
-inline void list_insert_tail(List_Entry *new_node, List_Entry *head) {
-
-    list_insert_(new_node, head->prev, head);
+    insert_entry_list(new_node, head, head->next);
 
 }
 
 
 
 
-inline void list_remove_(List_Entry *prev, List_Entry *next) {
+
+inline void insert_list_tail(List_Entry *new_node, List_Entry *head) {
+
+    insert_entry_list(new_node, head->prev, head);
+
+}
+
+
+
+
+inline void remove_entry_list(List_Entry *prev, List_Entry *next) {
 
     next->prev = prev;
     prev->next = next;
@@ -107,9 +107,9 @@ inline void list_remove_(List_Entry *prev, List_Entry *next) {
 
 
 
-inline void list_remove_node(List_Entry *removed_node_ptrs) {
+inline void remove_list_node(List_Entry *removed_node_ptrs) {
 
-    list_remove_(removed_node_ptrs->prev, removed_node_ptrs->next);
+    remove_entry_list(removed_node_ptrs->prev, removed_node_ptrs->next);
     
     removed_node_ptrs->prev = removed_node_ptrs;
     removed_node_ptrs->next = removed_node_ptrs;

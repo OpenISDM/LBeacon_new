@@ -98,9 +98,11 @@ int receive_call_back(Zigbee zigbee){
         &point_to_CallBack))!= XBEE_ENONE) {
 
         xbee_log(zigbee.xbee, -1, "xbee_conCallbackGet() returned: %d", ret);
+        printf("Nothing is doing\n" );
         return 0;
         
     }
+
 
     if (point_to_CallBack == NULL){
             
@@ -115,8 +117,7 @@ int receive_call_back(Zigbee zigbee){
 
 void *zigbee_send_file(Zigbee zigbee){
     
-   
-    /* Add the packet that to be sent to the gateway */
+
     addpkt(zigbee.pkt_Queue, Data, Gateway, zigbee.zig_message);
 
     /* If there are remain some packet need to send in the Queue,            */
@@ -134,11 +135,10 @@ void *zigbee_send_file(Zigbee zigbee){
         
     }
         
-    /* A short time interval between transmission */
-    usleep(XBEE_TIMEOUT);   
+    usleep(2000000);   
  
 
-   return XBEE_SUCCESSFULLY;
+   return 1;
 }
 
 
