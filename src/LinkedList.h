@@ -38,12 +38,7 @@
   Authors:
 
       Han Wang, hollywang@iis.sinica.edu.tw
-     Jake Lee, jakelee@iis.sinica.edu.tw
-      Johnson Su, johnsonsu@iis.sinica.edu.tw
-      Shirley Huang, shirley.huang.93@gmail.com
-      Han Hu, hhu14@illinois.edu
-      Jeffrey Lin, lin.jeff03@gmail.com
-      Howard Hsu, haohsu0823@gmail.com
+      Joey, joeyzhou@iis.sinica.edu.tw
      
 */
 
@@ -68,6 +63,10 @@
 /*Macro for the method going through the list structure */
 #define list_for_each(pos, head) \
       for (pos = (head)->next; pos != (head); pos = pos->next)
+
+#define list_for_each_safe(pos, n, head) \
+    for (pos = (head)->next, n = pos->next; pos != (head); \
+        pos = n, n = pos->next)
 
 
 

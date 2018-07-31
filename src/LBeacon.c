@@ -1143,7 +1143,7 @@ int main(int argc, char **argv) {
     init_entry(&tracked_object_list_head);
 
     /* Initialize the memory pool */
-    if(mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_FOR_MEM_POOL) 
+    if(mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_IN_MEM_POOL) 
             == NULL){
 
         /* Error handling */

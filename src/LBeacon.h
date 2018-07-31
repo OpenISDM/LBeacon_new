@@ -94,7 +94,8 @@ Authors:
    group field and Opcofe command field, respectively. See Bluetooth 
    specification - core version 4.0, vol.2, part E Chapter 5.4 for details. 
 */
-#define cmd_opcode_pack(ogf, ocf) (uint16_t)((ocf &amp; 0x03ff) | (ogf &lt;&lt; 10))
+#define cmd_opcode_pack(ogf, ocf) (uint16_t)((ocf &amp; 0x03ff) | \
+                                                        (ogf &lt;&lt; 10))
 
 /* File path of the config file */
 #define CONFIG_FILE_NAME "../config/config.conf"
@@ -112,7 +113,8 @@ Authors:
 /* BlueZ bluetooth extended inquiry response protocol: flags */
 #define EIR_FLAGS 0X01
 
-/* BlueZ bluetooth extended inquiry response protocol: Manufacturer Specific Data */
+/* BlueZ bluetooth extended inquiry response protocol: Manufacturer Specific 
+   Data */
 #define EIR_MANUFACTURE_SPECIFIC_DATA 0xFF
 
 /* BlueZ bluetooth extended inquiry response protocol: complete local name */
@@ -132,18 +134,17 @@ Authors:
 */
 #define TIMEOUT 30000
 
-/* Timeout in millisecond of hci_send_req  */
+/* Timeout in milliseconds of hci_send_req  */
 #define HCI_SEND_REQUEST_TIMEOUT 1000
 
-/* Time interval in millisecond for a LBeacon to advertise*/
+/* Time interval in milliseconds for a LBeacon to advertise*/
 #define ADVERTISING_INTERVAL 300
 
 /* The timeout in milliseconds for waiting in threads */
 #define TIMEOUT_WAITING 3000
 
 /* Nominal transmission range limited. Only devices in this RSSI range are 
-   allowed to be discovered and sent 
-*/
+   allowed to be discovered and sent. */
 #define RSSI_RANGE -60
 
 /* RSSI value for TX power of calibration and broadcast  */
@@ -158,13 +159,14 @@ Authors:
 /* Number of worker threads in the thread pool used by communication unit */
 #define NO_WORK_THREADS 2
 
-/* Location data in the maximum number of objects to be transmitted at one time */
+/* Location data in the maximum number of objects to be transmitted at
+   one time */
 #define MAX_NO_OBJECTS 10
 
 /* The number of slots for the memory pool */
-#define SLOTS_FOR_MEM_POOL 1024
+#define SLOTS_IN_MEM_POOL 1024
 
-/* Timeout interval in second */
+/* Timeout interval in seconds */
 #define A_LONG_TIME 30000
 #define A_SHORT_TIME 5000
 #define A_VERY_SHORT_TIME 300
@@ -309,8 +311,9 @@ typedef struct ScannedDevice {
     struct List_Entry sc_list_entry;
     struct List_Entry tr_list_entry;
 
-
-/* Pad added to make the struct size an integer multiple of 32 byte, size of D-cache line.
+/* Pad added to make the struct size an integer multiple of 32 byte, size of
+   D-cache line.
+   
    int pad[30];
 */    
 
@@ -359,9 +362,9 @@ ThreadStatus g_idle_handler[MAX_NO_OBJECTS];
 
 /* Two lists of structs for recording scanned devices */
 
-/* Head of scanned_list that holds the scanned device structs of devices found
-   in recent scans. The MAC address elements of all the structs in this list are 
-   distinct. 
+/* Head of scanned_list that holds the scanned device structs of devices 
+   found in recent scans. The MAC address elements of all the structs in this
+   list are distinct. 
 */
 List_Entry scanned_list_head;
 
@@ -512,7 +515,8 @@ long long get_system_time();
   Parameters:
 
       bluetooth_device_address - bluetooth device address
-      has_rssi - a flag indicating whether the bluetooth device has an RSSI value
+      has_rssi - a flag indicating whether the bluetooth device has an RSSI 
+                 value
       rssi - RSSI value of bluetooth device
 
   Return value:
@@ -559,7 +563,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
       This function checks whether the MAC address given as input is in the 
       scanned list. If a node with MAC address matching the input address is 
       found in the list, the function returns the pointer to the node with 
-      maching address, otherwise it returns NULL.
+      matching address; otherwise it returns NULL.
 
   Parameters:
 
@@ -641,9 +645,10 @@ void *stop_ble_beacon(void *beacon_location);
 
       This function checks each ScannedDevice node in the scanned list to 
       determine whether the node has been in the list for over TIMEOUT unit 
-      of time. If yes, the function removes the ScannedDevice struct from the 
-      list. If the struct is no longer in the tracked_object_list, the function 
-      calls the memory pool to release the memory space used by the struct.
+      of time. If yes, the function removes the ScannedDevice struct from 
+      the list. If the struct is no longer in the tracked_object_list, the 
+      function calls the memory pool to release the memory space used by 
+      the struct.
 
   Parameters:
 
@@ -661,11 +666,12 @@ void *cleanup_scanned_list(void);
 /*
   manage_communication:
 
-      This is the start function of the main thread in the communication unit of 
-      LBeacon. After initlizaiing the zigbee struct, it creates a thread pool 
-      with NO_WORK_THREADS worker threads, then while beacon is ready to work,
-      the function waits for poll from the gateway, when polled, the function 
-      creates appropriate work items to be executed by the worker thread. 
+      This is the start function of the main thread in the communication 
+      unit of LBeacon. After initlizaiing the zigbee struct, it creates a 
+      thread pool with NO_WORK_THREADS worker threads; then while beacon is 
+      ready to work, the function waits for poll from the gateway, when 
+      polled, the function creates appropriate work items to be executed by 
+      a worker thread. 
 
   Parameters:
 
@@ -683,10 +689,10 @@ void *manage_communication(void);
 /*
   copy_object_data_to_file:
 
-      This function tracks the MAC addresses of scanned (is discovered) bluetooth
-      devices under a location beacon. An output file will contain for each 
-      timestamp, the MAC addresses of the bluetooth devices discovered at the 
-      given timestamp.
+      This function copies the MAC addresses of scanned (is discovered)
+      bluetooth devices under a location beacon to a file. The output file
+      contains for each MAC address in a ScannedDevice struct found on the 
+      track object, the initial and final timestamps. 
 
   Parameters:
 
@@ -703,12 +709,13 @@ void copy_object_data_to_file(char *file_name);
 /*
   free_list:
 
-      This function removes the specified number of nodes from the specified list.
+      This function removes nodes from the specified list and if removed 
+      node is not in any list, release memoory used by the node to memory 
+      pool.
 
   Parameters:
 
-      entry - the head of the list.
-      no_nodes - the number of the node to be removed from the specified list.
+      list_head - the head of a specified list.
 
   Return value:
 
@@ -721,11 +728,12 @@ void free_List(List_Entry *entry, int no_node);
 /*
   start_scanning:
 
-      This function scans continuously for bluetooth devices under the coverage
-      of the  beacon until scanning is cancelled. When the RSSI value of the 
-      device is within the threshold, this function calls send_to_push_dongle to
-      either add a new ScannedDevice struct of the device to scanned list and 
-      track_object_list or update the final scan time of a struct in the lists. 
+      This function scans continuously for bluetooth devices under the 
+      coverage of the  beacon until scanning is cancelled. When the RSSI 
+      value of the device is within the threshold, this function calls 
+      send_to_push_dongle to either add a new ScannedDevice struct of the 
+      device to scanned list and track_object_list or update the final scan 
+      time of a struct in the lists. 
 
       [N.B. This function is executed by the main thread. ]
 
@@ -758,7 +766,7 @@ void start_scanning();
 */
 
 ErrorCode startThread(pthread_t thread, void * (*threadfunct)(void*), 
-                        void *arg);
+                                        void *arg);
 
 
 /*
@@ -826,13 +834,13 @@ extern obexftp_client_t * obexftp_open(int transport, obex_ctrans_t *ctrans,
 /* 
   memset:
 
-      This function is called to fill block of memory.
+      This function is called to fill a block of memory.
 
   Parameters:
 
       ptr - the pointer points to the memory area
       value - the constant byte to replace the memory area
-      number - number of bytes in the memory area that needs to be filled
+      number - number of bytes in the memory area to be filled
 
   Return value:
 
@@ -1007,7 +1015,8 @@ extern int pthread_detach(pthread_t thread);
 
   Return value:
 
-      0 for success. error number for error and the contents of *thread are undefined.
+      0 for success. error number for error and the contents of *thread are 
+      undefined.
 */
 extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     void *(*start_routine) (void *), void *arg);
@@ -1016,9 +1025,9 @@ extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 /*
   zigbee_send_file:
 
-      When called, this function sends a containing the specified message packet 
-      to the gateway via xbee module and and receives command or data from the 
-      gateway. 
+      When called, this function sends a containing the specified message 
+      packet to the gateway via xbee module and and receives command or data 
+      from the gateway. 
 
   Parameters:
 
