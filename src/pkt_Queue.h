@@ -1,43 +1,44 @@
 /*
-   Copyright (c) 2016 Academia Sinica, Institute of Information Science
- 
-   License:
- 
-        GPL 3.0 : The content of this file is subject to the terms and
-        cnditions defined in file 'COPYING.txt', which is part of this
-        source code package.
- 
-   Project Name:
- 
-        BeDIPS
- 
-   File Description:
- 
-        This file contains the header of function declarations and variable
-        used in pkt_Queue.h
- 
-   File Name:
- 
-        pkt_Queue.h
- 
-   Abstract:
- 
-        BeDIPS uses LBeacons to deliver 3D coordinates and textual
-        descriptions of their locations to users' devices. Basically, a
-        LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
-        coordinates and location description of every LBeacon are retrieved
-        from BeDIS (Building/environment Data and Information System) and
-        stored locally during deployment and maintenance times. Once
-        initialized, each LBeacon broadcasts its coordinates and location
-        description to Bluetooth enabled user devices within its coverage
-        area.
- 
-   Authors:
-        Gary Xiao       , garyh0205@hotmail.com
+ * Copyright (c) 2016 Academia Sinica, Institute of Information Science
+ *
+ * License:
+ *
+ *      GPL 3.0 : The content of this file is subject to the terms and
+ *      cnditions defined in file 'COPYING.txt', which is part of this
+ *      source code package.
+ *
+ * Project Name:
+ *
+ *      BeDIPS
+ *
+ * File Description:
+ *
+ *      This file contains the header of function declarations and variable
+ *      used in pkt_Queue.h
+ *
+ * File Name:
+ *
+ *      pkt_Queue.h
+ *
+ * Abstract:
+ *
+ *      BeDIPS uses LBeacons to deliver 3D coordinates and textual
+ *      descriptions of their locations to users' devices. Basically, a
+ *      LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
+ *      coordinates and location description of every LBeacon are retrieved
+ *      from BeDIS (Building/environment Data and Information System) and
+ *      stored locally during deployment and maintenance times. Once
+ *      initialized, each LBeacon broadcasts its coordinates and location
+ *      description to Bluetooth enabled user devices within its coverage
+ *      area.
+ *
+ * Authors:
+ *      Gary Xiao       , garyh0205@hotmail.com
  */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -47,7 +48,7 @@
 enum {Data, Local_AT};
 
 /* packet format in the Queue */
-struct pkt {
+typedef struct pkt {
 
     //"Data"
     int type;
@@ -59,26 +60,25 @@ struct pkt {
     // Data
     char *content;
 
-  struct pkt *next;
-};
+    struct pkt *next;
+} sPkt;
 
-typedef struct pkt sPkt;
 typedef sPkt* pPkt;
 
-typedef enum {Lock_Queue,unLock_Queue} Locker;
-
-struct pkt_header {
+typedef struct pkt_header {
 
     // front point to the first of thr Pkt Queue
     // rear  point to the end of the Pkt Queue
-    pPkt front;
-    pPkt rear;
-    Locker locker;
-    int len;
-};
+    sPkt front;
+    sPkt rear;
 
-typedef struct pkt_header spkt_ptr;
-typedef spkt_ptr* pkt_ptr;
+    unsigned char address[8];
+
+    bool locker;
+
+} spkt_ptr;
+
+typedef spkt_ptr * pkt_ptr;
 
 /* Create Packet Queue Header */
 void init_Packet_Queue(pkt_ptr pkt_queue);
@@ -91,8 +91,6 @@ void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content);
 /* Delete the end of Queue */
 void delpkt(pkt_ptr pkt_queue);
 
-void delallpkt(pkt_ptr pkt_queue);
-
 char* type_to_str(int type);
 
 char* print_address(unsigned char* address);
@@ -101,3 +99,11 @@ void display_pkt(char* content, pPkt pkt);
 
 /* Fill the address from raw(char) to addr(Hex) */
 void Fill_Address(char *raw, unsigned char* addr);
+
+bool address_compare(unsigned char* addr1,unsigned char* addr2);
+
+void address_copy(unsigned char* src_addr, unsigned char* dest_addr);
+
+bool is_null(pkt_ptr pkt_Queue);
+
+int queue_len(pkt_ptr pkt_queue);

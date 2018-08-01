@@ -51,35 +51,30 @@
 int zigbee_init(Zigbee zigbee){
 
      /* Parameters for Zigbee initialization */
-    char* xbee_mode  = "xbeeZB";
-    char* xbee_device = "/dev/ttyAMA0"; 
+    char* xbee_mode = "xbeeZB";
+
+    char* xbee_device = "/dev/ttyAMA0";
+
     int xbee_baudrate = 9600;
+
     int LogLevel = 100;
 
-    
-    zigbee.pkt_Queue = malloc(sizeof(spkt_ptr));
-
     xbee_initial(xbee_mode, xbee_device, xbee_baudrate
-                            , LogLevel, &(zigbee.xbee), zigbee.pkt_Queue);
-    
+                            , LogLevel, &zigbee.xbee, &zigbee.pkt_Queue);
     printf("Start establishing Connection to xbee\n");
 
 
-    /*--------------Configuration for connection in Data mode--------------*/
-    /* In this mode we aim to get Data.                                    */
-    /*---------------------------------------------------------------------*/
-
     printf("Establishing Connection...\n");
 
-    xbee_connector(&(zigbee.xbee), &(zigbee.con), zigbee.pkt_Queue);
-
+    xbee_connector(&zigbee.xbee, &zigbee.con, &zigbee.pkt_Queue);
+    
     printf("Connection Successfully Established\n");
 
-    /* Start the chain reaction!                                           */
+    /* Start the chain reaction!                                             */
 
     if((ret = xbee_conValidate(zigbee.con)) != XBEE_ENONE){
         xbee_log(zigbee.xbee, 1, "con unvalidate ret : %d", ret);
-        return;
+        return ret;
     }
 
     return XBEE_SUCCESSFULLY;
@@ -88,26 +83,11 @@ int zigbee_init(Zigbee zigbee){
 
 int receive_call_back(Zigbee zigbee){
    
-   /* Check the connection of call back is enable */ 
-    void *point_to_CallBack;
-
-    if ((ret = xbee_conCallbackGet(zigbee.con, (xbee_t_conCallback*)            
-        &point_to_CallBack))!= XBEE_ENONE) {
-
-        xbee_log(zigbee.xbee, -1, "xbee_conCallbackGet() returned: %d", ret);
-        
-        return 0;
-        
-    }
-
-    if (point_to_CallBack == NULL){
-            
-        printf("Stop Xbee...\n");
-        return 0;
+    /* Check the connection of call back is enable */ 
+    if(xbee_check_CallBack(zigbee.con, &zigbee.pkt_Queue, false)) return;
     
-    }
     /* Get the polled type form the gateway */
-    int call_back_type = CallBack(zigbee.xbee, zigbee.con, zigbee.pkt_Queue, NULL);
+    int call_back_type = CallBack(zigbee.xbee, zigbee.con, &zigbee.pkt_Queue, NULL);
 
     switch(call_back_type){
 
@@ -130,24 +110,15 @@ int receive_call_back(Zigbee zigbee){
 void *zigbee_send_file(Zigbee zigbee){
     
     /* Add the content that to be sent to the gateway to the packet queue */
-    addpkt(zigbee.pkt_Queue, Data, Gateway, zigbee.zig_message);
+    addpkt(&zigbee.pkt_Queue, Data, Gateway, zigbee.zig_message);
 
-    /* If there are remain some packet need to send in the Queue,            */
+    /* If there are remain some packet need to send in the Queue,        */
     /* send the packet                                                   */
-    if(zigbee.pkt_Queue->front->next != NULL){
+    xbee_send_pkt(zigbee.con, &zigbee.pkt_Queue);
 
-        xbee_conTx(zigbee.con, NULL, zigbee.pkt_Queue->front->next->content);
-
-        delpkt(zigbee.pkt_Queue);
+    usleep(XBEE_TIMEOUT);
         
-    }
-    else{
-        
-        xbee_log(zigbee.xbee, -1, "xbee packet Queue is NULL.");
-        
-    }
-        
-    usleep(2000000);   
+    xbee_connector(&zigbee.xbee, &zigbee.con, &zigbee.pkt_Queue);  
  
 
    return;
@@ -156,14 +127,16 @@ void *zigbee_send_file(Zigbee zigbee){
 
 void zigbee_free(Zigbee zigbee){
 
-    /* Free Packet Queue for zigbee connection */
-    Free_Packet_Queue(zigbee.pkt_Queue);
+    Free_Packet_Queue(&zigbee.pkt_Queue);
 
-    /* Close connection  */
+    /* Close connection                                                      */
     if ((ret = xbee_conEnd(zigbee.con)) != XBEE_ENONE) {
         xbee_log(zigbee.xbee, 10, "xbee_conEnd() returned: %d", ret);
         return;
     }
+
+    Free_Packet_Queue(&zigbee.pkt_Queue);
+    
     printf("Stop connection Succeeded\n");
 
     /* Close xbee                                                            */

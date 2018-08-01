@@ -51,6 +51,7 @@
 /* The length of the message to be sent to the gateway */
 #define MESSAGE_LENGTH 512
 
+/* Length of timeout in number of milliseconds */
 #define XBEE_TIMEOUT 2000000
 
 #define XBEE_SUCCESSFULLY 1
@@ -66,7 +67,7 @@ typedef struct Zigbee {
     struct xbee_con *con;
 
     /* Struct of queue of packet which is defined in pkt_Queue.h */
-    pkt_ptr pkt_Queue;
+    spkt_ptr pkt_Queue;
 
     /* The message to be sent to the gateway. */
     char zig_message[MESSAGE_LENGTH];
@@ -79,7 +80,7 @@ typedef enum PolledDataType {
     NOT_YET_POLLED = 0,
     TRACK_OBJECT_DATA = 1,
     HEALTH_REPORT = 2,
-    MAX_NO_DATA_TYPE = 3
+    MAX_NO_DATA_TYPES = 3
 
 } PolledDataType;
 
@@ -90,16 +91,16 @@ typedef enum PolledDataType {
 /*
   zigbee_init:
 
-  This function initilizes the zigbee's necessory object.  
+    This function initilizes the zigbee's necessory object.  
 
   Parameters:
 
-  zigbee - the struct of necessary parameter and data
+    zigbee - the struct of necessary parameter and data
 
 
   Return value:
 
-  ErrorCode: The error code for the corresponding error
+    ErrorCode: The error code for the corresponding error or successful
 
 */
 int zigbee_init(Zigbee zigbee);
@@ -108,17 +109,17 @@ int zigbee_init(Zigbee zigbee);
 /*
   receive_call_back:
 
-  This function receives the poiter to the packet sent by the gateway and 
-  return different indicatior for different polled data type.   
+    This function receives a pointer to the packet sent by the gateway and 
+    return an indicatior for the polled data type of the packet.   
 
   Parameters:
 
-  zigbee - the struct of necessary parameter and data
+    zigbee - the struct of necessary parameter and data
 
 
   Return value:
 
-  polled_data: The indicator of the polled data
+    polled_data: An indicator of the polled data
 
 */
 
@@ -127,17 +128,16 @@ int receive_call_back(Zigbee zigbee);
 /*
   zigbee_send_file:
 
-  When called, this function sends a containing the specified message packet 
-  to the gateway via xbee module and and receives command or data from the 
-  gateway. 
+    When called, this function sends a packet containing the specified 
+    message to the gateway via xbee module.
 
   Parameters:
 
-  zigbee - the struct of necessary parameter and data
+    zigbee - the struct of necessary parameter and data
 
   Return value:
 
-  None
+    None
 
 */
 void *zigbee_send_file(Zigbee zigbee);
@@ -145,15 +145,15 @@ void *zigbee_send_file(Zigbee zigbee);
 /*
   zigbee_free:
 
-  When called, this function frees the necessory element.
+    When called, this function frees the necessory element.
 
   Parameters:
 
-  zigbee - the struct of necessary parameter and data
+    zigbee - the struct of necessary parameter and data
 
   Return value:
 
-  ErrorCode: The error code for the corresponding error
+    ErrorCode: The error code for the corresponding error
 
 */
 void zigbee_free(Zigbee zigbee);

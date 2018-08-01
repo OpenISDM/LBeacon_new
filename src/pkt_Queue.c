@@ -1,59 +1,64 @@
 /*
-  Copyright (c) 2016 Academia Sinica, Institute of Information Science
- 
-  License:
- 
-       GPL 3.0 : The content of this file is subject to the terms and
-       cnditions defined in file 'COPYING.txt', which is part of this
-       source code package.
- 
-  Project Name:
- 
-       BeDIPS
- 
-  File Description:
- 
-    	This file contains the program for the waiting queue.
- 
-  File Name:
- 
-       pkt_Queue.c
- 
-  Abstract:
- 
-       BeDIPS uses LBeacons to deliver 3D coordinates and textual
-       descriptions of their locations to users' devices. Basically, a
-       LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
-       coordinates and location description of every LBeacon are retrieved
-       from BeDIS (Building/environment Data and Information System) and
-       stored locally during deployment and maintenance times. Once
-       initialized, each LBeacon broadcasts its coordinates and location
-       description to Bluetooth enabled user devices within its coverage
-       area.
- 
-  Authors:
-       Gary Xiao		, garyh0205@hotmail.com
-*/
+ * Copyright (c) 2016 Academia Sinica, Institute of Information Science
+ *
+ * License:
+ *
+ *      GPL 3.0 : The content of this file is subject to the terms and
+ *      cnditions defined in file 'COPYING.txt', which is part of this
+ *      source code package.
+ *
+ * Project Name:
+ *
+ *      BeDIPS
+ *
+ * File Description:
+ *
+ *      This file contains the program for the waiting queue.
+ *
+ * File Name:
+ *
+ *      pkt_Queue.c
+ *
+ * Abstract:
+ *
+ *      BeDIPS uses LBeacons to deliver 3D coordinates and textual
+ *      descriptions of their locations to users' devices. Basically, a
+ *      LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
+ *      coordinates and location description of every LBeacon are retrieved
+ *      from BeDIS (Building/environment Data and Information System) and
+ *      stored locally during deployment and maintenance times. Once
+ *      initialized, each LBeacon broadcasts its coordinates and location
+ *      description to Bluetooth enabled user devices within its coverage
+ *      area.
+ *
+ * Authors:
+ *      Gary Xiao       , garyh0205@hotmail.com
+ */
 
 #include "pkt_Queue.h"
 
-/*
- * init_Packet_Queue
- *     Initialize packet queue that is for the packet waiting to send to the
- *     Gateway or to the Beacon.
- * Parameter:
- *     pkt_queue : A struct stored the first and the last of the packet queue.
- * Return Value:
- *     None
- */
-void init_Packet_Queue(pkt_ptr pkt_queue) {
-    pkt_queue->locker = Lock_Queue;
-    pkt_queue->len    = 0;
-    pkt_queue->front = malloc(sizeof(sPkt));
-    memset(pkt_queue->front, 0, sizeof(sPkt));
-    pkt_queue->rear  = pkt_queue->front;
-    pkt_queue->front->next = NULL;
-    pkt_queue->locker = unLock_Queue;
+
+    /* init_Packet_Queue
+     *  Initialize Queue for packets
+     * Parameter:
+     *  pkt_queue : A struct stored pointers of the first and the last of packet.
+     * Return Value:
+     *  None
+     */
+void init_Packet_Queue(pkt_ptr pkt_queue){
+
+    pkt_queue->locker = false;
+
+    bool status;
+    do{
+        status = pkt_queue -> locker;
+        pkt_queue -> locker = true;
+    }while(status == false);
+
+    pkt_queue -> front.next = pkt_queue -> rear.next = NULL;
+
+    pkt_queue -> locker = false;
+
 }
 
 /*
@@ -67,17 +72,10 @@ void init_Packet_Queue(pkt_ptr pkt_queue) {
  *     None
  */
 void Free_Packet_Queue(pkt_ptr pkt_queue){
-
-    delallpkt(pkt_queue);
-
-    Locker status;
-    do{
-        status = pkt_queue->locker;
-        pkt_queue->locker = Lock_Queue;
-    }while(status != unLock_Queue);
-
-    free(pkt_queue->front);
-    free(pkt_queue);
+    while (!(is_null(pkt_queue))){
+        delpkt(pkt_queue);
+    }
+    printf("pkt_queue released\n");
 }
 
 /*
@@ -92,46 +90,42 @@ void Free_Packet_Queue(pkt_ptr pkt_queue){
  *     None
  */
 void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
-    Locker status;
+    bool status;
     do{
         status = pkt_queue->locker;
-        pkt_queue->locker = Lock_Queue;
-    }while(status != unLock_Queue);
+        pkt_queue->locker = true;
+    }while(status == true);
 
     printf("addpkt start\n");
+
     pPkt newpkt = malloc(sizeof(sPkt));
-    memset(newpkt, 0, sizeof(sPkt));
+
     printf("------Content------\n");
     printf("type    : %s\n", type_to_str(type));
     printf("address : %s\n", raw_addr);
     printf("content : %s\n", content);
     printf("-------------------\n");
 
-    printf("determine queue is null or not\n");
-    if(pkt_queue->len == 0) {
+    if(is_null(pkt_queue)) {
         printf("queue is null\n");
-        (pkt_queue->front)->next = newpkt;
+        pkt_queue->front.next = newpkt;
+        pkt_queue->rear.next = newpkt;
     }
-
-    newpkt -> type = type;
-
+    newpkt->type = type;
     Fill_Address(raw_addr, newpkt->address);
-
     int cont_len = strlen(content);
     newpkt->content = malloc((cont_len+1) * sizeof(char));
     memset(newpkt->content, 0, sizeof((cont_len + 1)*sizeof(char)));
-    strncpy(newpkt -> content, content, cont_len);
+    strncpy(newpkt->content, content, cont_len);
     newpkt->content[cont_len] = '\0';
-    printf("Set next NULL\n");
     newpkt->next = NULL;
-    printf("Add to Queue\n");
-    (pkt_queue->rear)->next = newpkt;
-    printf("Add to Queue\n");
-    pkt_queue->rear = newpkt;
+    if(pkt_queue->rear.next != NULL)
+        pkt_queue->rear.next->next = newpkt;
+    pkt_queue->rear.next = newpkt;
 
-    display_pkt("Addedpkt", pkt_queue->rear);
-    pkt_queue->len+= 1;
-    pkt_queue->locker = unLock_Queue;
+    display_pkt("Addedpkt", newpkt);
+    pkt_queue->locker = false;
+
     return;
 }
 
@@ -144,43 +138,35 @@ void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
  *     None
  */
  void delpkt(pkt_ptr pkt_queue) {
-    Locker status;
+    bool status;
     do{
         status = pkt_queue->locker;
-        pkt_queue->locker = Lock_Queue;
-    }while(status != unLock_Queue);
+        pkt_queue->locker = true;
+    }while(status == true);
 
-    if(pkt_queue->len == 0) {
+    if(is_null(pkt_queue)) {
         printf("Packet Queue is empty!\n");
-        pkt_queue->locker = unLock_Queue;
+        pkt_queue->locker = false;
         return;
     }
 
-    sPkt* tmpnode;
-    tmpnode = (pkt_queue->front)->next;
-    (pkt_queue->front)->next = tmpnode->next;
-    display_pkt("deledpkt",tmpnode);
-    free(tmpnode->content);
-    free(tmpnode);
-    pkt_queue->len-= 1;
-    pkt_queue->locker = unLock_Queue;
-    return;
-}
-
-/*
- * delallpkt
- *     delete all packet in the packet queue we assigned.
- * Parameter:
- *     pkt_queue : A struct stored the first and the last of the packet queue.
- * Return Value:
- *     None
- */
-void delallpkt(pkt_ptr pkt_queue) {
-    while (pkt_queue->len != 0){
-        delpkt(pkt_queue);
-        printf("delall\n");
+    sPkt tmpnode;
+    tmpnode.next = pkt_queue->front.next;
+    if(pkt_queue->front.next == pkt_queue->rear.next){
+        pkt_queue->front.next = NULL;
+        pkt_queue->rear.next = NULL;
     }
-    printf("End delall\n");
+    else{
+        pkt_queue->front.next = pkt_queue->front.next->next;
+    }
+
+    display_pkt("deledpkt", tmpnode.next);
+    free(tmpnode.next->content);
+    tmpnode.next->next = NULL;
+    free(tmpnode.next);
+    pkt_queue->locker = false;
+
+    return;
 }
 
 /*
@@ -241,6 +227,17 @@ void Fill_Address(char *raw,unsigned char* addr){
     printf("\n");
 }
 
+bool address_compare(unsigned char* addr1,unsigned char* addr2){
+    if (memcmp(addr1, addr2, 8) == 0){
+        return true;
+    }
+    return false;
+}
+
+void address_copy(unsigned char* src_addr, unsigned char* dest_addr){
+    memcpy(dest_addr, src_addr, 8);
+}
+
 /* display_pkt
  *     display the packet we decide to see.
  * Parameter:
@@ -250,6 +247,8 @@ void Fill_Address(char *raw,unsigned char* addr){
  *     None
  */
 void display_pkt(char* content, pPkt pkt){
+    if(pkt == NULL)
+        return;
     char* char_addr = print_address(pkt->address);
     printf("------ %12s ------\n",content);
     printf("type    : %s\n", type_to_str(pkt->type));
@@ -257,4 +256,28 @@ void display_pkt(char* content, pPkt pkt){
     printf("content : %s\n", pkt->content);
     printf("--------------------------\n");
     free(char_addr);
+    return;
+}
+
+bool is_null(pkt_ptr pkt_queue){
+    if (pkt_queue->front.next == NULL && pkt_queue->rear.next == NULL){
+        return true;
+    }
+    return false;
+}
+
+int queue_len(pkt_ptr pkt_queue){
+    int count = 0 ;
+    if (is_null(pkt_queue)){
+        printf("Queue is NULL\n");
+        return 0;
+    }
+    pPkt tmpnode;
+    tmpnode = pkt_queue->front.next;
+    while(tmpnode != pkt_queue->rear.next){
+        tmpnode = tmpnode->next;
+        count ++;
+    }
+    count ++;
+    return count;
 }
