@@ -642,7 +642,7 @@ void *manage_communication(void) {
     int polled_type;
     
     /* Initialize the zigbee */
-    if(zigbee_init(zigbee) == 0){
+    if(zigbee_init(zigbee) != 0){
 
          /* Could not initialize the zigbee, handle error */
         perror(errordesc[E_INIT_ZIGBEE].message);
@@ -674,8 +674,20 @@ void *manage_communication(void) {
         
         
         polled_type = receive_call_back(zigbee);
+
+        /*
+        if(polled_type == NULL){
+
+            /* Could not create thread pool, handle error */
+        /*  
+            perror(errordesc[E_ZIGBEE_CONNECT].message);
+            cleanup_exit();
+
+        return;
+
+        }
         
-        
+        */
         while(polled_type == NOT_YET_POLLED){
 
             printf("Polled is going to sleep \n");

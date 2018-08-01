@@ -176,7 +176,7 @@ xbee_err xbee_connector(struct xbee** xbee, struct xbee_con** con
 
     if(Require_CallBack){
         /* Set CallBack Function to call CallBack if packet received              */
-        if((ret = xbee_conCallbackSet(*con, CallBack, NULL)) != XBEE_ENONE) {
+        if((ret = xbee_conCallbackSet(*con, (xbee_t_conCallback) CallBack, NULL)) != XBEE_ENONE) {
             xbee_log(*xbee, 1, "xbee_conCallbackSet() returned: %d", ret);
             return ret;
         }

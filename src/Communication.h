@@ -46,6 +46,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include "xbee_API.h"
 
 /* The length of the message to be sent to the gateway */
@@ -54,8 +55,6 @@
 /* Length of timeout in number of milliseconds */
 #define XBEE_TIMEOUT 2000000
 
-#define XBEE_SUCCESSFULLY 1
-#define XBEE_ERROR 0
 
 /* Struct of parameters for Zigbee Initialization */
 typedef struct Zigbee {
@@ -74,7 +73,7 @@ typedef struct Zigbee {
     
 } Zigbee;
 
-
+/* The enumeration of the polled data */
 typedef enum PolledDataType {
 
     NOT_YET_POLLED = 0,
@@ -86,6 +85,31 @@ typedef enum PolledDataType {
 
 
 
+
+/* The enumeration of the error code */
+typedef enum ErrorCode_XBee {
+
+    XBEE_SUCCESSFULLY = 0,
+    E_XBEE_VALIDATE = 1,
+    E_CALL_BACK = 2,
+    E_CONNECT = 3,
+    E_SHUT_DOWN = 4
+
+} ErrorCode_Xbee;
+
+struct _errordesc_xbee {
+    int code;
+    char *message;
+} error_xbee[] = {
+
+    {XBEE_SUCCESSFULLY, "The xbee works successfullly"},
+    {E_XBEE_VALIDATE, "Error validating xbee"},
+    {E_CALL_BACK, "Error enabling call back function for xbee"},
+    {E_CONNECT, "Error buildiing xbee connection"},
+    {E_SHUT_DOWN, "Error shutting down xbee"}
+
+    
+};
 
 
 /*
@@ -103,7 +127,7 @@ typedef enum PolledDataType {
     ErrorCode: The error code for the corresponding error or successful
 
 */
-int zigbee_init(Zigbee zigbee);
+ErrorCode_Xbee zigbee_init(Zigbee zigbee);
 
 
 /*
@@ -156,4 +180,4 @@ void *zigbee_send_file(Zigbee zigbee);
     ErrorCode: The error code for the corresponding error
 
 */
-void zigbee_free(Zigbee zigbee);
+ErrorCode_Xbee zigbee_free(Zigbee zigbee);
