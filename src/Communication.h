@@ -127,7 +127,7 @@ struct _errordesc_xbee {
     ErrorCode: The error code for the corresponding error or successful
 
 */
-ErrorCode_Xbee zigbee_init(Zigbee zigbee);
+ErrorCode_Xbee zigbee_init(Zigbee *zigbee);
 
 
 /*
@@ -147,7 +147,7 @@ ErrorCode_Xbee zigbee_init(Zigbee zigbee);
 
 */
 
-int receive_call_back(Zigbee zigbee);
+int receive_call_back(Zigbee *zigbee);
 
 /*
   zigbee_send_file:
@@ -164,7 +164,7 @@ int receive_call_back(Zigbee zigbee);
     None
 
 */
-void zigbee_send_file(Zigbee zigbee);
+void zigbee_send_file(Zigbee *zigbee);
 
 /*
   zigbee_free:
@@ -180,4 +180,4 @@ void zigbee_send_file(Zigbee zigbee);
     ErrorCode: The error code for the corresponding error
 
 */
-ErrorCode_Xbee zigbee_free(Zigbee zigbee);
+ErrorCode_Xbee zigbee_free(Zigbee *zigbee);

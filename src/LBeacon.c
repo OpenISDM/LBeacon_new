@@ -650,7 +650,7 @@ void *manage_communication(void) {
     int polled_type;
     
     /* Initialize the zigbee */
-    if(zigbee_init(zigbee) != 0){
+    if(zigbee_init(&zigbee) != 0){
 
          /* Could not initialize the zigbee, handle error */
         perror(errordesc[E_INIT_ZIGBEE].message);
@@ -681,7 +681,7 @@ void *manage_communication(void) {
            different action would take. */
         
         
-        polled_type = receive_call_back(zigbee);
+        polled_type = receive_call_back(&zigbee);
 
         /*
         if(polled_type == NULL){
@@ -730,7 +730,7 @@ void *manage_communication(void) {
                 fgets(zigbee.zig_message, sizeof(zigbee.zig_message), 
                                                             file_to_send);
 
-                zigbee_send_file(zigbee);
+                zigbee_send_file(&zigbee);
             
                 printf("Message: %s \n", zigbee.zig_message);
 
@@ -773,7 +773,7 @@ void *manage_communication(void) {
 
     /* After the ready_to_work is set to false, clean up the zigbee and the 
        thread pool */
-    zigbee_free(zigbee);
+    zigbee_free(&zigbee);
 
     /* Free the thread pool */
     thpool_destroy(thpool);
