@@ -178,6 +178,8 @@ xbee_err xbee_connector(struct xbee** xbee, struct xbee_con** con
         /* Set CallBack Function to call CallBack if packet received              */
         if((ret = xbee_conCallbackSet(*con, (xbee_t_conCallback) CallBack, NULL)) != XBEE_ENONE) {
             xbee_log(*xbee, 1, "xbee_conCallbackSet() returned: %d", ret);
+
+            printf("Error!!! initialize  \n");
             return ret;
         }
     }

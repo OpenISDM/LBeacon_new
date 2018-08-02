@@ -216,16 +216,27 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
     strcat(address, "\0");
 
     struct ScannedDevice *new_node;
+
+    pthread_mutex_lock(&list_lock);
     new_node = check_is_in_scanned_list(address);
    
-    
-    /* If check_is_in_scanned_list() returns null, allocate memory form
-       memory pool for a new node, initilize the node, and insert the 
-       new  node to the scanned list. */
-    if (new_node == NULL) {
 
+
+    if (new_node != NULL) {
+
+        /* Update the final scan time */
+        new_node->final_scanned_time = get_system_time();
+        
+        pthread_mutex_unlock(&list_lock);
       
+    
+    }else{
+        
 
+       /* Allocate memory from memory pool for a new node, initilize the 
+       node, and insert the new  node to the scanned list. */
+
+        pthread_mutex_unlock(&list_lock);
         printf("******Get the memory from the pool. ****** \n");
         new_node = (struct ScannedDevice*) mp_alloc(&mempool);
         
@@ -244,26 +255,20 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 
         
         pthread_mutex_lock(&list_lock);
+        
         /* Insert the new code to the scanned list */
-        insert_list_first(&new_node->sc_list_entry, &scanned_list_head);
+        insert_list_first(&new_node->sc_list_entry, 
+                          &scanned_list_head);
 
         /* Insert the new node to the track_object_list  */
         insert_list_first(&new_node->tr_list_entry, 
-                            &tracked_object_list_head);
+                          &tracked_object_list_head);
 
         pthread_mutex_unlock(&list_lock);
        
-
-    
-    }else{
-        
-
-        pthread_mutex_lock(&list_lock);
+      
          
-        /* Update the final scan time */
-        new_node->final_scanned_time = get_system_time();
-        
-        pthread_mutex_unlock(&list_lock);
+       
        
     }
 
@@ -293,12 +298,15 @@ struct ScannedDevice *check_is_in_scanned_list(char address[]) {
         
         int len = strlen(address);
 
-        char *addr_last_two = &address[len - NO_DIGITS_TO_COMPARE];
-        char *temp_last_two = &temp->scanned_mac_address[len - NO_DIGITS_TO_COMPARE];
+        char *addr_last_digits = &address[len - NO_DIGITS_TO_COMPARE];
+        char *temp_last_digits = 
+                     &temp->scanned_mac_address[len - NO_DIGITS_TO_COMPARE];
 
         /* Compare the last two digits of the MAC address */
-        if ((!strncmp(address, temp->scanned_mac_address, NO_DIGITS_TO_COMPARE))&&
-            (!strncmp(addr_last_two, temp_last_two, NO_DIGITS_TO_COMPARE))) {
+        if ((!strncmp(address, temp->scanned_mac_address, 
+                      NO_DIGITS_TO_COMPARE))&&
+            (!strncmp(addr_last_digits, temp_last_digits, 
+                      NO_DIGITS_TO_COMPARE))) {
 
             return temp;
 
@@ -568,7 +576,7 @@ void *stop_ble_beacon(void *beacon_location) {
 void *cleanup_scanned_list(void) {
 
 
-    struct List_Entry *listptrs;
+    struct List_Entry *listptrs, *savelistptrs;
     ScannedDevice *temp;
 
     while (ready_to_work == true) {
@@ -686,9 +694,9 @@ void *manage_communication(void) {
         return;
 
         }
-        
         */
-        while(polled_type == NOT_YET_POLLED){
+        
+        while(polled_type ==TRACK_OBJECT_DATA){
 
             printf("Polled is going to sleep \n");
             sleep(TIMEOUT_WAITING);
@@ -699,7 +707,7 @@ void *manage_communication(void) {
         prepared */
         switch(polled_type){
 
-            case TRACK_OBJECT_DATA:
+            case NOT_YET_POLLED:
 
                 /* Function call to execute copy_track_object_to_data in order
                    to create file to be transmit */
@@ -721,19 +729,24 @@ void *manage_communication(void) {
                 /* Read the file to get the content for the message to send */
                 fgets(zigbee.zig_message, sizeof(zigbee.zig_message), 
                                                             file_to_send);
+
+                zigbee_send_file(zigbee);
             
                 printf("Message: %s \n", zigbee.zig_message);
 
+
                 /* Add the work item to the work thread */
+                /*
                 if(thpool_add_work(thpool, (void*)zigbee_send_file, &zigbee) != 0){
 
                     /* Error handling */
+                 /*
                     perror(errordesc[E_OPEN_FILE].message);
                     cleanup_exit();
                     return;
                 
                 }
-
+                */
              break;
 
             case HEALTH_REPORT:

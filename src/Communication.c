@@ -59,14 +59,14 @@ ErrorCode_Xbee zigbee_init(Zigbee zigbee){
 
     int LogLevel = 100;
 
-    xbee_initial(xbee_mode, xbee_device, xbee_baudrate
-                            , LogLevel, &zigbee.xbee, &zigbee.pkt_Queue);
+    xbee_initial(xbee_mode, xbee_device, xbee_baudrate, 
+                        LogLevel, &(zigbee.xbee), &zigbee.pkt_Queue);
     printf("Start establishing Connection to xbee\n");
 
 
     printf("Establishing Connection...\n");  
 
-    xbee_connector(&zigbee.xbee, &zigbee.con, &zigbee.pkt_Queue);
+    xbee_connector(&(zigbee.xbee), &(zigbee.con), &zigbee.pkt_Queue);
     
     printf("Connection Successfully Established\n");
 
@@ -119,7 +119,7 @@ int receive_call_back(Zigbee zigbee){
 
 }
 
-void *zigbee_send_file(Zigbee zigbee){
+void zigbee_send_file(Zigbee zigbee){
     
     /* Add the content that to be sent to the gateway to the packet queue */
     addpkt(&zigbee.pkt_Queue, Data, Gateway, zigbee.zig_message);

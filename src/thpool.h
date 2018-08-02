@@ -12,7 +12,6 @@
 #include <pthread.h>
 #include <errno.h>
 #include <time.h>
-#include "Mempool.h"
 
 
 #define err(str) fprintf(stderr, str)
@@ -69,8 +68,6 @@ typedef struct thpool_{
 	pthread_cond_t  threads_all_idle;    /* signal to thpool_wait     */
 	jobqueue  jobqueue;                  /* job queue                 */
 } thpool_;
-
-
 
 
 
@@ -179,7 +176,7 @@ int thpool_add_work(Threadpool threadpool, void (*function_p)(void*), void* arg_
  * @param threadpool     the threadpool to wait for
  * @return nothing
  */
-void thpool_wait(Threadpool);
+void thpool_wait(Threadpool threadpool);
 
 
 /**
@@ -203,7 +200,7 @@ void thpool_wait(Threadpool);
  * @param threadpool    the threadpool where the threads should be paused
  * @return nothing
  */
-void thpool_pause(Threadpool);
+void thpool_pause(Threadpool threadpool);
 
 
 /**
@@ -241,7 +238,7 @@ void thpool_resume(Threadpool threadpool);
  * @param threadpool     the threadpool to destroy
  * @return nothing
  */
-void thpool_destroy(Threadpool);
+void thpool_destroy(Threadpool threadpool);
 
 
 /**
@@ -262,10 +259,7 @@ void thpool_destroy(Threadpool);
  * @param threadpool     the threadpool of interest
  * @return integer       number of threads working
  */
-int thpool_num_threads_working(Threadpool);
+int thpool_num_threads_working(Threadpool threadpool);
 
-/* The number of slots for the memory pool */
-#define SLOTS_FOR_MEM_POOL 100
 
-/* The number of slots for the memory pool */
-#define SIZE_FOR_MEM_POOL 256
+

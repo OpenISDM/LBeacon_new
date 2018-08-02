@@ -1038,4 +1038,4 @@ extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
       None
 
 */
-extern void *zigbee_send_file(Zigbee zigbee);
+extern void zigbee_send_file(Zigbee zigbee);

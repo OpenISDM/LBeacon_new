@@ -164,7 +164,7 @@ int receive_call_back(Zigbee zigbee);
     None
 
 */
-void *zigbee_send_file(Zigbee zigbee);
+void zigbee_send_file(Zigbee zigbee);
 
 /*
   zigbee_free:
