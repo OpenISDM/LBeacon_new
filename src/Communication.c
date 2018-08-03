@@ -75,7 +75,7 @@ ErrorCode_Xbee zigbee_init(Zigbee *zigbee){
         
         xbee_log(zigbee->xbee, 1, "con unvalidate ret : %d", ret);
         
-        //perror(error_xbee[E_XBEE_VALIDATE].message);
+        perror(error_xbee[E_XBEE_VALIDATE].message);
         
         return E_XBEE_VALIDATE;
     }
@@ -89,15 +89,19 @@ int receive_call_back(Zigbee *zigbee){
     /* Check the connection of call back is enable */ 
     if(xbee_check_CallBack(zigbee->con, &zigbee->pkt_Queue, false)){
 
-      //perror(error_xbee[E_CALL_BACK].message);
+      perror(error_xbee[E_CALL_BACK].message);
       
       return NULL;
     
     };
-    printf("Here is call back \n");
+
     /* Get the polled type form the gateway */
-    //int call_back_type = CallBack(zigbee->xbee, zigbee->con, &zigbee->pkt_Queue, NULL);
-    int call_back_type = 0; 
+    int call_back_type = CallBack(zigbee->xbee, 
+                                  zigbee->con, 
+                                  &zigbee->pkt_Queue, 
+                                  NULL);
+    
+    
     switch(call_back_type){
 
         case TRACK_OBJECT_DATA:
@@ -145,7 +149,7 @@ ErrorCode_Xbee zigbee_free(Zigbee *zigbee){
     if ((ret = xbee_conEnd(zigbee->con)) != XBEE_ENONE) {
         
         xbee_log(zigbee->xbee, 10, "xbee_conEnd() returned: %d", ret);
-        //perror(error_xbee[E_CONNECT].message);
+        perror(error_xbee[E_CONNECT].message);
 
         return;
     }

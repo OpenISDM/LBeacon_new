@@ -41,8 +41,9 @@ Authors:
     Han Wang, hollywang@iis.sinica.edu.tw
     Jake Lee, jakelee@iis.sinica.edu.tw
     Johnson Su, johnsonsu@iis.sinica.edu.tw
+    Joey Zhou, joeyzhou@iis.sinica.edu.tw
+    Kenneth Tang, kennethtang@iis.sinica.edu.tw
     Shirley Huang, shirley.huang.93@gmail.com
-    Han Hu, hhu14@illinois.edu
     Jeffrey Lin, lin.jeff03@gmail.com
     Howard Hsu, haohsu0823@gmail.com
       
@@ -127,6 +128,9 @@ Authors:
 
 /* Number of milliseconds in an epoch */
 #define LENGTH_OF_TIME 10
+
+/* Length of the char of basic information */
+#define LENGTH_OF_INFO 128
 
 /* Maximum length of time in milliseconds a bluetooth device
    stays in the scanned device list 
@@ -723,7 +727,7 @@ ErrorCode copy_object_data_to_file(char *file_name);
       None
 */
 
-void free_List(List_Entry *entry, int no_node);
+void free_list(List_Entry *list_head);
 
 
 /*

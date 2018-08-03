@@ -44,10 +44,12 @@
       Han Wang, hollywang@iis.sinica.edu.tw
       Jake Lee, jakelee@iis.sinica.edu.tw
       Johnson Su, johnsonsu@iis.sinica.edu.tw
+      Joey Zhou, joeyzhou@iis.sinica.edu.tw
+      Kenneth Tang, kennethtang@iis.sinica.edu.tw
       Shirley Huang, shirley.huang.93@gmail.com
-      Han Hu, hhu14@illinois.edu
       Jeffrey Lin, lin.jeff03@gmail.com
       Howard Hsu, haohsu0823@gmail.com
+
       
 */
 
@@ -670,12 +672,11 @@ void *manage_communication(void) {
         /* Check call back from the gateway. If not polled by gateway, sleep 
            for a short time. If polled, take the action according to the 
            poll type. */
-        
-        
+            
         polled_type = receive_call_back(&zigbee);
 
       
-        while(polled_type ==TRACK_OBJECT_DATA){
+        while(polled_type == NOT_YET_POLLED){
 
             printf("Polled is going to sleep \n");
             sleep(TIMEOUT_WAITING);
@@ -685,10 +686,10 @@ void *manage_communication(void) {
         }
 
         /* According to the polled data type, different work item to be 
-        prepared */
+           prepared */
         switch(polled_type){
 
-            case NOT_YET_POLLED:
+            case TRACK_OBJECT_DATA:
 
                 /* Call copy_track_object_to_data() to create file of 
                    tracked object datato be transmit */
@@ -698,9 +699,12 @@ void *manage_communication(void) {
                 if(copy_progress == E_EMPTY_FILE){
 
                     /* Inform gateway that there is nothing found by this 
-                       LBeacon */
-                    strcpy(zigbee.zig_message, 
-                           "Nothing was found by this LBeacon");
+                       LBeacon with specific uuid */
+                    sprintf(zigbee.zig_message, 
+                            "Nothing was found by this LBeacon: %s",
+                            g_config.uuid);
+                    
+                    
                 
                 }else if(copy_progress == WORK_SCUCESSFULLY){
 
@@ -727,21 +731,21 @@ void *manage_communication(void) {
 
 
                 /* Add the work item to the work thread */
-                
                 if(thpool_add_work(thpool, 
-                                    (void*)zigbee_send_file, 
-                                    &zigbee) != 0){
+                                   (void*)zigbee_send_file, 
+                                   &zigbee) != 0){
 
                     /* Error handling */
-                 
+                    /* Set ready_to_work to false to let other theeads know 
+                       of the error */
+                    ready_to_work = false;
                     perror(errordesc[E_OPEN_FILE].message);
                     cleanup_exit();
                     return;
                 
                 }
 
-
-             sleep(30);  
+  
              break;
 
             case HEALTH_REPORT:
@@ -796,6 +800,7 @@ ErrorCode copy_object_data_to_file(char *file_name) {
     int number_to_send;
     char timestamp_initial_str[LENGTH_OF_TIME];
     char timestamp_final_str[LENGTH_OF_TIME];
+    char basic_info[LENGTH_OF_INFO];
 
 
     /* Create a new file to store data in the tracked_object_list */        
@@ -817,8 +822,11 @@ ErrorCode copy_object_data_to_file(char *file_name) {
     number_in_list = get_list_length(&tracked_object_list_head);
     number_to_send = min(MAX_NO_OBJECTS, number_in_list);
 
-
+    /* Add the number_to_send at the first of the track file */
+    sprintf(basic_info, "%d;", number_to_send);
+    fputs(basic_info, track_file);
     printf("Number to send: %d\n", number_to_send);
+
 
     /*Check if number_to_send is zero, if yes, close file and return */
     if(number_to_send == 0){  
@@ -840,11 +848,10 @@ ErrorCode copy_object_data_to_file(char *file_name) {
     
     int node_count;
     
-    /* Go through the track_object_list to move the nodes in the list
-       to local list */
-    for (node_count = 1; node_count <= number_to_send || 
-                        lisptrs != (&tracked_object_list_head); 
-                        lisptrs = lisptrs->next){
+    /* Go through the track_object_list to move number_to_send nodes in the 
+    list to local list */
+    for (node_count = 1; node_count <= number_to_send; 
+                         lisptrs = lisptrs->next){
 
         /* If the node is the last in the list */
         if(node_count == number_to_send){
@@ -853,7 +860,7 @@ ErrorCode copy_object_data_to_file(char *file_name) {
             tailptrs = lisptrs;
             
         }
-        node_count++;
+        node_count = node_count + 1;
 
     }
 
@@ -878,6 +885,8 @@ ErrorCode copy_object_data_to_file(char *file_name) {
         sprintf(timestamp_final_str, ", %u", timestamp_end);
 
         /* Write the content to the file */
+        fputs(g_config.uuid, track_file);
+        fputs(":", track_file);
         fputs(&temp->scanned_mac_address[0], track_file);               
         fputs(timestamp_initial_str, track_file);
         fputs(timestamp_final_str, track_file);
@@ -885,17 +894,13 @@ ErrorCode copy_object_data_to_file(char *file_name) {
 
     }
 
+    pthread_mutex_lock(&list_lock);
 
-    /* Free the local list */
-    free_List(&local_object_list_head, number_to_send);
+    /* Remove nodes from the local list and release memory allocated to
+       nodes */
+    free_list(&local_object_list_head);
 
-    /* If the node no longer in the other list, free the space
-       back to the memory pool. */
-    if(&temp->sc_list_entry.next == &temp->sc_list_entry.prev){
-
-        mp_free(&mempool, temp);
-
-    }
+    pthread_mutex_unlock(&list_lock);
 
     /* Close the file for tracking */
     fclose(track_file);
@@ -905,20 +910,29 @@ ErrorCode copy_object_data_to_file(char *file_name) {
 }
 
 
-void free_List(List_Entry *entry, int numnode){
+void free_list(List_Entry *list_head){
 
     /* Create a temporary node and set as the head */
-    struct List_Entry *lisptrs;
+    struct List_Entry *lisptrs, *savelistptrs;
     ScannedDevice *temp;
 
    
-    while(numnode != 0){
+    list_for_each_safe(lisptrs, 
+                       savelistptrs, 
+                       list_head){
 
-        /* Always get the head of the list */ 
-        lisptrs = entry->next;
+        temp = ListEntry(lisptrs, ScannedDevice, tr_list_entry); 
+        
         remove_list_node(lisptrs);
 
-        numnode --;
+        /* If the node no longer in the other list, free the space
+           back to the memory pool. */
+        if(&temp->sc_list_entry.next == &temp->sc_list_entry.prev){
+
+            mp_free(&mempool, temp);
+
+        }
+
 
     }
 
@@ -1125,12 +1139,41 @@ ErrorCode startThread(pthread_t threads ,void * (*threadfunct)(void*), void *arg
 
 void cleanup_exit(){
 
-    /* Set two flags to false */
+    /* Create a temporary node and set as the head */
+    struct List_Entry *lisptrs, *savelistptrs;
+    ScannedDevice *temp;
+
+    /* Set flag to false */
     ready_to_work = false;
-  
     
+    /* Go throgth two lists to release all memory allocated to the nodes */
+    list_for_each_safe(lisptrs, 
+                       savelistptrs, 
+                       &scanned_list_head){
+
+        temp = ListEntry(lisptrs, ScannedDevice, sc_list_entry);
+        remove_list_node(lisptrs);
+        mp_free(&mempool, temp); 
+
+    }
+
+    list_for_each_safe(lisptrs, 
+                      savelistptrs, 
+                      &tracked_object_list_head){
+
+        temp = ListEntry(lisptrs, ScannedDevice, tr_list_entry);
+        remove_list_node(lisptrs);
+        mp_free(&mempool, temp); 
+
+    }
+
     /* Free the memory pool */
-    mp_destroy(&mempool);
+    if(&mempool != NULL){
+        
+        mp_destroy(&mempool);
+    
+    }
+    
     
     /* Release the handler for Bluetooth */ 
     free(g_push_file_path);
@@ -1139,6 +1182,289 @@ void cleanup_exit(){
     return;
 
 }
+
+/* Follow are functions for feature phone */
+#ifdef feature_phone
+
+/*
+  choose_file:
+
+    This function receives the name of the message file and returns the file 
+    path where the message is located. It goes through each directory in the 
+    messages folder and in each category, it reads each file name to find the 
+    designated message we want to broadcast to the users under the beacon.
+
+  Parameters:
+
+    message_to_send - name of the message file we want to retrieve
+
+  Return value:
+
+    eturn_value - message file path
+*/
+
+
+char *choose_file(char *message_to_send) {
+    
+    DIR *groupdir;           /* A dirent that stores list of directories */
+    struct dirent *groupent; /* A dirent struct that stores directory info */
+    int message_id = 0;      /* A iterator for number of messages and 
+                                groups */
+    int group_id = 0;        /* A iterator for number of groups */
+    char *return_value;      /* Return value which turns file path to a 
+                                string */
+
+    /* Convert number of groups and messages from a string to an integer */
+    int number_of_groups = atoi(g_config.number_of_groups);
+    int number_of_messages = atoi(g_config.number_of_messages);
+
+    /* An array of buffer for group file names */
+    char groups[number_of_groups][FILE_NAME_BUFFER];
+
+    /* An array of buffer for message file names */
+    char messages[number_of_messages][FILE_NAME_BUFFER];
+
+    /* Stores all the name of files and directories in groups */
+    groupdir = opendir("/home/pi/LBeacon/messages/");
+    if (groupdir) {
+        while ((groupent = readdir(groupdir)) != NULL) {
+            if (strcmp(groupent->d_name, ".") != 0 &&
+                strcmp(groupent->d_name, "..") != 0) {
+                strcpy(groups[message_id], groupent->d_name);
+                message_id++;
+            }
+        }
+        closedir(groupdir);
+    }
+    else {
+        /* Error handling */
+        perror("Directories do not exist");
+        return NULL;
+    }
+
+    /* Stores file path of message_to_send */
+    char file_path[FILE_NAME_BUFFER];
+    memset(file_path, 0, FILE_NAME_BUFFER);
+    message_id = 0;
+
+    /* Go through each message in directory and store each file name */
+    for (group_id = 0; group_id < number_of_groups; group_id++) {
+        /* Concatenate strings to make file path */
+        sprintf(file_path, "/home/pi/LBeacon/messages/");
+        strcat(file_path, groups[group_id]);
+
+        DIR *messagedir;
+        struct dirent *messageent;
+        messagedir = opendir(file_path);
+        if (messagedir) {
+            while ((messageent = readdir(messagedir)) != NULL) {
+                if (strcmp(messageent->d_name, ".") != 0 &&
+                    strcmp(messageent->d_name, "..") != 0) {
+                    strcpy(messages[message_id], messageent->d_name);
+                    /* If message name found, return file path */
+                    if (0 == strcmp(messages[message_id], message_to_send)) {
+                        strcat(file_path, "/");
+                        strcat(file_path, messages[message_id]);
+                        return_value = &file_path[0];
+                        return return_value;
+                    }
+                    message_id++;
+                }
+            }
+            closedir(messagedir);
+        }
+        else {
+            /* Error handling */
+            perror("Message files do not exist");
+            return NULL;
+        }
+    
+        return;
+    
+    }
+
+    /* Error handling */
+    perror("Message files do not exist");
+    return NULL;
+}
+
+
+/*
+  send_file:
+
+    This function pushes a message asynchronously to devices. It is the 
+    thread function of the specified thread.
+
+    [N.B. The beacon may still be scanning for other bluetooth devices.]
+
+  Parameters:
+
+    id - ID of the thread used to send the push message
+
+  Return value:
+
+    None
+*/
+
+void *send_file(void *id) {
+
+    obexftp_client_t *client = NULL; /* ObexFTP client */
+    int dongle_device_id = 0;        /* Device ID of each dongle */
+    int socket;                      /* ObexFTP client's socket */
+    int channel = -1;                /* ObexFTP channel */
+    int thread_id = (int)id;         /* Thread ID */
+    char *address = NULL;            /* Scanned MAC address */
+    char *file_name;                  /* File name of message to be sent */
+    int return_value;                /* Return value for error handling */
+
+    /* Get the maximum number of devices from config file. */
+    int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
+
+    /* An iterator through the array of ScannedDevice struct */
+    int device_id;
+
+
+    while (send_message_cancelled = false) {
+
+        for (device_id = 0; device_id < maximum_number_of_devices;
+            device_id++) {
+
+            if (device_id == thread_id &&
+                g_idle_handler[device_id].is_waiting_to_send == true) {
+
+
+                /* Open socket and use current time as start time to keep
+                 * of how long has taken to send the message to the device */
+                socket = hci_open_dev(dongle_device_id);
+
+
+                if (0 > dongle_device_id || 0 > socket) {
+
+                    /* Error handling */
+                    perror(errordesc[E_SEND_OPEN_SOCKET].message);
+                    strncpy(
+                            g_idle_handler[device_id].scanned_mac_address,
+                            "0",
+                            LENGTH_OF_MAC_ADDRESS);
+
+                    g_idle_handler[device_id].idle = true;
+                    g_idle_handler[device_id].is_waiting_to_send = false;
+                    break;
+
+                }
+
+                long long start = get_system_time();
+                address =
+                    (char *)g_idle_handler[device_id].scanned_mac_address;
+                channel = obexftp_browse_bt_push(address);
+
+                /* Extract basename from file path */
+                file_name = strrchr(g_push_file_path, '/');
+                file_name[g_config.file_name_length] = '\0';
+
+                if (!file_name) {
+
+                    file_name = g_push_file_path;
+
+                }
+                else {
+
+                    file_name++;
+
+                }
+                printf("Sending file %s to %s\n", file_name, address);
+
+                /* Open connection */
+                client = obexftp_open(OBEX_TRANS_BLUETOOTH, NULL, NULL,
+                                      NULL);
+                long long end = get_system_time();
+                printf("Time to open connection: %lld ms\n", end - start);
+
+                if (client == NULL) {
+
+                    /* Error handling */
+                    perror(errordesc[E_SEND_OBEXFTP_CLIENT].message);
+                    strncpy(
+                            g_idle_handler[device_id].scanned_mac_address,
+                            "0",
+                            LENGTH_OF_MAC_ADDRESS);
+
+                    g_idle_handler[device_id].idle = true;
+                    g_idle_handler[device_id].is_waiting_to_send = false;
+                    close(socket);
+                    break;
+
+                }
+
+                /* Connect to the scanned device */
+                return_value = obexftp_connect_push(client, address,
+                                                    channel);
+
+                /* If obexftp_connect_push returns a negative integer, then
+                 * it goes into error handling */
+                if (0 > return_value) {
+
+                    /* Error handling */
+                    perror(errordesc[E_SEND_CONNECT_DEVICE].message);
+                    obexftp_close(client);
+                    client = NULL;
+                    strncpy(
+                            g_idle_handler[device_id].scanned_mac_address,
+                            "0",
+                            LENGTH_OF_MAC_ADDRESS);
+
+                    g_idle_handler[device_id].idle = true;
+                    g_idle_handler[device_id].is_waiting_to_send = false;
+                    close(socket);
+                    break;
+
+                }
+
+                /* Push file to the scanned device */
+                return_value = obexftp_put_file(client, g_push_file_path,
+                                                file_name);
+                if (0 > return_value) {
+
+                    /* TODO: Error handling */
+                    perror(errordesc[E_SEND_PUT_FILE].message);
+                }
+
+                /* Disconnect connection */
+                return_value = obexftp_disconnect(client);
+                if (0 > return_value) {
+
+                    /* TODO: Error handling  */
+                    perror(errordesc[E_SEND_DISCONNECT_CLIENT].message);
+                    pthread_exit(NULL);
+                    return;
+
+                }
+
+               /* Leave the socket open */
+                obexftp_close(client);
+                client = NULL;
+                strncpy(g_idle_handler[device_id].scanned_mac_address,
+                        "0",
+                        LENGTH_OF_MAC_ADDRESS);
+
+                g_idle_handler[device_id].idle = true;
+                g_idle_handler[device_id].is_waiting_to_send = false;
+                close(socket);
+
+            }//end if
+
+        }//end for loop
+
+    } //end while loop
+
+    /* Exit forcibly by main thread */
+    if(ready_to_work == false){
+        return;
+    }
+
+}
+
+#endif 
 
 
 
@@ -1156,7 +1482,6 @@ int main(int argc, char **argv) {
     /*Initialize the global flag */
     ready_to_work = true;
    
-
 
 
     /*Initialize the lists */
@@ -1228,12 +1553,13 @@ int main(int argc, char **argv) {
             coordinate_Y.b[2], coordinate_Y.b[3]);
 
 
+    strcpy(g_config.uuid, hex_c);
 
     /* Create the thread for message advertising to BLE bluetooth devices */
     pthread_t stop_ble_beacon_thread;
 
     return_value = startThread(stop_ble_beacon_thread, 
-                                    stop_ble_beacon, hex_c);
+                               stop_ble_beacon, hex_c);
 
     if(return_value != WORK_SCUCESSFULLY){
          perror(errordesc[E_START_THREAD].message);
@@ -1245,7 +1571,7 @@ int main(int argc, char **argv) {
     pthread_t cleanup_scanned_list_thread;
 
     return_value = startThread(cleanup_scanned_list_thread,
-                                cleanup_scanned_list, NULL);
+                               cleanup_scanned_list, NULL);
 
     if(return_value != WORK_SCUCESSFULLY){
          perror(errordesc[E_START_THREAD].message);
@@ -1258,13 +1584,98 @@ int main(int argc, char **argv) {
     pthread_t track_communication_thread;
 
     return_value = startThread(track_communication_thread, 
-                                    manage_communication, NULL);
+                               manage_communication, NULL);
 
     if(return_value != WORK_SCUCESSFULLY){
          perror(errordesc[E_START_THREAD].message);
         cleanup_exit();
     }
 
+    /* The old code for the feature phone */
+    #ifdef feature_phone
+
+    int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
+    int maximum_number_of_devices_per_dongle =
+        maximum_number_of_devices / number_of_push_dongles;
+
+    /* An iterator through each push dongle */
+    int push_dongle_id;
+
+    /* An iterator through a block of devices per dongle */
+    int block_id;
+
+    int dongle_device_id = 0; /*Device ID of dongle */
+
+
+    /* Create an arrayof threads for sending message to the scanned MAC
+     * address */
+    pthread_t send_file_thread[maximum_number_of_devices];
+
+    /* After all the other threads are ready, set this flag to false. */
+    send_message_cancelled = false;
+
+
+   for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
+
+         if (g_idle_handler[device_id].is_waiting_to_send == true) {
+
+            /* Depending on the number of push dongles, split the threads
+             * evenly and assign each thread to a push dongle device ID */
+            for (push_dongle_id = 0;
+                push_dongle_id < number_of_push_dongles;
+                push_dongle_id++) {
+
+                for (block_id = 0;
+                     block_id < maximum_number_of_devices_per_dongle;
+                     block_id++) {
+
+                    if (device_id ==
+                        push_dongle_id *
+                        maximum_number_of_devices_per_dongle +
+                        block_id) {
+
+                            dongle_device_id = push_dongle_id + 1;
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        return_value =  startThread(send_file_thread[device_id], send_file,
+                    (void *)dongle_device_id);
+
+        if(return_value != WORK_SCUCESSFULLY){
+            perror(errordesc[E_START_THREAD].message);
+            cleanup_exit();
+        }
+
+
+    }
+
+    /*Set send_message_cancelled flag to false now. All the thread are 
+      ready.*/
+    send_message_cancelled = false;
+
+
+     /* ready_to_work = false , shut down.
+     * wait for send_file_thread to exit. */
+
+    for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
+
+        return_value = pthread_join(send_file_thread[device_id], NULL);
+
+        if (return_value != 0) {
+            perror(strerror(errno));
+            cleanup_exit();
+            return;
+
+        }
+    }
+
+    #endif
 
   
     while(ready_to_work == true){
