@@ -227,8 +227,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
         /* Update the final scan time */
         new_node->final_scanned_time = get_system_time();
         
-        pthread_mutex_unlock(&list_lock);
-      
+        pthread_mutex_unlock(&list_lock);      
     
     }else{
         
@@ -302,7 +301,7 @@ struct ScannedDevice *check_is_in_scanned_list(char address[]) {
         char *temp_last_digits = 
                      &temp->scanned_mac_address[len - NO_DIGITS_TO_COMPARE];
 
-        /* Compare the last two digits of the MAC address */
+        /* Compare the last digits of the MAC address */
         if ((!strncmp(address, temp->scanned_mac_address, 
                       NO_DIGITS_TO_COMPARE))&&
             (!strncmp(addr_last_digits, temp_last_digits, 
@@ -591,20 +590,20 @@ void *cleanup_scanned_list(void) {
        pthread_mutex_lock(&list_lock);
 
         /* Go through list */
-        list_for_each(listptrs, &scanned_list_head){
+        list_for_each_safe(listptrs, savelistptrs, &scanned_list_head){
 
             temp = ListEntry(listptrs, ScannedDevice, sc_list_entry);
 
 
-            /* Device has been in the scanned list for at least 30 seconds */
+            /* If a device has been in the scanned list for at least 30 
+               seconds, remove the struct node from the scanned list */
             if (get_system_time() - temp->initial_scanned_time > TIMEOUT) {
 
                 
-                /* Remove this scanned device node from the scanned list */
                 remove_list_node(&temp->sc_list_entry);
 
 
-                /* If the node no longer in the other list, free the space
+                /* If the node no longer in the other lists, free the space
                    back to the memory pool. */
                 if(&temp->tr_list_entry.next 
                                         == &temp->tr_list_entry.prev){
@@ -612,14 +611,7 @@ void *cleanup_scanned_list(void) {
                     mp_free(&mempool, temp);
 
                 }
-                
-            /* Because of setting the current node's pointer to NULL, this 
-               function breaks the loop (list_for_each) in order to aviod 
-               continuously visiting to NULL.
-               The process will back to the beginning of while loop.
-            */
-                break;
-               
+          
 
             }
             else {
@@ -647,10 +639,10 @@ void *manage_communication(void) {
     Zigbee zigbee;
     Threadpool thpool;
     FILE *file_to_send;
-    int polled_type;
+    int polled_type, copy_progress;
     
     /* Initialize the zigbee */
-    if(zigbee_init(&zigbee) != 0){
+    if(zigbee_init(&zigbee) != XBEE_SUCCESSFULLY){
 
          /* Could not initialize the zigbee, handle error */
         perror(errordesc[E_INIT_ZIGBEE].message);
@@ -660,7 +652,7 @@ void *manage_communication(void) {
 
     }
 
-    /* Initialize the thread pool and create two sub-threads waiting for the 
+    /* Initialize the thread pool and work threads waiting for the 
        new work/job assigned. */
     thpool = thpool_init(NO_WORK_THREADS); 
     if(thpool == NULL){
@@ -675,31 +667,20 @@ void *manage_communication(void) {
     
     while(ready_to_work == true){
 
-        /* Instead of chaging the global flag, checking the call back from 
-           the gateway. If not getting anything from the gateway, sleep for 
-           a short time. If polled, according to the received message, 
-           different action would take. */
+        /* Check call back from the gateway. If not polled by gateway, sleep 
+           for a short time. If polled, take the action according to the 
+           poll type. */
         
         
         polled_type = receive_call_back(&zigbee);
 
-        /*
-        if(polled_type == NULL){
-
-            /* Could not create thread pool, handle error */
-        /*  
-            perror(errordesc[E_ZIGBEE_CONNECT].message);
-            cleanup_exit();
-
-        return;
-
-        }
-        */
-        
+      
         while(polled_type ==TRACK_OBJECT_DATA){
 
             printf("Polled is going to sleep \n");
             sleep(TIMEOUT_WAITING);
+
+            polled_type = receive_call_back(&zigbee);
         
         }
 
@@ -709,44 +690,58 @@ void *manage_communication(void) {
 
             case NOT_YET_POLLED:
 
-                /* Function call to execute copy_track_object_to_data in order
-                   to create file to be transmit */
-                copy_object_data_to_file("output.txt");
+                /* Call copy_track_object_to_data() to create file of 
+                   tracked object datato be transmit */
+               
+                copy_progress = (int)copy_object_data_to_file("output.txt");
+                
+                if(copy_progress == E_EMPTY_FILE){
 
-
-                /* Open the file is going to sent to the gateway */
-                file_to_send = fopen("output.txt", "r");
-                if (file_to_send == NULL) {
-
-                    /* Error handling */
-                    perror(errordesc[E_OPEN_FILE].message);
+                    /* Inform gateway that there is nothing found by this 
+                       LBeacon */
                     strcpy(zigbee.zig_message, 
-                                "Nothing can be found in this LBeacon");
-                    
-                    return;
-                    }
+                           "Nothing was found by this LBeacon");
+                
+                }else if(copy_progress == WORK_SCUCESSFULLY){
 
-                /* Read the file to get the content for the message to send */
-                fgets(zigbee.zig_message, sizeof(zigbee.zig_message), 
-                                                            file_to_send);
+                    /* Open the file that is going to sent to the gateway */
+                    file_to_send = fopen("output.txt", "r");
+                    if (file_to_send == NULL) {
 
-                zigbee_send_file(&zigbee);
+                        /* Error handling */
+                        perror(errordesc[E_OPEN_FILE].message);
+                        cleanup_exit();
+                        return;
+                        }
+
+                    /* Read the file to get the content for the message to 
+                       send */
+                    fgets(zigbee.zig_message, sizeof(zigbee.zig_message), 
+                          file_to_send);
+
+                    fclose(file_to_send);
+                
+                }
             
                 printf("Message: %s \n", zigbee.zig_message);
 
 
                 /* Add the work item to the work thread */
-                /*
-                if(thpool_add_work(thpool, (void*)zigbee_send_file, &zigbee) != 0){
+                
+                if(thpool_add_work(thpool, 
+                                    (void*)zigbee_send_file, 
+                                    &zigbee) != 0){
 
                     /* Error handling */
-                 /*
+                 
                     perror(errordesc[E_OPEN_FILE].message);
                     cleanup_exit();
                     return;
                 
                 }
-                */
+
+
+             sleep(30);  
              break;
 
             case HEALTH_REPORT:
@@ -784,12 +779,14 @@ void *manage_communication(void) {
 
 
 
-void copy_object_data_to_file(char *file_name) {
+ErrorCode copy_object_data_to_file(char *file_name) {
 
     FILE *track_file;
     
     /* Head of a local list for track object */
     List_Entry local_object_list_head;
+    /* Initilize the local list */
+    init_entry(&local_object_list_head);
 
     /* Two pointers to be used locally */
     struct List_Entry *lisptrs, *tailptrs;
@@ -800,22 +797,6 @@ void copy_object_data_to_file(char *file_name) {
     char timestamp_initial_str[LENGTH_OF_TIME];
     char timestamp_final_str[LENGTH_OF_TIME];
 
-    /* Initilize the local list */
-    init_entry(&local_object_list_head);
-    number_in_list = get_list_length(&tracked_object_list_head);
-    
-    /* Get the smaller amount for transmission */
-    number_to_send = min(MAX_NO_OBJECTS, number_in_list);
-
-    printf("Number in list: %d\n", number_in_list);
-
-    /*Check the list if it is empty, if yes, return false */
-    if(number_in_list == 0){  
-       sleep(30); 
-       return;
-        
-    }
-        
 
     /* Create a new file to store data in the tracked_object_list */        
     track_file = fopen(file_name, "w");
@@ -828,10 +809,26 @@ void copy_object_data_to_file(char *file_name) {
     if(track_file == NULL){
         
         perror(errordesc[E_OPEN_FILE].message);
-        return false;
+        return E_OPEN_FILE;
 
     }
     
+    /* Get the smaller amount for transmission */
+    number_in_list = get_list_length(&tracked_object_list_head);
+    number_to_send = min(MAX_NO_OBJECTS, number_in_list);
+
+
+    printf("Number to send: %d\n", number_to_send);
+
+    /*Check if number_to_send is zero, if yes, close file and return */
+    if(number_to_send == 0){  
+
+       fclose(track_file); 
+       return E_EMPTY_FILE;
+        
+    }
+        
+
     pthread_mutex_lock(&list_lock);
 
     /* Temporary pointer points to the head of the track_object_list */
@@ -900,11 +897,10 @@ void copy_object_data_to_file(char *file_name) {
 
     }
 
-
     /* Close the file for tracking */
     fclose(track_file);
     
-    return;
+    return WORK_SCUCESSFULLY;
 
 }
 

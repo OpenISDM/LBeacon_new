@@ -59,7 +59,6 @@ Authors:
 #include <bluetooth/hci_lib.h>
 #include <ctype.h>
 #include <dirent.h>
-#include <errno.h>
 #include <limits.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -154,14 +153,14 @@ Authors:
 #define LENGTH_OF_MAC_ADDRESS 18
 
 /* Number of digits of MAC address to compare */ 
-#define NO_DIGITS_TO_COMPARE 2
+#define NO_DIGITS_TO_COMPARE 4
 
 /* Number of worker threads in the thread pool used by communication unit */
 #define NO_WORK_THREADS 2
 
 /* Location data in the maximum number of objects to be transmitted at
    one time */
-#define MAX_NO_OBJECTS 10
+#define MAX_NO_OBJECTS 32
 
 /* The number of slots for the memory pool */
 #define SLOTS_IN_MEM_POOL 1024
@@ -420,7 +419,8 @@ typedef enum ErrorCode {
     E_INIT_THREAD_POOL = 16,
     E_INIT_ZIGBEE = 17,
     E_ZIGBEE_CONNECT = 18,
-    MAX_ERROR_CODE = 19
+    E_EMPTY_FILE = 19,
+    MAX_ERROR_CODE = 20
 
 } ErrorCode;
 
@@ -450,6 +450,7 @@ struct _errordesc {
     {E_INIT_THREAD_POOL, "Error initializing thread pool"},
     {E_INIT_ZIGBEE, "Error initializing the zigbee"},
     {E_ZIGBEE_CONNECT, "Error zigbee connection"},
+    {E_EMPTY_FILE, "Error of empty file"},
     {MAX_ERROR_CODE, "The element is invalid"}
 
 };
@@ -703,7 +704,7 @@ void *manage_communication(void);
       None
 */
 
-void copy_object_data_to_file(char *file_name);
+ErrorCode copy_object_data_to_file(char *file_name);
 
 
 /*
@@ -1038,4 +1039,4 @@ extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
       None
 
 */
-extern void zigbee_send_file(Zigbee *zigbee);
+extern void *zigbee_send_file(Zigbee *zigbee);

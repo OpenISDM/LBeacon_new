@@ -75,7 +75,7 @@ ErrorCode_Xbee zigbee_init(Zigbee *zigbee){
         
         xbee_log(zigbee->xbee, 1, "con unvalidate ret : %d", ret);
         
-        perror(error_xbee[E_XBEE_VALIDATE].message);
+        //perror(error_xbee[E_XBEE_VALIDATE].message);
         
         return E_XBEE_VALIDATE;
     }
@@ -89,8 +89,8 @@ int receive_call_back(Zigbee *zigbee){
     /* Check the connection of call back is enable */ 
     if(xbee_check_CallBack(zigbee->con, &zigbee->pkt_Queue, false)){
 
-      perror(error_xbee[E_CALL_BACK].message);
-        
+      //perror(error_xbee[E_CALL_BACK].message);
+      
       return NULL;
     
     };
@@ -119,7 +119,7 @@ int receive_call_back(Zigbee *zigbee){
 
 }
 
-void zigbee_send_file(Zigbee *zigbee){
+void *zigbee_send_file(Zigbee *zigbee){
     
     /* Add the content that to be sent to the gateway to the packet queue */
     addpkt(&zigbee->pkt_Queue, Data, Gateway, zigbee->zig_message);
@@ -128,7 +128,7 @@ void zigbee_send_file(Zigbee *zigbee){
     packet */                                      
     xbee_send_pkt(zigbee->con, &zigbee->pkt_Queue);
 
-    //usleep(XBEE_TIMEOUT);
+    usleep(XBEE_TIMEOUT);
         
     xbee_connector(&zigbee->xbee, &zigbee->con, &zigbee->pkt_Queue);  
  
@@ -145,7 +145,7 @@ ErrorCode_Xbee zigbee_free(Zigbee *zigbee){
     if ((ret = xbee_conEnd(zigbee->con)) != XBEE_ENONE) {
         
         xbee_log(zigbee->xbee, 10, "xbee_conEnd() returned: %d", ret);
-        perror(error_xbee[E_CONNECT].message);
+        //perror(error_xbee[E_CONNECT].message);
 
         return;
     }

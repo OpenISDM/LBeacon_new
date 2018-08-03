@@ -100,7 +100,7 @@ typedef enum ErrorCode_XBee {
 struct _errordesc_xbee {
     int code;
     char *message;
-} error_xbee[] = {
+} errord_xbee[] = {
 
     {XBEE_SUCCESSFULLY, "The xbee works successfullly"},
     {E_XBEE_VALIDATE, "Error validating xbee"},
@@ -164,7 +164,7 @@ int receive_call_back(Zigbee *zigbee);
     None
 
 */
-void zigbee_send_file(Zigbee *zigbee);
+void *zigbee_send_file(Zigbee *zigbee);
 
 /*
   zigbee_free:
