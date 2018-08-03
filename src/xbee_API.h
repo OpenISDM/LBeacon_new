@@ -50,22 +50,62 @@
 /* A variable to get error code */
 xbee_err ret;
 
-/* A variable txRet get Tx return value */
-//unsigned char txRet;
-
+/*
+ * xbee_initial
+ *     For initialize zigbee, include loading config.
+ * Parameter:
+ *     xbee_mode: we use xbeeZB as our device, this parameter is for setting
+ *                libxbee3 work mode.
+ *     xbee_device: This parameter is to define where is our zigbee device path.
+ *     xbee_baudrate: This parameter is to define what our zigbee working
+ *                    baudrate.
+ *     LogLevel: To decide libxbee3 whether need to export log or not.
+ *     xbee: A pointer to catch zigbee pointer.
+ *     pkt_Queue: A pointer of the packet queue we use.
+ * Return Value:
+ *     xbee_err: If return 0, everything work successfully.
+ *               If not 0, somthing wrong.
+ */
 xbee_err xbee_initial(char* xbee_mode, char* xbee_device, int xbee_baudrate
                         , int LogLevel, struct xbee** xbee, pkt_ptr pkt_Queue);
 
-// A function for setting up xbee connection
+
+/*
+ * xbee_connector
+ *     For connect to zigbee and assign it's destnation address.
+ * Parameter:
+ *     xbee: A pointer to catch zigbee pointer.
+ *     con: A pointer of the connector of zigbee.
+ *     pkt_Queue: A pointer of the packet queue we use.
+ * Return Value:
+ *     xbee_err: If return 0, everything work successfully.
+ *               If not 0, somthing wrong.
+ */
 xbee_err xbee_connector(struct xbee** xbee, struct xbee_con** con
                                                 , pkt_ptr pkt_Queue);
 
 // A function for sending pkt to dest address.
 xbee_err xbee_send_pkt(struct xbee_con* con, pkt_ptr pkt_Queue);
 
+/*
+ * xbee_check_CallBack
+ *      Check if CallBack is disabled and pkt_Queue is NULL.
+ * Parameter:
+ *      con : a pointer for xbee connector.
+ *      pkt_Queue : A pointer point to the packet queue we use.
+ * Return Value:
+ *      True if CallBack is disabled and pkt_Queue is NULL, else false.
+ *
+ */
 bool xbee_check_CallBack(struct xbee_con* con, pkt_ptr pkt_Queue, bool exclude_pkt_Queue);
 
-/* CallBack for Data Received */
+
+/* ---------------------------callback Section------------------------------ */
+/* It will be executed once for each packet that is received on              */
+/* an associated connection                                                  */
+/* ------------------------------------------------------------------------- */
+
+
 int CallBack(struct xbee *xbee, struct xbee_con *con, struct xbee_pkt **pkt
 , void **data);
 

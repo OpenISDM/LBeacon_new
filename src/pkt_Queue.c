@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2016 Academia Sinica, Institute of Information Science
  *
@@ -37,14 +38,6 @@
 
 #include "pkt_Queue.h"
 
-
-    /* init_Packet_Queue
-     *  Initialize Queue for packets
-     * Parameter:
-     *  pkt_queue : A struct stored pointers of the first and the last of packet.
-     * Return Value:
-     *  None
-     */
 void init_Packet_Queue(pkt_ptr pkt_queue){
 
     pkt_queue->locker = false;
@@ -61,16 +54,6 @@ void init_Packet_Queue(pkt_ptr pkt_queue){
 
 }
 
-/*
- * Free_Packet_Queue
- *     Release all the packets in the packet queue, the header and
- *     the tail of the packet queue and release the struct stored the pointer of
- *      the packet queue.
- * Parameter:
- *     pkt_queue : A struct stored the first and the last of the packet queue.
- * Return Value:
- *     None
- */
 void Free_Packet_Queue(pkt_ptr pkt_queue){
     while (!(is_null(pkt_queue))){
         delpkt(pkt_queue);
@@ -78,17 +61,6 @@ void Free_Packet_Queue(pkt_ptr pkt_queue){
     printf("pkt_queue released\n");
 }
 
-/*
- * addpkt
- *     Add new packet into the packet queue we assigned.
- * Parameter:
- *     pkt_queue : A struct stored the first and the last of the packet queue.
- *     type      : Record the type of packets working environment.
- *     raw_addr  : The destnation address of the packet.
- *     content   : The content we decided to send.
- * Return Value:
- *     None
- */
 void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
     bool status;
     do{
@@ -129,14 +101,6 @@ void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
     return;
 }
 
-/*
- * delpkt
- *     delete the first of the packet queue we assigned.
- * Parameter:
- *     pkt_queue : A struct stored the first and the last of the packet queue.
- * Return Value:
- *     None
- */
  void delpkt(pkt_ptr pkt_queue) {
     bool status;
     do{
@@ -169,14 +133,6 @@ void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
     return;
 }
 
-/*
- * print_address
- *     Convert hex type address to char type address.
- * Parameter:
- *     address: A address stored in Hex.
- * Return Value:
- *     char_addr: A address stored in char convert from address.
- */
 char* print_address(unsigned char* address){
     char* char_addr = malloc(sizeof(char)*17);
     memset(char_addr, 0, sizeof(char)*17);
@@ -186,14 +142,6 @@ char* print_address(unsigned char* address){
     return char_addr;
 }
 
-/*
- * type_to_str
- *     TO convert type to it's original type name.
- * Parameter:
- *     type: A variable stored packet needed send type.
- * Return Value:
- *     Return a char pointer which is it's type name.
- */
 char* type_to_str(int type){
     switch(type){
         case Data:
@@ -207,15 +155,6 @@ char* type_to_str(int type){
     }
 }
 
-/*
- * Fill_address
- *     Convert the address from raw(char) to addr(Hex).
- * Parameter:
- *     raw: The original char type address.
- *     addr: The destnation variable to store the converted result.
- * Return Value:
- *     None
- */
 void Fill_Address(char *raw,unsigned char* addr){
     for(int i = 0;i < 8;i++){
         char tmp[2];
@@ -238,14 +177,6 @@ void address_copy(unsigned char* src_addr, unsigned char* dest_addr){
     memcpy(dest_addr, src_addr, 8);
 }
 
-/* display_pkt
- *     display the packet we decide to see.
- * Parameter:
- *     content: The title we want to show in front of the packet content.
- *     pkt: The packet we want to see it's content.
- * Return Value:
- *     None
- */
 void display_pkt(char* content, pPkt pkt){
     if(pkt == NULL)
         return;

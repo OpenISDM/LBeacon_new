@@ -52,15 +52,11 @@ ErrorCode_Xbee zigbee_init(Zigbee *zigbee){
 
      /* Parameters for Zigbee initialization */
     char* xbee_mode = "xbeeZB";
-
     char* xbee_device = "/dev/ttyAMA0";
 
-    int xbee_baudrate = 9600;
-
-    int LogLevel = 100;
-
-    xbee_initial(xbee_mode, xbee_device, xbee_baudrate, 
-                        LogLevel, &zigbee->xbee, &zigbee->pkt_Queue);
+    /* Initialize Zigbee */
+    xbee_initial(xbee_mode, xbee_device, XBEE_BAUDRATE, 
+                 XBEE_LOGLEVEL, &zigbee->xbee, &zigbee->pkt_Queue);
     printf("Start establishing Connection to xbee\n");
 
 

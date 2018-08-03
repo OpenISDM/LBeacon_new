@@ -55,6 +55,12 @@
 /* Length of timeout in number of milliseconds */
 #define XBEE_TIMEOUT 2000000
 
+/* Baud rate of Zigbee */
+#define XBEE_BAUDRATE 9600
+
+/* Log level of Zigbee */
+#define XBEE_LOGLEVEL 100
+
 
 /* Struct of parameters for Zigbee Initialization */
 typedef struct Zigbee {

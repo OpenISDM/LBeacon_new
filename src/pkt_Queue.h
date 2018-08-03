@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2016 Academia Sinica, Institute of Information Science
  *
@@ -80,30 +81,130 @@ typedef struct pkt_header {
 
 typedef spkt_ptr * pkt_ptr;
 
-/* Create Packet Queue Header */
+/* init_Packet_Queue
+ *  Initialize Queue for packets
+ * Parameter:
+ *  pkt_queue : A struct stored pointers of the first and the last of packet.
+ * Return Value:
+ *  None
+ */
 void init_Packet_Queue(pkt_ptr pkt_queue);
 
+/*
+ * Free_Packet_Queue
+ *     Release all the packets in the packet queue, the header and
+ *     the tail of the packet queue and release the struct stored the pointer of
+ *      the packet queue.
+ * Parameter:
+ *     pkt_queue : A struct stored the first and the last of the packet queue.
+ * Return Value:
+ *     None
+ */
 void Free_Packet_Queue(pkt_ptr pkt_queue);
 
-/* Add new Packet to the end of Queue */
+/*
+ * addpkt
+ *     Add new packet into the packet queue we assigned.
+ * Parameter:
+ *     pkt_queue : A struct stored the first and the last of the packet queue.
+ *     type      : Record the type of packets working environment.
+ *     raw_addr  : The destnation address of the packet.
+ *     content   : The content we decided to send.
+ * Return Value:
+ *     None
+ */
 void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content);
 
-/* Delete the end of Queue */
+/*
+ * delpkt
+ *     delete the first of the packet queue we assigned.
+ * Parameter:
+ *     pkt_queue : A struct stored the first and the last of the packet queue.
+ * Return Value:
+ *     None
+ */
 void delpkt(pkt_ptr pkt_queue);
 
+/*
+ * type_to_str
+ *     TO convert type to it's original type name.
+ * Parameter:
+ *     type: A variable stored packet needed send type.
+ * Return Value:
+ *     Return a char pointer which is it's type name.
+ */
 char* type_to_str(int type);
 
+/*
+ * print_address
+ *     Convert hex type address to char type address.
+ * Parameter:
+ *     address: A address stored in Hex.
+ * Return Value:
+ *     char_addr: A address stored in char convert from address.
+ */
 char* print_address(unsigned char* address);
 
+/* display_pkt
+ *     display the packet we decide to see.
+ * Parameter:
+ *     content: The title we want to show in front of the packet content.
+ *     pkt: The packet we want to see it's content.
+ * Return Value:
+ *     None
+ */
 void display_pkt(char* content, pPkt pkt);
 
-/* Fill the address from raw(char) to addr(Hex) */
+/*
+ * Fill_address
+ *     Convert the address from raw(char) to addr(Hex).
+ * Parameter:
+ *     raw: The original char type address.
+ *     addr: The destnation variable to store the converted result.
+ * Return Value:
+ *     None
+ */
 void Fill_Address(char *raw, unsigned char* addr);
 
+/*
+ * address_compare
+ *      Compare the address whether is the same.
+ * Parameter:
+ *      addr1: the address we want to compare.
+ *      addr2: the address we want to compare.
+ * Return Value:
+ *      bool: if true, the same.
+ */
 bool address_compare(unsigned char* addr1,unsigned char* addr2);
 
+/*
+ * address_compare
+ *      Compare the address whether is the same.
+ * Parameter:
+ *      addr1: the src address we copy from.
+ *      addr2: the dest address we copy to.
+ * Return Value:
+ *      None
+ */
 void address_copy(unsigned char* src_addr, unsigned char* dest_addr);
 
+/*
+ * is_null
+ *      check if pkt_Queue is null.
+ * Parameter:
+ *      pkt_Queue: the pkt we stored in the Queue.
+ * Return Value:
+ *      None
+ */
 bool is_null(pkt_ptr pkt_Queue);
+
+/*
+ * queue-len
+ *      Count the length of the queue.
+ * Parameter:
+ *      pkt_Queue: The queue we want to count.
+ * Return Value:
+ *      int: the length of the Queue.
+ */
 
 int queue_len(pkt_ptr pkt_queue);
