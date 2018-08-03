@@ -41,8 +41,9 @@ Authors:
     Han Wang, hollywang@iis.sinica.edu.tw
     Jake Lee, jakelee@iis.sinica.edu.tw
     Johnson Su, johnsonsu@iis.sinica.edu.tw
+    Joey Zhou, joeyzhou@iis.sinica.edu.tw
+    Kenneth Tang, kennethtang@iis.sinica.edu.tw
     Shirley Huang, shirley.huang.93@gmail.com
-    Han Hu, hhu14@illinois.edu
     Jeffrey Lin, lin.jeff03@gmail.com
     Howard Hsu, haohsu0823@gmail.com
       
@@ -59,7 +60,6 @@ Authors:
 #include <bluetooth/hci_lib.h>
 #include <ctype.h>
 #include <dirent.h>
-#include <errno.h>
 #include <limits.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -86,15 +86,16 @@ Authors:
 #include "thpool.h"
 
 
-
 /*
-* CONSTANTS
+  CONSTANTS
 */
 
 /* Command opcode pack/unpack from HCI library. ogf and ocf stand for Opcode 
    group field and Opcofe command field, respectively. See Bluetooth 
-   specification - core version 4.0, vol.2, part E Chapter 5.4 for details. */
-#define cmd_opcode_pack(ogf, ocf) (uint16_t)((ocf & 0x03ff) | (ogf << 10))
+   specification - core version 4.0, vol.2, part E Chapter 5.4 for details. 
+*/
+#define cmd_opcode_pack(ogf, ocf) (uint16_t)((ocf &amp; 0x03ff) | \
+                                                        (ogf &lt;&lt; 10))
 
 /* File path of the config file */
 #define CONFIG_FILE_NAME "../config/config.conf"
@@ -112,8 +113,8 @@ Authors:
 /* BlueZ bluetooth extended inquiry response protocol: flags */
 #define EIR_FLAGS 0X01
 
-/* BlueZ bluetooth extended inquiry response protocol: Manufacturer Specific
-  Data */
+/* BlueZ bluetooth extended inquiry response protocol: Manufacturer Specific 
+   Data */
 #define EIR_MANUFACTURE_SPECIFIC_DATA 0xFF
 
 /* BlueZ bluetooth extended inquiry response protocol: complete local name */
@@ -125,39 +126,50 @@ Authors:
 /* Maximum number of characters in message file name */
 #define FILE_NAME_BUFFER 64
 
-/* Length of time in Epoch */
+/* Number of milliseconds in an epoch */
 #define LENGTH_OF_TIME 10
 
-/* Nominal transmission range limited. Only devices in this RSSI range are 
-   allowed to be discovered and sent */
-#define RSSI_RANGE -60
+/* Length of the char of basic information */
+#define LENGTH_OF_INFO 128
 
-/* Maximum length of time in milliseconds, a bluetooth device
-   stays in the push list */
+/* Maximum length of time in milliseconds a bluetooth device
+   stays in the scanned device list 
+*/
 #define TIMEOUT 30000
 
-/* Number of characters in a Bluetooth MAC address */
-#define LENGTH_OF_MAC_ADDRESS 18
-
-/* Timeout in millisecond of hci_send_req  */
+/* Timeout in milliseconds of hci_send_req  */
 #define HCI_SEND_REQUEST_TIMEOUT 1000
 
-/* Time interval for the LBeacon to advertise*/
+/* Time interval in milliseconds for a LBeacon to advertise*/
 #define ADVERTISING_INTERVAL 300
+
+/* The timeout in milliseconds for waiting in threads */
+#define TIMEOUT_WAITING 3000
+
+/* Nominal transmission range limited. Only devices in this RSSI range are 
+   allowed to be discovered and sent. */
+#define RSSI_RANGE -60
 
 /* RSSI value for TX power of calibration and broadcast  */
 #define RSSI_VALUE -50
 
-/* The maximum number for  concureent zigbee transmission at one time */
-#define MAX_NO_OBJECTS 10
+/* Number of characters in a Bluetooth MAC address */
+#define LENGTH_OF_MAC_ADDRESS 18
+
+/* Number of digits of MAC address to compare */ 
+#define NO_DIGITS_TO_COMPARE 4
+
+/* Number of worker threads in the thread pool used by communication unit */
+#define NO_WORK_THREADS 2
+
+/* Location data in the maximum number of objects to be transmitted at
+   one time */
+#define MAX_NO_OBJECTS 32
 
 /* The number of slots for the memory pool */
-#define SLOTS_FOR_MEM_POOL 1024
+#define SLOTS_IN_MEM_POOL 1024
 
-/* The timeout for waiting in the thread */
-#define TIMEOUT_WAITING 3000
-
-/* Timeout interval in s */
+/* Timeout interval in seconds */
 #define A_LONG_TIME 30000
 #define A_SHORT_TIME 5000
 #define A_VERY_SHORT_TIME 300
@@ -172,11 +184,12 @@ Authors:
 
 
 /*
-* UNION
+  UNION
 */
 
 /* This union will convert floats into Hex code used for the beacon
- location */
+   location 
+*/
 union {
     
     float f;
@@ -202,7 +215,7 @@ union {
 
 
 /*
-* TYPEDEF STRUCTS
+  TYPEDEF STRUCTS
 */
 
 /* The configuration file structure */
@@ -224,7 +237,7 @@ typedef struct Config {
     /* String representation of the Z coordinate of the beacon location */
     char coordinate_Z[CONFIG_BUFFER_SIZE];
 
-       /* String length needed to store coordinate_Z */
+    /* String length needed to store coordinate_Z */
     int coordinate_Z_length;
 
     /* String representation of the message file name */
@@ -233,14 +246,15 @@ typedef struct Config {
     /* String length needed to store file name */
     int file_name_length;
 
-    /* String representation of the message file name's file path */
+    /* String representation of the path name of message file */
     char file_path[CONFIG_BUFFER_SIZE];
 
-    /* String length needed to store file path */
+    /* String length needed to store path name of message file */
     int file_path_length;
 
     /* String representation of the maximum number of devices to be
-    handled by all push dongles */
+       handled by all push dongles 
+    */
     char maximum_number_of_devices[CONFIG_BUFFER_SIZE];
 
     /* String length needed to store maximum_number_of_devices */
@@ -273,7 +287,7 @@ typedef struct Config {
     /* String representation of the universally unique identifer */
     char uuid[CONFIG_BUFFER_SIZE];
 
-    /* TString length needed to store uuid */
+    /* String length needed to store uuid */
     int uuid_length;
 
 
@@ -290,7 +304,8 @@ typedef struct ThreadStatus {
 
 
 /* Struct for storing MAC address of the user's device and the time instant
- * at which the address is scanned */
+   at which the address is scanned 
+*/
 typedef struct ScannedDevice {
     
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
@@ -299,9 +314,9 @@ typedef struct ScannedDevice {
     struct List_Entry sc_list_entry;
     struct List_Entry tr_list_entry;
 
-
-/* Pad added to make the struct size an integer multiple of 32 byte, size 
-   of D -cache line.
+/* Pad added to make the struct size an integer multiple of 32 byte, size of
+   D-cache line.
+   
    int pad[30];
 */    
 
@@ -310,30 +325,32 @@ typedef struct ScannedDevice {
 
 
 /*
- * EXTERN STRUCTS
- */
+  EXTERN STRUCTS
+*/
 
-/*In sys/poll.h, the struct for controlling the events.*/
+/* In sys/poll.h, the struct for controlling the events. */
 extern struct pollfd;
 
-/*In hci_sock.h, the struct for callback event from the socket.*/
+/* In hci_sock.h, the struct for callback event from the socket. */
 extern struct hci_filter;
 
 
 
 /*
-* GLOBAL VARIABLES
+  GLOBAL VARIABLES
 */
 
 /* Path of the object push file */
 char *g_push_file_path;
 
 /* First timestamp of the output file used for tracking scanned
-   devices */
+   devices 
+*/
 unsigned g_initial_timestamp_of_tracking_file = 0;
 
 /* The most recent timestamp in the output file used for tracking scanned
-   devices */
+   devices 
+*/
 unsigned g_most_recent_timestamp_of_tracking_file = 0;
 
 /* Number of lines in the output file used for tracking scanned devices */
@@ -342,22 +359,24 @@ int g_size_of_file = 0;
 /* Struct for storing config information from the input file */
 Config g_config;
 
-/* An array of struct for storing information and status of each thread */
+/* An array of struct for storing information and status of threads */
 ThreadStatus g_idle_handler[MAX_NO_OBJECTS];
 
 
-/* Two lists of struct for recording scanned devices */
+/* Two lists of structs for recording scanned devices */
 
-/* Head of scanned_list that holds the scanned device structs of devices found
-   in recent scans. The MAC address elements of all the structs in this this 
-   list are distinct. */
+/* Head of scanned_list that holds the scanned device structs of devices 
+   found in recent scans. The MAC address elements of all the structs in this
+   list are distinct. 
+*/
 List_Entry scanned_list_head;
 
 /* Head of tracking_object_list that holds the scanned device structs of 
    devices discovered in recent scans. The MAC address elements of some 
-   structs in the list may ve identical but their associate timestamps 
+   structs in the list may be identical but their associate timestamps 
    indicate disjoint time intervals. The contents of the list await to be 
-   sent via the gateway to the server to be processed there. */
+   sent via the gateway to the server to be processed there. 
+*/
 List_Entry tracked_object_list_head;
 
 
@@ -365,24 +384,22 @@ List_Entry tracked_object_list_head;
 
 /* A global flag that is initially set to true by the main thread. It is set
    to false by any thread when the thread encounters a fatal error, 
-   indicating that it is about to exit. */
+   indicating that it is about to exit. 
+*/
 bool ready_to_work;
 
-/* A global falg to inform the track_object_thread to transmit all or part of 
-   the contents of tracked object list to the gateway */
-bool is_polled_by_gateway;
 
 /* The memory pool for the allocation of all nodes in scanned_device_list and
-   tracked_object_list */
+   tracked_object_list 
+*/
 Memory_Pool mempool;
 
-
+/* The lock for the list */
 pthread_mutex_t  list_lock;    
 
 
-
 /*
-* ERROR CODE
+  ERROR CODE
 */
 
 typedef enum ErrorCode {
@@ -403,8 +420,11 @@ typedef enum ErrorCode {
     E_ADVERTISE_STATUS = 13,
     E_ADVERTISE_MODE = 14,
     E_START_THREAD = 15,
-    E_ZIGBEE_CONNECT = 16,
-    MAX_ERROR_CODE = 17
+    E_INIT_THREAD_POOL = 16,
+    E_INIT_ZIGBEE = 17,
+    E_ZIGBEE_CONNECT = 18,
+    E_EMPTY_FILE = 19,
+    MAX_ERROR_CODE = 20
 
 } ErrorCode;
 
@@ -431,38 +451,41 @@ struct _errordesc {
     {E_ADVERTISE_STATUS, "LE set advertise returned status"},
     {E_ADVERTISE_MODE, "Error setting advertise mode"},
     {E_START_THREAD, "Error creating thread"},
+    {E_INIT_THREAD_POOL, "Error initializing thread pool"},
+    {E_INIT_ZIGBEE, "Error initializing the zigbee"},
     {E_ZIGBEE_CONNECT, "Error zigbee connection"},
-    {MAX_ERROR_CODE, "The element is invalid"},
+    {E_EMPTY_FILE, "Error of empty file"},
+    {MAX_ERROR_CODE, "The element is invalid"}
 
 };
 
 
 
 /*
-* EXTERNAL GLOBAL VARIABLES
+  EXTERNAL GLOBAL VARIABLES
 */
 extern int errno;
 
 
 
 /*
-* FUNCTIONS
+  FUNCTIONS
 */
 
 /*
   get_config:
 
-  This function reads the specified config file line by line until the
-  end of file, and stores the data in the lines into the global variable of a
-  Config struct.
+      This function reads the specified config file line by line until the
+      end of file and copies the data in the lines into the Config struct 
+      global variable.
 
   Parameters:
 
-  file_name - the name of the config file that stores all the beacon data
+      file_name - the name of the config file that stores all the beacon data
 
   Return value: 
 
-  config - Config struct including file path, coordinates, etc.
+      config - Config struct including file path, coordinates, etc.
 */
 
 Config get_config(char *file_name);
@@ -471,16 +494,16 @@ Config get_config(char *file_name);
 /*
   get_system_time:
  
-  This helper function fetches the current time according to the system
-  clock in terms of the number of milliseconds since January 1, 1970.
+      This helper function fetches the current time according to the system
+      clock in terms of the number of milliseconds since January 1, 1970.
  
   Parameters:
  
-  None
+      None
  
   Return value:
  
-  system_time - system time in milliseconds
+      system_time - system time in milliseconds
 */
 
 long long get_system_time();
@@ -491,18 +514,19 @@ long long get_system_time();
 /*
   print_RSSI_value:
 
-  This function prints the RSSI value along with the MAC address of the
-  user's scanned bluetooth device. 
+      This function prints the RSSI value along with the MAC address of the
+      user's scanned bluetooth device. 
 
   Parameters:
 
-  bluetooth_device_address - bluetooth device address
-  has_rssi - whether the bluetooth device has an RSSI value or not
-  rssi - RSSI value of bluetooth device
+      bluetooth_device_address - bluetooth device address
+      has_rssi - a flag indicating whether the bluetooth device has an RSSI 
+                 value
+      rssi - RSSI value of bluetooth device
 
   Return value:
 
-  None
+      None
 */
 
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
@@ -514,23 +538,23 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 /*
   send_to_push_dongle:
 
-  When called, this functions first checks whether there is a ScannedDevice 
-  struct in the scanned list with MAC address matching the input bluetooth 
-  device address. If there is no such struct, this function allocates from 
-  memory pool space for a ScannedDeice struct, sets the MAC address of the 
-  new struct to the input MAC address, the initial scanned time and final
-  scanned time to the current time, and inserts the sruct at the head of of 
-  the scanned list and tail of the tracked object list. If a struct with MAC
-  address matching the input device address is found, this function sets the 
-  final scanned time of the struct to current time.
+      When called, this functions first checks whether there is a ScannedDevice 
+      struct in the scanned list with MAC address matching the input bluetooth 
+      device address. If there is no such struct, this function allocates from 
+      memory pool space for a ScannedDeice struct, sets the MAC address of the 
+      new struct to the input MAC address, the initial scanned time and final
+      scanned time to the current time, and inserts the sruct at the head of of 
+      the scanned list and tail of the tracked object list. If a struct with MAC
+      address matching the input device address is found, this function sets the 
+      final scanned time of the struct to current time.
 
   Parameters:
 
-  bluetooth_device_address - bluetooth device address
+      bluetooth_device_address - bluetooth device address
 
   Return value:
 
-  None
+      None
 */
 
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
@@ -541,22 +565,20 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
 /*
   check_is_in_scanned_list:
 
-  This function checks whether the MAC address given as input is in the 
-  scanned list. If a node with MAC address matching the input address is 
-  found in the list, the function returns the pointer to the node with 
-  maching address, otherwise it returns NULL.
+      This function checks whether the MAC address given as input is in the 
+      scanned list. If a node with MAC address matching the input address is 
+      found in the list, the function returns the pointer to the node with 
+      matching address; otherwise it returns NULL.
 
   Parameters:
 
-  address - MAC address of a bluetooth device
+      address - MAC address of a bluetooth device
 
   Return value:
 
-  match_node - A pointer to the node found with MAC address matched up with 
+  match_node - A pointer to the node found with MAC address identical to 
                the input address.
-  or NULL
-  
-
+               or NULL
 */
 
 struct ScannedDevice *check_is_in_scanned_list(char address[]);
@@ -567,39 +589,39 @@ struct ScannedDevice *check_is_in_scanned_list(char address[]);
 /*
   enable_advertising:
 
-  This function enables the LBeacon to start advertising, sets the time
-  interval for advertising, and calibrates the RSSI value.
+      This function enables the LBeacon to start advertising, sets the time
+      interval for advertising, and calibrates the RSSI value.
 
   Parameters:
 
-  advertising_interval - the time interval for which the LBeacon can
-  advertise 
-  advertising_uuid - universally unique identifier for advertising
-  rssi_value - RSSI value of the bluetooth device
+      advertising_interval - the time interval for which the LBeacon can
+                         advertise 
+      advertising_uuid - universally unique identifier for advertising
+      rssi_value - RSSI value of the bluetooth device
 
   Return value:
 
-  ErrorCode: The error code for the corresponding error
+      ErrorCode: The error code for the corresponding error
 
 */
 
-ErrorCode enable_advertising(int advertising_interval, char *advertising_uuid,
-                            int rssi_value);
+ErrorCode enable_advertising(int advertising_interval, 
+                             char *advertising_uuid,
+                             int rssi_value);
 
 
 /*
   disable_advertising:
 
-  This function disables the advertising capabilities of the beacon.
+      This function disables the advertising capabilities of the beacon.
 
   Parameters:
 
-  None
+      None
 
   Return value:
 
-  ErrorCode: The error code for the corresponding error
-
+      ErrorCode: The error code for the corresponding error
 */
 
 ErrorCode disable_advertising();
@@ -608,16 +630,16 @@ ErrorCode disable_advertising();
 /*
   stop_ble_beacon:
 
-  This function allows avertising to be stopped with ctrl-c if a precious 
-  call to enable_advertising was a success.
+      This function allows avertising to be stopped with ctrl-c if a precious 
+      call to enable_advertising was a success.
 
   Parameters:
 
-  beacon_location - advertising uuid
+      beacon_location - advertising uuid
 
   Return value:
 
-  None
+      None
 */
 
 void *stop_ble_beacon(void *beacon_location);
@@ -626,19 +648,20 @@ void *stop_ble_beacon(void *beacon_location);
 /*
   cleanup_scanned_list:
 
-  This function checks each ScannedDevice node in the scanned list to 
-  determine whether the node has been in the list for over TIMEOUT, if yes, 
-  the function removes the ScannedDevice struct from the list. If the struct 
-  is no longer in the tracked_object_list, the function call the memory 
-  pool to release the memory space used by the struct.
+      This function checks each ScannedDevice node in the scanned list to 
+      determine whether the node has been in the list for over TIMEOUT unit 
+      of time. If yes, the function removes the ScannedDevice struct from 
+      the list. If the struct is no longer in the tracked_object_list, the 
+      function calls the memory pool to release the memory space used by 
+      the struct.
 
   Parameters:
 
-  None
+      None
 
   Return value:
 
-  None
+      None
 */
 
 void *cleanup_scanned_list(void);
@@ -646,85 +669,86 @@ void *cleanup_scanned_list(void);
 
 
 /*
-  communication_unit:
+  manage_communication:
 
-  This function checks each ScannedDevice node in the scanned list to 
-  determine whether the node has been in the list for over TIMEOUT, if yes, 
-  the function removes the ScannedDevice struct from the list. If the struct 
-  is no longer in the tracked_object_list, the function call the memory 
-  pool to release the memory space used by the struct.
+      This is the start function of the main thread in the communication 
+      unit of LBeacon. After initlizaiing the zigbee struct, it creates a 
+      thread pool with NO_WORK_THREADS worker threads; then while beacon is 
+      ready to work, the function waits for poll from the gateway, when 
+      polled, the function creates appropriate work items to be executed by 
+      a worker thread. 
 
   Parameters:
 
-  None
+       None
 
   Return value:
 
-  None
+      None
 */
 
-void *communication_unit(void);
+void *manage_communication(void);
 
 
 
 /*
-  track_devices_in_file:
+  copy_object_data_to_file:
 
-  This function tracks the MAC addresses of scanned (is discovered) bluetooth
-  devices under a location beacon. An output file will contain for each 
-  timestamp, the MAC addresses of the bluetooth devices discovered at the 
-  given timestamp.
+      This function copies the MAC addresses of scanned (is discovered)
+      bluetooth devices under a location beacon to a file. The output file
+      contains for each MAC address in a ScannedDevice struct found on the 
+      track object, the initial and final timestamps. 
 
   Parameters:
 
-  file_name - name of the file where all the data will be stored
+      file_name - name of the file where all the data will be stored
 
   Return value:
 
-  None
+      None
 */
 
-bool track_devices_in_file(char *file_name);
+ErrorCode copy_object_data_to_file(char *file_name);
 
 
 /*
   free_list:
 
-  This function frees the nodes in the specific list. Set the node pointers 
-  to itself. 
+      This function removes nodes from the specified list and if removed 
+      node is not in any list, release memoory used by the node to memory 
+      pool.
 
   Parameters:
 
-  entry - the head of the list for determining which list is goning to be 
-  modified.
-  numnode - the number of the node to be freed.
+      list_head - the head of a specified list.
 
   Return value:
 
-  None
- */
+      None
+*/
 
-void free_List(List_Entry *entry, int numnode);
+void free_list(List_Entry *list_head);
 
 
 /*
   start_scanning:
 
-  This function scans continuously for bluetooth devices under the coverage
-  of the  beacon until scanning is cancelled. When the RSSI value of the 
-  device is within the threshold, this function calls send_to_push_dongle to
-  either add a new ScannedDevice struct of the device to scanned list and 
-  track_object_list or update the struct in the lists. 
+      This function scans continuously for bluetooth devices under the 
+      coverage of the  beacon until scanning is cancelled. When the RSSI 
+      value of the device is within the threshold, this function calls 
+      send_to_push_dongle to either add a new ScannedDevice struct of the 
+      device to scanned list and track_object_list or update the final scan 
+      time of a struct in the lists. 
 
-  [N.B. This function is executed by the main thread. ]
+      [N.B. This function is executed by the main thread. ]
 
   Parameters:
 
-  None
+      None
 
   Return value:
 
-  None
+      None
 */
 
 void start_scanning();
@@ -733,35 +757,35 @@ void start_scanning();
 /*
   startThread:
 
-  This function initializes the threads.
+      This function initializes a specified thread.
 
   Parameters:
 
-  threads - name of the thread
-  threadfunct - the function for thread to do
-  arg - the argument for thread's function
+      thread - name of a thread
+      threadfunct - the function for thread to do
+      arg - the argument for thread's function
 
   Return value:
 
-  ErrorCode: The error code for the corresponding error
+      ErrorCode: The error code for the corresponding error
 */
 
-ErrorCode startThread(pthread_t threads, void * (*threadfunct)(void*), 
-                        void *arg);
+ErrorCode startThread(pthread_t thread, void * (*threadfunct)(void*), 
+                                        void *arg);
 
 
 /*
   cleanup_exit:
 
-  This function releases all the resources.
+      This function releases all the resources.
 
   Parameters:
 
-  None
+      None
 
   Return value:
 
-  None
+      None
 */
 
 void cleanup_exit();
@@ -771,7 +795,7 @@ void cleanup_exit();
 
 
 /*
-* EXTERNAL FUNCTIONS
+  EXTERNAL FUNCTIONS
 */
 
 
@@ -779,15 +803,15 @@ void cleanup_exit();
 /* 
   opendir:
 
-  This function is called to open a specified directory. 
+      This function is called to open a specified directory. 
 
   Parameters:
 
-  dirname - the name of the directory which is goning to be opened.
+      dirname - the name of the directory which is goning to be opened.
 
   Return value:
 
-  dirp - a pointer to the directory stream.
+      dirp - a pointer to the directory stream.
 */
 extern DIR *opendir(const char *dirname);
 
@@ -795,18 +819,18 @@ extern DIR *opendir(const char *dirname);
 /* 
   obexftp_open:
 
-  This function is called to create an obexftp client.
+      This function is called to create an obexftp client.
 
   Parameters:
 
-  transport - the transport type that will be used
-  ctrans - optional custom transport
-  infocb - optional info callback
-  infocb_data - optional info callback data
+      transport - the transport type that will be used
+      ctrans - optional custom transport
+      infocb - optional info callback
+      infocb_data - optional info callback data
 
   Return value:
 
-  cli - a new allocated ObexFTP client instance, NULL on error.
+      cli - a new allocated ObexFTP client instance, NULL on error.
 */
 extern obexftp_client_t * obexftp_open(int transport, obex_ctrans_t *ctrans,
     obexftp_info_cb_t infocb, void *infocb_data);
@@ -815,33 +839,33 @@ extern obexftp_client_t * obexftp_open(int transport, obex_ctrans_t *ctrans,
 /* 
   memset:
 
-  This function is called to fill block of memory.
+      This function is called to fill a block of memory.
 
   Parameters:
 
-  ptr - the pointer points to the memory area
-  value - the constant byte to replace the memory area
-  num - how many bytes of the memory area that needs to be filled
+      ptr - the pointer points to the memory area
+      value - the constant byte to replace the memory area
+      number - number of bytes in the memory area to be filled
 
   Return value:
 
-  dst - a pointer to the memory area
+      dst - a pointer to the memory area
 */
-extern void * memset(void * ptr, int value, size_t num);
+extern void * memset(void * ptr, int value, size_t number);
 
 
 /*
   hci_open_dev:
   
-  This function is called to open a Bluetooth socket with the specified resource number.
+      This function is called to open a Bluetooth socket with the specified resource number.
 
   Parameters:
 
-  dev_id - the id of the Bluetooth socket device
+      dev_id - the id of the Bluetooth socket device
 
   Return value:
 
-  dd - device descriptor of the Bluetooth socket
+      dd - device descriptor of the Bluetooth socket
 */
 extern int hci_open_dev(int dev_id);
 
@@ -849,15 +873,15 @@ extern int hci_open_dev(int dev_id);
 /* 
   hci_filter_clear:
 
-  This function is called to clear filter.
+      This function is called to clear filter.
 
   Parameters:
 
-  f - the filter to be cleaned
+      f - the filter to be cleaned
 
   Return value:
 
-  None
+      None
 */
 extern void hci_filter_clear(struct hci_filter *f);
 
@@ -865,16 +889,16 @@ extern void hci_filter_clear(struct hci_filter *f);
 /* 
   hci_filter_set_ptype:
 
-  This function is called to let filter set ptype.
+      This function is called to let filter set ptype.
 
   Parameters:
 
-  t - the type
-  f - the filter to be set
+      t - the type
+      f - the filter to be set
 
   Return value:
 
-  None
+      None
 */
 extern void hci_filter_set_ptype(int t, struct hci_filter *f);
 
@@ -882,16 +906,16 @@ extern void hci_filter_set_ptype(int t, struct hci_filter *f);
 /* 
   hci_filter_set_event:
 
-  This function is called to let filter set event
+      This function is called to let filter set event
 
   Parameters:
 
-  e - the event
-  f - the filter to be set
+      e - the event
+      f - the filter to be set
 
   Return value:
 
-  None
+      None
 */
 extern void hci_filter_set_event(int e, struct hci_filter *f);
 
@@ -899,17 +923,17 @@ extern void hci_filter_set_event(int e, struct hci_filter *f);
 /* 
   hci_write_inquiry_mode:
 
-  This function is called to configure inquiry mode
+      This function is called to configure inquiry mode
 
   Parameters:
 
-  dd - device descriptor of the open HCI socket
-  mode - new inquiry mode
-  to - send request to this
+      dd - device descriptor of the open HCI socket
+      mode - new inquiry mode
+      to - send request to this
 
   Return value:
 
-  None
+      None
 */
 extern int hci_write_inquiry_mode(int dd, uint8_t mode, int to);
 
@@ -917,19 +941,19 @@ extern int hci_write_inquiry_mode(int dd, uint8_t mode, int to);
 /* 
   hci_send_cmd:
 
-  This function is called to send cmd
+      This function is called to send cmd
 
   Parameters:
 
-  dd - device descriptor of the open HCI socket
-  ogf - opcode group field 
-  ocf - opcode command field
-  plen - the length of the command parameters 
-  param - the parameters that function runs with
+      dd - device descriptor of the open HCI socket
+      ogf - opcode group field 
+      ocf - opcode command field
+      plen - the length of the command parameters 
+      param - the parameters that function runs with
 
   Return value:
 
-  0 for success. error number for error.
+      0 for success. error number for error.
 */
 extern int  hci_send_cmd(int dd, uint16_t ogf, uint16_t ocf, uint8_t plen,
     void *param);
@@ -938,15 +962,15 @@ extern int  hci_send_cmd(int dd, uint16_t ogf, uint16_t ocf, uint8_t plen,
 /* 
   pthread_attr_init:
 
-  This function is called to initialize thread attributes object
+      This function is called to initialize thread attributes object
 
   Parameters:
 
-  attr - the thread attributes object to be initiallized
+      attr - the thread attributes object to be initiallized
 
   Return value:
 
-  0 for success. error number for error.
+      0 for success. error number for error.
 */
 extern int pthread_attr_init(pthread_attr_t *attr);
 
@@ -954,15 +978,15 @@ extern int pthread_attr_init(pthread_attr_t *attr);
 /* 
   pthread_attr_destroy:
 
-  This function is called to destroy thread attributes object
+      This function is called to destroy thread attributes object
 
   Parameters:
 
-  attr - the thread attributes object to be destroyed
+      attr - the thread attributes object to be destroyed
 
   Return value:
 
-  0 for success. error number for error.
+      0 for success. error number for error.
 */
 extern int pthread_attr_destroy(pthread_attr_t *attr);
 
@@ -970,15 +994,15 @@ extern int pthread_attr_destroy(pthread_attr_t *attr);
 /* 
   pthread_detach:
 
-  This function is called to detach a thread
+      This function is called to detach a thread
 
   Parameters:
 
-  thread - a thread to be detached
+      thread - a thread to be detached
 
   Return value:
 
-  0 for success. error number for error.
+      0 for success. error number for error.
 */
 extern int pthread_detach(pthread_t thread);
 
@@ -986,17 +1010,18 @@ extern int pthread_detach(pthread_t thread);
 /* 
   pthread_create:
 
-  This function is called to create a new thread
+      This function is called to create a new thread
 
   Parameters:
 
-  thread - a pointer to the new thread
-  attr - set thread properties
-  arg - the parameters that function runs with
+      thread - a pointer to the new thread
+      attr - set thread properties
+      arg - the parameters that function runs with
 
   Return value:
 
-  0 for success. error number for error and the contents of *thread are undefined.
+      0 for success. error number for error and the contents of *thread are 
+      undefined.
 */
 extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     void *(*start_routine) (void *), void *arg);
@@ -1005,17 +1030,17 @@ extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 /*
   zigbee_send_file:
 
-  When called, this function sends a containing the specified message packet 
-  to the gateway via xbee module and and receives command or data from the 
-  gateway. 
+      When called, this function sends a containing the specified message 
+      packet to the gateway via xbee module and and receives command or data 
+      from the gateway. 
 
   Parameters:
 
-  zigbee - the struct of necessary parameter and data
+      zigbee - the struct of necessary parameter and data
 
   Return value:
 
-  None
+      None
 
 */
-extern void *zigbee_send_file(Zigbee zigbee);
+extern void *zigbee_send_file(Zigbee *zigbee);

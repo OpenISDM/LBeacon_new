@@ -38,12 +38,7 @@
   Authors:
 
       Han Wang, hollywang@iis.sinica.edu.tw
-     Jake Lee, jakelee@iis.sinica.edu.tw
-      Johnson Su, johnsonsu@iis.sinica.edu.tw
-      Shirley Huang, shirley.huang.93@gmail.com
-      Han Hu, hhu14@illinois.edu
-      Jeffrey Lin, lin.jeff03@gmail.com
-      Howard Hsu, haohsu0823@gmail.com
+      Joey, joeyzhou@iis.sinica.edu.tw
      
 */
 
@@ -69,15 +64,19 @@
 #define list_for_each(pos, head) \
       for (pos = (head)->next; pos != (head); pos = pos->next)
 
+#define list_for_each_safe(pos, n, head) \
+    for (pos = (head)->next, n = pos->next; pos != (head); \
+        pos = n, n = pos->next)
 
 
-/*Strcut for the head of list containing two pointers: next and prev */
+
+/*Struct for the head of a list or doubly linked list entry used in link a
+  node in to a list */
 typedef struct List_Entry {   
    struct List_Entry *next;
    struct List_Entry *prev;
    
 }List_Entry;
-
 
 
 
@@ -91,7 +90,7 @@ typedef struct List_Entry {
   Parameters:
  
   entry - the head of the list for determining which list is goning to be 
-  initialized.
+          initialized.
    
   Return value:
  
@@ -101,80 +100,79 @@ typedef struct List_Entry {
 
 
 /*
-  list_insert_:
+  insert_entry_list:
  
-  This function changes the links between node and the added 
-  new node.
+  This function inserts a node at where specified by the previous and next
+  pointers.
 
   Parameters:
 
   new_node - the struct of list entry for the node be added into the list.
-  prev - the struct of list entry which the new node points to previously.
-  next - the struct of list entry which the new node points to next.
+  prev - the list entry pointing to the previous node of the new node.
+  next - the list entry pointing to the next node of the new node.
     
   Return value:
  
   None
 */
-  void list_insert_(List_Entry *new_node, List_Entry *prev,
-                   List_Entry *next);
+  void insert_entry_list(List_Entry *new_node,
+                         List_Entry *prev,
+                         List_Entry *next);
 
 /*
-  list_insert_first:
+  insert_list_first:
 
-  This function calls the function of list_insert_ to add a new node at the 
-  first of the list.
+  This function calls inserts a new node at the head of a specified list.
 
   Parameters:
 
-  new_node - the struct of list entry for the node be added into the list.
-  head - the struct of list entry which is the head of the list.
+  new_node - a pointer to the new node to be inserted into the list.
+  head - The head of list.
     
   Return value:
  
   None
 */
- void list_insert_first(List_Entry *new_node, List_Entry *head);
+ void insert_list_first(List_Entry *new_node, List_Entry *head);
 
 /*
-  list_insert_tail:
+  insert_list_tail:
  
-  This function calls the function of list_insert_ to add a new node at the 
-  last of the list.
+  This function inserts a new node at the tail of the specified list.
 
   Parameters:
 
-  new_node - the struct of list entry for the node be added into the list.
-  head - the struct of list entry which is the head of the list.
+  new_node - the list entry of the node be inserted into the list.
+  head - The head of list.
    
   Return value:
 
   None
 */
- void list_insert_tail(List_Entry *new_node, List_Entry *head);
+ void insert_list_tail(List_Entry *new_node, List_Entry *head);
 
 /*
-  list_remove_:
+  remove_entry_list:
  
   This function changes the links between the node and the node which 
   is going to be removed.
 
   Parameters:
 
-  prev - the struct of list entry for the node which is going to be deleted 
-  points to previously.
-  next - the struct of list entry for the node which is going to be deleted 
-  points to next.
+  prev - the struct of list entry for the node which is going to be removed
+         points to previously.
+  next - the struct of list entry for the node which is going to be removed 
+         points to next.
    
   Return value:
 
   None
 */
- void list_remove_(List_Entry *prev, List_Entry *next);
+ void remove_entry_list(List_Entry *prev, List_Entry *next);
 
 
 /*
-  list_remove_node:
+  remove_list_node:
 
   This function calls the function of remove_node__ to delete a node in the 
   list.
@@ -189,8 +187,7 @@ typedef struct List_Entry {
 
   None
 */
- void list_remove_node(List_Entry *removed_node_ptrs);
-
+ void remove_list_node(List_Entry *removed_node_ptrs);
 
 /*
   get_list_length:

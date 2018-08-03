@@ -48,109 +48,118 @@
 
 
 
-int zigbee_init(Zigbee zigbee){
+ErrorCode_Xbee zigbee_init(Zigbee *zigbee){
 
      /* Parameters for Zigbee initialization */
-    char* xbee_mode  = "xbeeZB";
-    char* xbee_device = "/dev/ttyAMA0"; 
+    char* xbee_mode = "xbeeZB";
+
+    char* xbee_device = "/dev/ttyAMA0";
+
     int xbee_baudrate = 9600;
+
     int LogLevel = 100;
 
-    
-    zigbee.pkt_Queue = malloc(sizeof(spkt_ptr));
-
-    xbee_initial(xbee_mode, xbee_device, xbee_baudrate
-                            , LogLevel, &(zigbee.xbee), zigbee.pkt_Queue);
-    
+    xbee_initial(xbee_mode, xbee_device, xbee_baudrate, 
+                        LogLevel, &zigbee->xbee, &zigbee->pkt_Queue);
     printf("Start establishing Connection to xbee\n");
 
 
-    /*--------------Configuration for connection in Data mode--------------*/
-    /* In this mode we aim to get Data.                                    */
-    /*---------------------------------------------------------------------*/
+    printf("Establishing Connection...\n");  
 
-    printf("Establishing Connection...\n");
-
-    xbee_connector(&(zigbee.xbee), &(zigbee.con), zigbee.pkt_Queue);
-
+    xbee_connector(&zigbee->xbee, &zigbee->con, &zigbee->pkt_Queue);
+    
     printf("Connection Successfully Established\n");
 
-    /* Start the chain reaction!                                           */
-
-    if((ret = xbee_conValidate(zigbee.con)) != XBEE_ENONE){
-        xbee_log(zigbee.xbee, 1, "con unvalidate ret : %d", ret);
-        return;
+    /* Start the chain reaction                                             */
+    if((ret = xbee_conValidate(zigbee->con)) != XBEE_ENONE){
+        
+        xbee_log(zigbee->xbee, 1, "con unvalidate ret : %d", ret);
+        
+        perror(error_xbee[E_XBEE_VALIDATE].message);
+        
+        return E_XBEE_VALIDATE;
     }
 
     return XBEE_SUCCESSFULLY;
 }
 
 
+int receive_call_back(Zigbee *zigbee){
+  
+    /* Check the connection of call back is enable */ 
+    if(xbee_check_CallBack(zigbee->con, &zigbee->pkt_Queue, false)){
 
-
-void *zigbee_send_file(Zigbee zigbee){
+      perror(error_xbee[E_CALL_BACK].message);
+      
+      return NULL;
     
+    };
 
-        
-    /* Pointer point_to_CallBack will store the callback function.       */
-    /* If pointer point_to_CallBack is NULL, break the Loop              */
-        
-    void *point_to_CallBack;
+    /* Get the polled type form the gateway */
+    int call_back_type = CallBack(zigbee->xbee, 
+                                  zigbee->con, 
+                                  &zigbee->pkt_Queue, 
+                                  NULL);
+    
+    
+    switch(call_back_type){
 
-    if ((ret = xbee_conCallbackGet(zigbee.con, (xbee_t_conCallback*)            
-        &point_to_CallBack))!= XBEE_ENONE) {
+        case TRACK_OBJECT_DATA:
+          
+          return TRACK_OBJECT_DATA;
+          break;
 
-        xbee_log(zigbee.xbee, -1, "xbee_conCallbackGet() returned: %d", ret);
-        return 0;
-        
-    }
+        case HEALTH_REPORT:
 
-    if (point_to_CallBack == NULL){
-            
-        printf("Stop Xbee...\n");
-        return XBEE_ERROR;
+          return HEALTH_REPORT;
+          break;
+
+        default:
+          break;
     
     }
 
+    return NOT_YET_POLLED;
 
-    addpkt(zigbee.pkt_Queue, Data, Gateway, zigbee.zig_message);
-
-    /* If there are remain some packet need to send in the Queue,            */
-    /* send the packet                                                   */
-    if(zigbee.pkt_Queue->front->next != NULL){
-
-        xbee_conTx(zigbee.con, NULL, zigbee.pkt_Queue->front->next->content);
-
-        delpkt(zigbee.pkt_Queue);
-        
-    }
-    else{
-        
-        xbee_log(zigbee.xbee, -1, "xbee packet Queue is NULL.");
-        
-    }
-        
-    /* A short time interval between transmission */
-    usleep(XBEE_TIMEOUT);   
- 
-
-   return XBEE_SUCCESSFULLY;
 }
 
-void zigbee_free(Zigbee zigbee){
+void *zigbee_send_file(Zigbee *zigbee){
+    
+    /* Add the content that to be sent to the gateway to the packet queue */
+    addpkt(&zigbee->pkt_Queue, Data, Gateway, zigbee->zig_message);
 
-    /* Free Packet Queue for zigbee connection */
-    Free_Packet_Queue(zigbee.pkt_Queue);
+    /* If there are remain some packet need to send in the Queue,send the 
+    packet */                                      
+    xbee_send_pkt(zigbee->con, &zigbee->pkt_Queue);
 
-    /* Close connection  */
-    if ((ret = xbee_conEnd(zigbee.con)) != XBEE_ENONE) {
-        xbee_log(zigbee.xbee, 10, "xbee_conEnd() returned: %d", ret);
+    usleep(XBEE_TIMEOUT);
+        
+    xbee_connector(&zigbee->xbee, &zigbee->con, &zigbee->pkt_Queue);  
+ 
+
+   return;
+}
+
+
+ErrorCode_Xbee zigbee_free(Zigbee *zigbee){
+
+    Free_Packet_Queue(&zigbee->pkt_Queue);
+
+    /* Close connection                                                      */
+    if ((ret = xbee_conEnd(zigbee->con)) != XBEE_ENONE) {
+        
+        xbee_log(zigbee->xbee, 10, "xbee_conEnd() returned: %d", ret);
+        perror(error_xbee[E_CONNECT].message);
+
         return;
     }
+
+    Free_Packet_Queue(&zigbee->pkt_Queue);
+    
     printf("Stop connection Succeeded\n");
 
     /* Close xbee                                                            */
-    xbee_shutdown(zigbee.xbee);
+    xbee_shutdown(zigbee->xbee);
     printf("Shutdown Xbee Succeeded\n");
 
 }

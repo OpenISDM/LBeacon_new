@@ -4,7 +4,6 @@ CC = gcc -std=gnu99
 OBJS = Utilities.o LinkedList.o pkt_Queue.o xbee_API.o Mempool.o LBeacon.o thpool.o Communication.o
 CFLAGS = -g
 LIB = -L/usr/local/lib
-LIBXBEE = ../libxbee3/lib/
 
 #---------------------------------------------------------------------------
 all: LBeacon
@@ -17,15 +16,15 @@ Utilities.o: Utilities.c Utilities.h
 LinkedList.o: LinkedList.c LinkedList.h
 	$(CC) LinkedList.c $(CFLAGS) $(LIB) -c
 pkt_Queue.o: pkt_Queue.c pkt_Queue.h
-	$(CC) pkt_Queue.c pkt_Queue.h $(LIBXBEE) -lxbee -c
+	$(CC) pkt_Queue.c pkt_Queue.h -lxbee -c
 xbee_API.o: xbee_API.c xbee_API.h
-	$(CC) xbee_API.c xbee_API.h  $(LIBXBEE) -lxbee -c
+	$(CC) xbee_API.c xbee_API.h  -lxbee -c
 Mempool.o: Mempool.c Mempool.h
 	$(CC) Mempool.c $(CFLAGS) $(LIB) -c
 Thpool.o: thpool.c thpool.h
 	$(CC) thpool.c $(CFLAGS) $(LIB) -c
 Communication.o: Communication.c Communication.h
-	$(CC) Communication.c $(LIBXBEE) -lxbee -c
+	$(CC) Communication.c  -lxbee -c
 clean:
 	find . -type f | xargs touch 
 	@rm -rf *.o
