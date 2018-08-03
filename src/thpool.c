@@ -99,17 +99,6 @@ int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), void* arg_p){
 	return 0;
 }
 
-
-/* Wait until all jobs have finished */
-void thpool_wait(thpool_* thpool_p){
-	pthread_mutex_lock(&thpool_p->thcount_lock);
-	while (thpool_p->jobqueue.len || thpool_p->num_threads_working) {
-		pthread_cond_wait(&thpool_p->threads_all_idle, &thpool_p->thcount_lock);
-	}
-	pthread_mutex_unlock(&thpool_p->thcount_lock);
-}
-
-
 /* Destroy the threadpool */
 void thpool_destroy(thpool_* thpool_p){
 	/* No need to destory if it's NULL */
@@ -147,34 +136,6 @@ void thpool_destroy(thpool_* thpool_p){
 	mp_free(&mempool, thpool_p->threads);
 	mp_free(&mempool, thpool_p);
 }
-
-
-/* Pause all threads in threadpool */
-void thpool_pause(thpool_* thpool_p) {
-	int n;
-	for (n=0; n < thpool_p->num_threads_alive; n++){
-		pthread_kill(thpool_p->threads[n]->pthread, SIGUSR1);
-	}
-}
-
-
-/* Resume all threads in threadpool */
-void thpool_resume(thpool_* thpool_p) {
-    // resuming a single threadpool hasn't been
-    // implemented yet, meanwhile this supresses
-    // the warnings
-    (void)thpool_p;
-
-	threads_on_hold = 0;
-}
-
-
-int thpool_num_threads_working(thpool_* thpool_p){
-	return thpool_p->num_threads_working;
-}
-
-
-
 
 
 /* ============================ THREAD ============================== */
@@ -289,10 +250,6 @@ static void thread_destroy (thread* thread_p){
 	mp_free(&mempool, thread_p);
 }
 
-
-
-
-
 /* ============================ JOB QUEUE =========================== */
 
 
@@ -396,9 +353,6 @@ static void jobqueue_destroy(jobqueue* jobqueue_p){
 	jobqueue_clear(jobqueue_p);
 	mp_free(&mempool, jobqueue_p->has_jobs);
 }
-
-
-
 
 
 /* ======================== SYNCHRONISATION ========================= */

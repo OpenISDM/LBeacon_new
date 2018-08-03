@@ -153,76 +153,6 @@ int thpool_add_work(Threadpool threadpool, void (*function_p)(void*), void* arg_
 
 
 /**
- * @brief Wait for all queued jobs to finish
- *
- * Will wait for all jobs - both queued and currently running to finish.
- * Once the queue is empty and all work has completed, the calling thread
- * (probably the main program) will continue.
- *
- * Smart polling is used in wait. The polling is initially 0 - meaning that
- * there is virtually no polling at all. If after 1 seconds the threads
- * haven't finished, the polling interval starts growing exponentially
- * untill it reaches max_secs seconds. Then it jumps down to a maximum polling
- * interval assuming that heavy processing is being used in the threadpool.
- *
- * @example
- *
- *    ..
- *    threadpool thpool = thpool_init(4);
- *    ..
- *    // Add a bunch of work
- *    ..
- *    thpool_wait(thpool);
- *    puts("All added work has finished");
- *    ..
- *
- * @param threadpool     the threadpool to wait for
- * @return nothing
- */
-void thpool_wait(Threadpool);
-
-
-/**
- * @brief Pauses all threads immediately
- *
- * The threads will be paused no matter if they are idle or working.
- * The threads return to their previous states once thpool_resume
- * is called.
- *
- * While the thread is being paused, new work can be added.
- *
- * @example
- *
- *    threadpool thpool = thpool_init(4);
- *    thpool_pause(thpool);
- *    ..
- *    // Add a bunch of work
- *    ..
- *    thpool_resume(thpool); // Let the threads start their magic
- *
- * @param threadpool    the threadpool where the threads should be paused
- * @return nothing
- */
-void thpool_pause(Threadpool);
-
-
-/**
- * @brief Unpauses all threads if they are paused
- *
- * @example
- *    ..
- *    thpool_pause(thpool);
- *    sleep(10);              // Delay execution 10 seconds
- *    thpool_resume(thpool);
- *    ..
- *
- * @param threadpool     the threadpool where the threads should be unpaused
- * @return nothing
- */
-void thpool_resume(Threadpool threadpool);
-
-
-/**
  * @brief Destroy the threadpool
  *
  * This will wait for the currently active threads to finish and then 'kill'
@@ -242,27 +172,6 @@ void thpool_resume(Threadpool threadpool);
  * @return nothing
  */
 void thpool_destroy(Threadpool);
-
-
-/**
- * @brief Show currently working threads
- *
- * Working threads are the threads that are performing work (not idle).
- *
- * @example
- * int main() {
- *    threadpool thpool1 = thpool_init(2);
- *    threadpool thpool2 = thpool_init(2);
- *    ..
- *    printf("Working threads: %d\n", thpool_num_threads_working(thpool1));
- *    ..
- *    return 0;
- * }
- *
- * @param threadpool     the threadpool of interest
- * @return integer       number of threads working
- */
-int thpool_num_threads_working(Threadpool);
 
 /* The number of slots for the memory pool */
 #define SLOTS_FOR_MEM_POOL 100
