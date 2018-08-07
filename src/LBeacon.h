@@ -13,8 +13,8 @@ Project Name:
 
 File Description:
 
-    This header file contains function declarations and
-    variables used in the LBeacon.c file.
+    This header file contains function declarations of variables, struct and
+    functions and definitions pf global variables used in the LBeacon.c file.
 
 File Name:
 
@@ -43,6 +43,7 @@ Authors:
     Johnson Su, johnsonsu@iis.sinica.edu.tw
     Joey Zhou, joeyzhou@iis.sinica.edu.tw
     Kenneth Tang, kennethtang@iis.sinica.edu.tw
+    James Huamg, 
     Shirley Huang, shirley.huang.93@gmail.com
     Jeffrey Lin, lin.jeff03@gmail.com
     Howard Hsu, haohsu0823@gmail.com
@@ -95,8 +96,7 @@ Authors:
    specification - core version 4.0, vol.2, part E Chapter 5.4 for details. 
 */
 #define cmd_opcode_pack(ogf, ocf) (uint16_t)((ocf &amp; 0x03ff) | \
-                                                        (ogf &lt;&lt; 10))
-
+                                                        (ogf &lt;&lt; 10)) 
 /* File path of the config file */
 #define CONFIG_FILE_NAME "../config/config.conf"
 
@@ -105,7 +105,7 @@ Authors:
 
 
 /* Number of lines in the config file */
-#define ConFIG_FILE_LENGTH 11
+#define CONFIG_FILE_LENGTH 11
 
 /* Parameter that marks the start of the config file */
 #define DELIMITER "="
@@ -126,11 +126,11 @@ Authors:
 /* Maximum number of characters in message file name */
 #define FILE_NAME_BUFFER 64
 
+/* Length in number of chars used for basic information */
+#define LENGTH_OF_INFO 128
+
 /* Number of milliseconds in an epoch */
 #define LENGTH_OF_TIME 10
-
-/* Length of the char of basic information */
-#define LENGTH_OF_INFO 128
 
 /* Maximum length of time in milliseconds a bluetooth device
    stays in the scanned device list 
@@ -145,6 +145,11 @@ Authors:
 
 /* The timeout in milliseconds for waiting in threads */
 #define TIMEOUT_WAITING 3000
+
+/* Timeout interval in seconds */
+#define A_LONG_TIME 30000
+#define A_SHORT_TIME 5000
+#define A_VERY_SHORT_TIME 300
 
 /* Nominal transmission range limited. Only devices in this RSSI range are 
    allowed to be discovered and sent. */
@@ -166,13 +171,10 @@ Authors:
    one time */
 #define MAX_NO_OBJECTS 32
 
-/* The number of slots for the memory pool */
+/* The number of slots in the memory pool */
 #define SLOTS_IN_MEM_POOL 1024
 
-/* Timeout interval in seconds */
-#define A_LONG_TIME 30000
-#define A_SHORT_TIME 5000
-#define A_VERY_SHORT_TIME 300
+
 
 
 /* The macro of comparing two integer for minimum */
@@ -303,7 +305,7 @@ typedef struct ThreadStatus {
 } ThreadStatus;
 
 
-/* Struct for storing MAC address of the user's device and the time instant
+/* Struct for storing MAC address of a user's device and the time instant
    at which the address is scanned 
 */
 typedef struct ScannedDevice {
@@ -394,7 +396,7 @@ bool ready_to_work;
 */
 Memory_Pool mempool;
 
-/* The lock for the list */
+/* The lock that controls access to lists */
 pthread_mutex_t  list_lock;    
 
 
@@ -519,7 +521,7 @@ long long get_system_time();
 
   Parameters:
 
-      bluetooth_device_address - bluetooth device address
+      bluetooth_device_address - MAC address of a bluetooth device
       has_rssi - a flag indicating whether the bluetooth device has an RSSI 
                  value
       rssi - RSSI value of bluetooth device
@@ -538,19 +540,21 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 /*
   send_to_push_dongle:
 
-      When called, this functions first checks whether there is a ScannedDevice 
-      struct in the scanned list with MAC address matching the input bluetooth 
-      device address. If there is no such struct, this function allocates from 
-      memory pool space for a ScannedDeice struct, sets the MAC address of the 
-      new struct to the input MAC address, the initial scanned time and final
-      scanned time to the current time, and inserts the sruct at the head of of 
-      the scanned list and tail of the tracked object list. If a struct with MAC
-      address matching the input device address is found, this function sets the 
-      final scanned time of the struct to current time.
+      When called, this functions first checks whether there is a 
+      ScannedDevice struct in the scanned list with MAC address matching the 
+      input bluetooth device address. If there is no such struct, this 
+      function allocates from memory pool space for a ScannedDeice struct, 
+      sets the MAC address of the new struct to the input MAC address, the 
+      initial scanned time and final scanned time to the current time, and 
+      inserts the sruct at the head of of the scanned list and tail of the 
+      tracked object list. If a struct with MAC address matching the input 
+      device address is found, this function sets the final scanned time of 
+      the struct to current time.
 
   Parameters:
 
-      bluetooth_device_address - bluetooth device address
+      bluetooth_device_address - MAC address of a bluetooth device discovered
+                                 during inquiry
 
   Return value:
 
@@ -594,14 +598,15 @@ struct ScannedDevice *check_is_in_scanned_list(char address[]);
 
   Parameters:
 
-      advertising_interval - the time interval for which the LBeacon can
+      advertising_interval - the time interval during which the LBeacon can
                          advertise 
       advertising_uuid - universally unique identifier for advertising
       rssi_value - RSSI value of the bluetooth device
 
   Return value:
 
-      ErrorCode: The error code for the corresponding error
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise 
 
 */
 
@@ -621,7 +626,8 @@ ErrorCode enable_advertising(int advertising_interval,
 
   Return value:
 
-      ErrorCode: The error code for the corresponding error
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise 
 */
 
 ErrorCode disable_advertising();
@@ -630,8 +636,8 @@ ErrorCode disable_advertising();
 /*
   stop_ble_beacon:
 
-      This function allows avertising to be stopped with ctrl-c if a precious 
-      call to enable_advertising was a success.
+      This function allows avertising to be stopped with ctrl-c if a 
+      precious call to enable_advertising was a success.
 
   Parameters:
 
@@ -694,18 +700,20 @@ void *manage_communication(void);
 /*
   copy_object_data_to_file:
 
-      This function copies the MAC addresses of scanned (is discovered)
+      This function copies the MAC addresses of scanned (i.e/ discovered)
       bluetooth devices under a location beacon to a file. The output file
-      contains for each MAC address in a ScannedDevice struct found on the 
-      track object, the initial and final timestamps. 
+      contains for each MAC address in a ScannedDevice struct found in the 
+      track object list, the initial and final timestamps. 
 
   Parameters:
 
-      file_name - name of the file where all the data will be stored
+      file_name - name of the file where data is stored in all ScannedDevice 
+                  struct found in tracked object list
 
   Return value:
 
-      None
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise 
 */
 
 ErrorCode copy_object_data_to_file(char *file_name);
@@ -714,9 +722,9 @@ ErrorCode copy_object_data_to_file(char *file_name);
 /*
   free_list:
 
-      This function removes nodes from the specified list and if removed 
-      node is not in any list, release memoory used by the node to memory 
-      pool.
+      This function removes nodes from the specified list and if the removed 
+      node is not in any list, call memory pool to release memoory used by 
+      the node.
 
   Parameters:
 
@@ -762,12 +770,13 @@ void start_scanning();
   Parameters:
 
       thread - name of a thread
-      threadfunct - the function for thread to do
-      arg - the argument for thread's function
+      threadfunct - the function to be executed by the thread
+      arg - the argument for thread function
 
   Return value:
 
-      ErrorCode: The error code for the corresponding error
+      ErrorCode: The error code for the corresponding error if the function
+                 fails or WORK SUCCESSFULLY otherwise
 */
 
 ErrorCode startThread(pthread_t thread, void * (*threadfunct)(void*), 
