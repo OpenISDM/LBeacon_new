@@ -13,11 +13,8 @@
 
  File Description:
 
-      This file contains the program to allow the beacon to discover
-   bluetooth devices and then scan the Bluetooth addresses of the devices.
-   Depending on the RSSI value of each discovered and scanned deviced,
-   the beacon determines whether it should send location related files to
-   the device.
+      This file contains the program executed by location beacons to 
+      support indoor poositioning and object tracking functions.
 
  File Name:
 
@@ -33,8 +30,8 @@
       descriptions of their locations to users' devices. Basically, a
       LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
       coordinates and location description of every LBeacon are retrieved
-      from BeDIS (Building/environment Data and Information System) and
-      stored locally during deployment and maintenance times. Once
+      from BeDIS (Building/environment Data and Information System) server 
+      and stored locally during deployment and maintenance times. Once
       initialized, each LBeacon broadcasts its coordinates and location
       description to Bluetooth enabled user devices within its coverage
       area.
@@ -75,7 +72,7 @@ Config get_config(char *file_name) {
     else {
     /* Create spaces for storing the string of the current line being read */
     char config_setting[CONFIG_BUFFER_SIZE];
-    char *config_message[ConFIG_FILE_LENGTH];
+    char *config_message[CONFIG_FILE_LENGTH];
 
      /* Keep reading each line and store into the config struct */
     fgets(config_setting, sizeof(config_setting), file);
@@ -226,7 +223,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 
     if (new_node != NULL) {
 
-        /* Update the final scan time */
+        /* Update the final scan time, release lock and return */
         new_node->final_scanned_time = get_system_time();
         
         pthread_mutex_unlock(&list_lock);      
@@ -266,12 +263,10 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
                           &tracked_object_list_head);
 
         pthread_mutex_unlock(&list_lock);
-       
-      
-         
-       
-       
+              
     }
+
+    return;
 
 }
 
@@ -597,16 +592,16 @@ void *cleanup_scanned_list(void) {
             temp = ListEntry(listptrs, ScannedDevice, sc_list_entry);
 
 
-            /* If a device has been in the scanned list for at least 30 
-               seconds, remove the struct node from the scanned list */
+            /* If the device has been in the scanned list for at least 30 
+               seconds, remove its struct node from the scanned list */
             if (get_system_time() - temp->initial_scanned_time > TIMEOUT) {
 
                 
                 remove_list_node(&temp->sc_list_entry);
 
 
-                /* If the node no longer in the other lists, free the space
-                   back to the memory pool. */
+                /* If the node no longer in the tracked object lists, free 
+                   the space back to the memory pool. */
                 if(&temp->tr_list_entry.next 
                                         == &temp->tr_list_entry.prev){
 
@@ -655,7 +650,7 @@ void *manage_communication(void) {
     }
 
     /* Initialize the thread pool and work threads waiting for the 
-       new work/job assigned. */
+       new work/job to be assigned. */
     thpool = thpool_init(NO_WORK_THREADS); 
     if(thpool == NULL){
         
@@ -678,21 +673,19 @@ void *manage_communication(void) {
       
         while(polled_type == NOT_YET_POLLED){
 
-            printf("Polled is going to sleep \n");
+            printf("Not yet Polled, go to sleep \n");
             sleep(TIMEOUT_WAITING);
 
             polled_type = receive_call_back(&zigbee);
         
         }
 
-        /* According to the polled data type, different work item to be 
-           prepared */
+        /* According to the polled data type, prepare a different work item */
         switch(polled_type){
 
             case TRACK_OBJECT_DATA:
 
-                /* Call copy_track_object_to_data() to create file of 
-                   tracked object datato be transmit */
+                /* Copy track_obkect data to a file to be transmited */
                
                 copy_progress = (int)copy_object_data_to_file("output.txt");
                 
@@ -730,7 +723,7 @@ void *manage_communication(void) {
                 printf("Message: %s \n", zigbee.zig_message);
 
 
-                /* Add the work item to the work thread */
+                /* Add a work item to be executed by a work thread */
                 if(thpool_add_work(thpool, 
                                    (void*)zigbee_send_file, 
                                    &zigbee) != 0){
@@ -818,11 +811,11 @@ ErrorCode copy_object_data_to_file(char *file_name) {
 
     }
     
-    /* Get the smaller amount for transmission */
+    /* Get the number of objects with data to be transmitted */
     number_in_list = get_list_length(&tracked_object_list_head);
     number_to_send = min(MAX_NO_OBJECTS, number_in_list);
 
-    /* Add the number_to_send at the first of the track file */
+    /* Insert number_to_send at the struct of the track file */
     sprintf(basic_info, "%d;", number_to_send);
     fputs(basic_info, track_file);
     printf("Number to send: %d\n", number_to_send);
@@ -839,7 +832,7 @@ ErrorCode copy_object_data_to_file(char *file_name) {
 
     pthread_mutex_lock(&list_lock);
 
-    /* Temporary pointer points to the head of the track_object_list */
+    /* Set temporary pointer points to the head of the track_object_list */
     lisptrs = tracked_object_list_head.next;
 
     /* Set the pointer of the local list head to the head of the 
@@ -864,15 +857,15 @@ ErrorCode copy_object_data_to_file(char *file_name) {
 
     }
 
-    /* Set the track_object_list_head points to the last node */
+    /* Set the track_object_list_head to point to the last node */
     tracked_object_list_head.next = lisptrs;
     /*Set the last node pointing to the local_object_list_head */
     tailptrs->next = &local_object_list_head;
 
     pthread_mutex_unlock(&list_lock);
 
-    /* Go throngh the local object list to get the content and to write
-       the file */
+    /* Go throngh the local object list to get the content and write the 
+       content to file */
     list_for_each(lisptrs, &local_object_list_head){
 
 
@@ -897,7 +890,7 @@ ErrorCode copy_object_data_to_file(char *file_name) {
     pthread_mutex_lock(&list_lock);
 
     /* Remove nodes from the local list and release memory allocated to
-       nodes */
+       nodes that are also not in scanned_device_list */
     free_list(&local_object_list_head);
 
     pthread_mutex_unlock(&list_lock);
@@ -912,7 +905,7 @@ ErrorCode copy_object_data_to_file(char *file_name) {
 
 void free_list(List_Entry *list_head){
 
-    /* Create a temporary node and set as the head */
+    
     struct List_Entry *lisptrs, *savelistptrs;
     ScannedDevice *temp;
 
@@ -925,7 +918,7 @@ void free_list(List_Entry *list_head){
         
         remove_list_node(lisptrs);
 
-        /* If the node no longer in the other list, free the space
+        /* If the node is no longer in any list, free the space
            back to the memory pool. */
         if(&temp->sc_list_entry.next == &temp->sc_list_entry.prev){
 
@@ -1145,33 +1138,33 @@ void cleanup_exit(){
 
     /* Set flag to false */
     ready_to_work = false;
-    
-    /* Go throgth two lists to release all memory allocated to the nodes */
-    list_for_each_safe(lisptrs, 
+
+    if(&mempool != NULL){
+
+        /* Go throgth two lists to release all memory allocated to the nodes */
+        list_for_each_safe(lisptrs, 
                        savelistptrs, 
                        &scanned_list_head){
 
-        temp = ListEntry(lisptrs, ScannedDevice, sc_list_entry);
-        remove_list_node(lisptrs);
-        mp_free(&mempool, temp); 
+            temp = ListEntry(lisptrs, ScannedDevice, sc_list_entry);
+            remove_list_node(lisptrs);
+            mp_free(&mempool, temp); 
 
-    }
+        }
 
-    list_for_each_safe(lisptrs, 
+        list_for_each_safe(lisptrs, 
                       savelistptrs, 
                       &tracked_object_list_head){
 
-        temp = ListEntry(lisptrs, ScannedDevice, tr_list_entry);
-        remove_list_node(lisptrs);
-        mp_free(&mempool, temp); 
+            temp = ListEntry(lisptrs, ScannedDevice, tr_list_entry);
+            remove_list_node(lisptrs);
+            mp_free(&mempool, temp); 
 
-    }
-
-    /* Free the memory pool */
-    if(&mempool != NULL){
+        }
         
         mp_destroy(&mempool);
-    
+
+
     }
     
     
@@ -1183,25 +1176,258 @@ void cleanup_exit(){
 
 }
 
-/* Follow are functions for feature phone */
-#ifdef feature_phone
 
-/*
-  choose_file:
+int main(int argc, char **argv) {
 
-    This function receives the name of the message file and returns the file 
-    path where the message is located. It goes through each directory in the 
-    messages folder and in each category, it reads each file name to find the 
-    designated message we want to broadcast to the users under the beacon.
+    /* An iterator through the list of ScannedDevice structs */
+    int device_id;
 
-  Parameters:
+    /* Buffer that contains the hexadecimal location of the beacon */
+    char hex_c[CONFIG_BUFFER_SIZE];
 
-    message_to_send - name of the message file we want to retrieve
+    /* Return value of pthread_create used to check for errors */
+    int return_value;
 
-  Return value:
+    /*Initialize the global flag */
+    ready_to_work = true;
+   
 
-    eturn_value - message file path
-*/
+
+    /*Initialize the lists */
+    init_entry(&scanned_list_head); 
+    init_entry(&tracked_object_list_head);
+
+    /* Initialize the memory pool */
+    if(mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_IN_MEM_POOL) 
+            == NULL){
+
+        /* Error handling */
+        perror(errordesc[E_MALLOC].message);
+        cleanup_exit();
+        return E_MALLOC;
+
+    }
+    
+    /* Initialize two locks for two lists */
+    pthread_mutex_init(&list_lock,NULL);
+
+
+    /* Load config struct */
+    g_config = get_config(CONFIG_FILE_NAME);
+    g_push_file_path =
+        malloc(g_config.file_path_length + g_config.file_name_length);
+
+
+    if (g_push_file_path == NULL) {
+
+         /* Error handling */
+        perror(errordesc[E_MALLOC].message);
+        cleanup_exit();
+        return E_MALLOC;
+
+    }
+
+    memcpy(g_push_file_path, g_config.file_path,
+           g_config.file_path_length - 1);
+    memcpy(g_push_file_path + g_config.file_path_length - 1,
+           g_config.file_name, g_config.file_name_length - 1);
+
+
+    coordinate_X.f = (float)atof(g_config.coordinate_X);
+    coordinate_Y.f = (float)atof(g_config.coordinate_Y);
+    coordinate_Z.f = (float)atof(g_config.coordinate_Z);
+
+
+    /* Allocate an array with the size of maximum number of devices */
+    int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
+    
+
+
+    /* Initialize each ThreadStatus struct in the array */
+    for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
+
+         strncpy(g_idle_handler[device_id].scanned_mac_address, "0",
+         LENGTH_OF_MAC_ADDRESS);
+        g_idle_handler[device_id].idle = true;
+        g_idle_handler[device_id].is_waiting_to_send = false;
+
+    }
+
+
+    /* Store coordinates of the beacon location */
+    sprintf(hex_c,
+            "OPENISDMN402%02x%02x%02x%02xD0F5%02x%02x%02x%02x48D2B060",
+            coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
+            coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
+            coordinate_Y.b[2], coordinate_Y.b[3]);
+
+
+    strcpy(g_config.uuid, hex_c);
+
+    /* Create the thread for message advertising to BLE bluetooth devices */
+    pthread_t stop_ble_beacon_thread;
+
+    return_value = startThread(stop_ble_beacon_thread, 
+                               stop_ble_beacon, hex_c);
+
+    if(return_value != WORK_SCUCESSFULLY){
+         perror(errordesc[E_START_THREAD].message);
+        cleanup_exit();
+    }
+
+
+    /* Create the the cleanup_scanned_list thread */
+    pthread_t cleanup_scanned_list_thread;
+
+    return_value = startThread(cleanup_scanned_list_thread,
+                               cleanup_scanned_list, NULL);
+
+    if(return_value != WORK_SCUCESSFULLY){
+         perror(errordesc[E_START_THREAD].message);
+        cleanup_exit();
+    }
+
+
+
+    /* Create the thread for track device */
+    pthread_t track_communication_thread;
+
+    return_value = startThread(track_communication_thread, 
+                               manage_communication, NULL);
+
+    if(return_value != WORK_SCUCESSFULLY){
+         perror(errordesc[E_START_THREAD].message);
+        cleanup_exit();
+    }
+
+/* The code for communication over Bluetooth BR/EDR protocol path using 
+   additional device  */
+#ifdef Bluetooth_classic
+
+    int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
+    int maximum_number_of_devices_per_dongle =
+        maximum_number_of_devices / number_of_push_dongles;
+
+    /* An iterator through each push dongle */
+    int push_dongle_id;
+
+    /* An iterator through a block of devices per dongle */
+    int block_id;
+
+    int dongle_device_id = 0; /*Device ID of dongle */
+
+
+    /* Create an arrayof threads for sending message to the scanned MAC
+     * address */
+    pthread_t send_file_thread[maximum_number_of_devices];
+
+    /* After all the other threads are ready, set this flag to false. */
+    send_message_cancelled = false;
+
+
+   for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
+
+         if (g_idle_handler[device_id].is_waiting_to_send == true) {
+
+            /* Depending on the number of push dongles, split the threads
+             * evenly and assign each thread to a push dongle device ID */
+            for (push_dongle_id = 0;
+                push_dongle_id < number_of_push_dongles;
+                push_dongle_id++) {
+
+                for (block_id = 0;
+                     block_id < maximum_number_of_devices_per_dongle;
+                     block_id++) {
+
+                    if (device_id ==
+                        push_dongle_id *
+                        maximum_number_of_devices_per_dongle +
+                        block_id) {
+
+                            dongle_device_id = push_dongle_id + 1;
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        return_value =  startThread(send_file_thread[device_id], send_file,
+                    (void *)dongle_device_id);
+
+        if(return_value != WORK_SCUCESSFULLY){
+            perror(errordesc[E_START_THREAD].message);
+            cleanup_exit();
+        }
+
+
+    }
+
+    /*Set send_message_cancelled flag to false now. All the thread are 
+      ready.*/
+    send_message_cancelled = false;
+
+
+     /* ready_to_work = false , shut down.
+     * wait for send_file_thread to exit. */
+
+    for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
+
+        return_value = pthread_join(send_file_thread[device_id], NULL);
+
+        if (return_value != 0) {
+            perror(strerror(errno));
+            cleanup_exit();
+            return;
+
+        }
+    }
+
+#endif //Bluetooth_classic
+
+  
+    while(ready_to_work == true){
+
+        start_scanning();
+
+    }
+
+   
+
+
+    return_value = pthread_join(cleanup_scanned_list_thread, NULL);
+
+    if (return_value != 0) {
+        perror(strerror(errno));
+        cleanup_exit();
+        return;
+
+    }
+
+
+    pthread_cancel(stop_ble_beacon_thread);
+    return_value = pthread_join(stop_ble_beacon_thread, NULL);
+
+    if (return_value != 0) {
+        perror(strerror(errno));
+        cleanup_exit();
+        return;
+
+    }
+
+    cleanup_exit();
+
+
+    return 0;
+}
+
+
+
+/* Follow are functions for communication via BR/EDR path to Bluetooth
+   classic devices */
+#ifdef Bluetooth_classic
 
 
 char *choose_file(char *message_to_send) {
@@ -1289,22 +1515,6 @@ char *choose_file(char *message_to_send) {
 }
 
 
-/*
-  send_file:
-
-    This function pushes a message asynchronously to devices. It is the 
-    thread function of the specified thread.
-
-    [N.B. The beacon may still be scanning for other bluetooth devices.]
-
-  Parameters:
-
-    id - ID of the thread used to send the push message
-
-  Return value:
-
-    None
-*/
 
 void *send_file(void *id) {
 
@@ -1464,251 +1674,4 @@ void *send_file(void *id) {
 
 }
 
-#endif 
-
-
-
-int main(int argc, char **argv) {
-
-    /* An iterator through the list of ScannedDevice structs */
-    int device_id;
-
-    /* Buffer that contains the hexadecimal location of the beacon */
-    char hex_c[CONFIG_BUFFER_SIZE];
-
-    /* Return value of pthread_create used to check for errors */
-    int return_value;
-
-    /*Initialize the global flag */
-    ready_to_work = true;
-   
-
-
-    /*Initialize the lists */
-    init_entry(&scanned_list_head); 
-    init_entry(&tracked_object_list_head);
-
-    /* Initialize the memory pool */
-    if(mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_IN_MEM_POOL) 
-            == NULL){
-
-        /* Error handling */
-        perror(errordesc[E_MALLOC].message);
-        cleanup_exit();
-        return E_MALLOC;
-
-    }
-    
-    /* Initialize two locks for two lists */
-    pthread_mutex_init(&list_lock,NULL);
-
-
-    /* Load config struct */
-    g_config = get_config(CONFIG_FILE_NAME);
-    g_push_file_path =
-        malloc(g_config.file_path_length + g_config.file_name_length);
-
-
-    if (g_push_file_path == NULL) {
-
-         /* Error handling */
-        perror(errordesc[E_MALLOC].message);
-        cleanup_exit();
-        return E_MALLOC;
-
-    }
-
-    memcpy(g_push_file_path, g_config.file_path,
-           g_config.file_path_length - 1);
-    memcpy(g_push_file_path + g_config.file_path_length - 1,
-           g_config.file_name, g_config.file_name_length - 1);
-
-
-    coordinate_X.f = (float)atof(g_config.coordinate_X);
-    coordinate_Y.f = (float)atof(g_config.coordinate_Y);
-    coordinate_Z.f = (float)atof(g_config.coordinate_Z);
-
-
-    /* Allocate an array with the size of maximum number of devices */
-    int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
-    
-
-
-    /* Initialize each ThreadStatus struct in the array */
-    for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
-
-         strncpy(g_idle_handler[device_id].scanned_mac_address, "0",
-         LENGTH_OF_MAC_ADDRESS);
-        g_idle_handler[device_id].idle = true;
-        g_idle_handler[device_id].is_waiting_to_send = false;
-
-    }
-
-
-    /* Store coordinates of the beacon location */
-    sprintf(hex_c,
-            "OPENISDMN402%02x%02x%02x%02xD0F5%02x%02x%02x%02x48D2B060",
-            coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
-            coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
-            coordinate_Y.b[2], coordinate_Y.b[3]);
-
-
-    strcpy(g_config.uuid, hex_c);
-
-    /* Create the thread for message advertising to BLE bluetooth devices */
-    pthread_t stop_ble_beacon_thread;
-
-    return_value = startThread(stop_ble_beacon_thread, 
-                               stop_ble_beacon, hex_c);
-
-    if(return_value != WORK_SCUCESSFULLY){
-         perror(errordesc[E_START_THREAD].message);
-        cleanup_exit();
-    }
-
-
-    /* Create the the cleanup_scanned_list thread */
-    pthread_t cleanup_scanned_list_thread;
-
-    return_value = startThread(cleanup_scanned_list_thread,
-                               cleanup_scanned_list, NULL);
-
-    if(return_value != WORK_SCUCESSFULLY){
-         perror(errordesc[E_START_THREAD].message);
-        cleanup_exit();
-    }
-
-
-
-    /* Create the thread for track device */
-    pthread_t track_communication_thread;
-
-    return_value = startThread(track_communication_thread, 
-                               manage_communication, NULL);
-
-    if(return_value != WORK_SCUCESSFULLY){
-         perror(errordesc[E_START_THREAD].message);
-        cleanup_exit();
-    }
-
-    /* The old code for the feature phone */
-    #ifdef feature_phone
-
-    int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
-    int maximum_number_of_devices_per_dongle =
-        maximum_number_of_devices / number_of_push_dongles;
-
-    /* An iterator through each push dongle */
-    int push_dongle_id;
-
-    /* An iterator through a block of devices per dongle */
-    int block_id;
-
-    int dongle_device_id = 0; /*Device ID of dongle */
-
-
-    /* Create an arrayof threads for sending message to the scanned MAC
-     * address */
-    pthread_t send_file_thread[maximum_number_of_devices];
-
-    /* After all the other threads are ready, set this flag to false. */
-    send_message_cancelled = false;
-
-
-   for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
-
-         if (g_idle_handler[device_id].is_waiting_to_send == true) {
-
-            /* Depending on the number of push dongles, split the threads
-             * evenly and assign each thread to a push dongle device ID */
-            for (push_dongle_id = 0;
-                push_dongle_id < number_of_push_dongles;
-                push_dongle_id++) {
-
-                for (block_id = 0;
-                     block_id < maximum_number_of_devices_per_dongle;
-                     block_id++) {
-
-                    if (device_id ==
-                        push_dongle_id *
-                        maximum_number_of_devices_per_dongle +
-                        block_id) {
-
-                            dongle_device_id = push_dongle_id + 1;
-
-                        }
-
-                    }
-
-                }
-
-            }
-
-        return_value =  startThread(send_file_thread[device_id], send_file,
-                    (void *)dongle_device_id);
-
-        if(return_value != WORK_SCUCESSFULLY){
-            perror(errordesc[E_START_THREAD].message);
-            cleanup_exit();
-        }
-
-
-    }
-
-    /*Set send_message_cancelled flag to false now. All the thread are 
-      ready.*/
-    send_message_cancelled = false;
-
-
-     /* ready_to_work = false , shut down.
-     * wait for send_file_thread to exit. */
-
-    for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
-
-        return_value = pthread_join(send_file_thread[device_id], NULL);
-
-        if (return_value != 0) {
-            perror(strerror(errno));
-            cleanup_exit();
-            return;
-
-        }
-    }
-
-    #endif
-
-  
-    while(ready_to_work == true){
-
-        start_scanning();
-
-    }
-
-   
-
-
-    return_value = pthread_join(cleanup_scanned_list_thread, NULL);
-
-    if (return_value != 0) {
-        perror(strerror(errno));
-        cleanup_exit();
-        return;
-
-    }
-
-
-    pthread_cancel(stop_ble_beacon_thread);
-    return_value = pthread_join(stop_ble_beacon_thread, NULL);
-
-    if (return_value != 0) {
-        perror(strerror(errno));
-        cleanup_exit();
-        return;
-
-    }
-
-    cleanup_exit();
-
-
-    return 0;
-}
+#endif //Bluetooth_classic

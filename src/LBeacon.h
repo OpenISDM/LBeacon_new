@@ -16,9 +16,6 @@ File Description:
     This header file contains function declarations of variables, struct and
     functions and definitions pf global variables used in the LBeacon.c file.
 
-    Note: The description is based on the Linux man page section 3 offered at 
-    the site: https://linux.die.net/man/
-
 File Name:
 
     LBeacon.h
@@ -819,13 +816,11 @@ void cleanup_exit();
 
   Parameters:
 
-      dirname - the name of the directory to be opened.
+      dirname - the name of the directory which is goning to be opened.
 
   Return value:
 
-      dirp - a pointer to an object of type DIR if the function 
-             succeeds; Otherwise, a null pointer and errno set 
-             to indicate error.
+      dirp - a pointer to the directory stream.
 */
 extern DIR *opendir(const char *dirname);
 
@@ -844,8 +839,7 @@ extern DIR *opendir(const char *dirname);
 
   Return value:
 
-      cli - a new allocated ObexFTP client instance if the 
-            function succeeds; Otherwise a null pointer.
+      cli - a new allocated ObexFTP client instance, NULL on error.
 */
 extern obexftp_client_t * obexftp_open(int transport, obex_ctrans_t *ctrans,
     obexftp_info_cb_t infocb, void *infocb_data);
@@ -977,10 +971,7 @@ extern int  hci_send_cmd(int dd, uint16_t ogf, uint16_t ocf, uint8_t plen,
 /* 
   pthread_attr_init:
 
-      This function initializes thread attributes object pointed to
-      by attr with default attribute values. After this call, individual 
-      attributes of the object can be set using various related functions
-      (e.g., pthread_create).
+      This function is called to initialize thread attributes object
 
   Parameters:
 
@@ -988,8 +979,7 @@ extern int  hci_send_cmd(int dd, uint16_t ogf, uint16_t ocf, uint8_t plen,
 
   Return value:
 
-      0 if the function succeeds; Otherwise, a nonzero error number to
-      indicate error.
+      0 for success. error number for error.
 */
 extern int pthread_attr_init(pthread_attr_t *attr);
 
@@ -997,9 +987,7 @@ extern int pthread_attr_init(pthread_attr_t *attr);
 /* 
   pthread_attr_destroy:
 
-      This function is called to destroy thread attributes object. 
-      It has no effect on threads that were created using thread 
-      attributes object.
+      This function is called to destroy thread attributes object
 
   Parameters:
 
@@ -1007,8 +995,7 @@ extern int pthread_attr_init(pthread_attr_t *attr);
 
   Return value:
 
-      0 if the function succeeds; Otherwise, a nonzero error number
-      to indicate error.
+      0 for success. error number for error.
 */
 extern int pthread_attr_destroy(pthread_attr_t *attr);
 
@@ -1016,18 +1003,15 @@ extern int pthread_attr_destroy(pthread_attr_t *attr);
 /* 
   pthread_detach:
 
-      This function marks the thread identified by thread parameter
-      as detached. When a detached thread terminates, its resources
-      are automatically released back to the system.
+      This function is called to detach a thread
 
   Parameters:
 
-      thread - the thread to be detached
+      thread - a thread to be detached
 
   Return value:
 
-      0 if the function succeeds; Otherwise, a nonzero error number 
-      to indicate error.
+      0 for success. error number for error.
 */
 extern int pthread_detach(pthread_t thread);
 
@@ -1035,20 +1019,18 @@ extern int pthread_detach(pthread_t thread);
 /* 
   pthread_create:
 
-      This function is called to starts a new thread in the calling
-      process. 
+      This function is called to create a new thread
 
   Parameters:
 
-      thread - a pointer to the new thread identifier
-      attr -  the thread attributes object to be started. This structure
-              needs to be initiallized using pthread_attr_init function.
+      thread - a pointer to the new thread
+      attr - set thread properties
       arg - the parameters that function runs with
 
   Return value:
 
-      0 if the function succeeds; Otherwise, a nonzero error number to
-      indicate error and the contents of *thread are undefined.
+      0 for success. error number for error and the contents of *thread are 
+      undefined.
 */
 extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     void *(*start_routine) (void *), void *arg);
@@ -1071,3 +1053,49 @@ extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 
 */
 extern void *zigbee_send_file(Zigbee *zigbee);
+
+
+/* Follow are functions for communication via BR/EDR path to Bluetooth
+   classic devices */
+#ifdef Bluetooth_classic
+
+/*
+  choose_file:
+
+    This function receives the name of the message file and returns the file 
+    path where the message is located. It goes through each directory in the 
+    messages folder and in each category, it reads each file name to find the 
+    designated message we want to broadcast to the users under the beacon.
+
+  Parameters:
+
+    message_to_send - name of the message file we want to retrieve
+
+  Return value:
+
+    eturn_value - message file path
+*/
+
+
+char *choose_file(char *message_to_send);
+
+/*
+  send_file:
+
+    This function pushes a message asynchronously to devices. It is the 
+    thread function of the specified thread.
+
+    [N.B. The beacon may still be scanning for other bluetooth devices.]
+
+  Parameters:
+
+    id - ID of the thread used to send the push message
+
+  Return value:
+
+    None
+*/
+
+void *send_file(void *id);
+
+#endif // Bluetooth_classic
