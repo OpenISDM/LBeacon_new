@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2016 Academia Sinica, Institute of Information Science
  *
@@ -42,16 +41,22 @@
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
+#include "xbee_log.h"
+
+#ifndef pkt_Queue_H
+#define pkt_Queue_H
 
 #define Gateway   "0000000000000000"
 #define Broadcast "000000000000FFFF"
+
+#define MAX_PKT_LENGTH 1024
 
 enum {Data, Local_AT};
 
 /* packet format in the Queue */
 typedef struct pkt {
 
-    //"Data"
+    //"Data" type
     int type;
 
     // Brocast:     000000000000FFFF;
@@ -61,17 +66,21 @@ typedef struct pkt {
     // Data
     char *content;
 
-    struct pkt *next;
 } sPkt;
 
 typedef sPkt* pPkt;
 
 typedef struct pkt_header {
 
-    // front point to the first of thr Pkt Queue
-    // rear  point to the end of the Pkt Queue
-    sPkt front;
-    sPkt rear;
+    // front store the location of the first of thr Pkt Queue
+    // rear  store the location of the end of the Pkt Queue
+    int front;
+
+    int rear;
+
+    sPkt Queue[MAX_PKT_LENGTH];
+
+    sxbee_log xbee_log;
 
     unsigned char address[8];
 
@@ -82,11 +91,11 @@ typedef struct pkt_header {
 typedef spkt_ptr * pkt_ptr;
 
 /* init_Packet_Queue
- *  Initialize Queue for packets
+ *      Initialize Queue for packets
  * Parameter:
- *  pkt_queue : A struct stored pointers of the first and the last of packet.
+ *      pkt_queue : A struct stored pointers of the first and the last of packet.
  * Return Value:
- *  None
+ *      None
  */
 void init_Packet_Queue(pkt_ptr pkt_queue);
 
@@ -94,7 +103,7 @@ void init_Packet_Queue(pkt_ptr pkt_queue);
  * Free_Packet_Queue
  *     Release all the packets in the packet queue, the header and
  *     the tail of the packet queue and release the struct stored the pointer of
- *      the packet queue.
+ *     the packet queue.
  * Parameter:
  *     pkt_queue : A struct stored the first and the last of the packet queue.
  * Return Value:
@@ -106,7 +115,7 @@ void Free_Packet_Queue(pkt_ptr pkt_queue);
  * addpkt
  *     Add new packet into the packet queue we assigned.
  * Parameter:
- *     pkt_queue : A struct stored the first and the last of the packet queue.
+ *     pkt_Queue: The Queue we store pkt.
  *     type      : Record the type of packets working environment.
  *     raw_addr  : The destnation address of the packet.
  *     content   : The content we decided to send.
@@ -119,7 +128,7 @@ void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content);
  * delpkt
  *     delete the first of the packet queue we assigned.
  * Parameter:
- *     pkt_queue : A struct stored the first and the last of the packet queue.
+ *     pkt_Queue: The Queue we store pkt.
  * Return Value:
  *     None
  */
@@ -134,6 +143,16 @@ void delpkt(pkt_ptr pkt_queue);
  *     Return a char pointer which is it's type name.
  */
 char* type_to_str(int type);
+
+/*
+ * str_to_type
+ *     TO convert type name to type num.
+ * Parameter:
+ *     conType: A string to tell the connection type.
+ * Return Value:
+ *     Return a int which is it's type num.
+ */
+int str_to_type(const char* conType);
 
 /*
  * print_address
@@ -153,7 +172,16 @@ char* print_address(unsigned char* address);
  * Return Value:
  *     None
  */
-void display_pkt(char* content, pPkt pkt);
+void display_pkt(char* content, pkt_ptr pkt_queue, int pkt_num);
+
+/* get_pkt
+ *     get the first of the pkt_queue.
+ * Parameter:
+ *     pkt_Queue: The Queue we store pkt.
+ * Return Value:
+ *     pPkt: the pkt address.
+ */
+pPkt get_pkt(pkt_ptr pkt_queue);
 
 /*
  * Fill_address
@@ -178,7 +206,7 @@ void Fill_Address(char *raw, unsigned char* addr);
 bool address_compare(unsigned char* addr1,unsigned char* addr2);
 
 /*
- * address_compare
+ * address_copy
  *      Compare the address whether is the same.
  * Parameter:
  *      addr1: the src address we copy from.
@@ -194,9 +222,19 @@ void address_copy(unsigned char* src_addr, unsigned char* dest_addr);
  * Parameter:
  *      pkt_Queue: the pkt we stored in the Queue.
  * Return Value:
- *      None
+ *      bool: true if null.
  */
 bool is_null(pkt_ptr pkt_Queue);
+
+/*
+ * is_null
+ *      check if pkt_Queue is full.
+ * Parameter:
+ *      pkt_Queue: the pkt we stored in the Queue.
+ * Return Value:
+ *      bool: true if full.
+ */
+bool is_full(pkt_ptr pkt_Queue);
 
 /*
  * queue-len
@@ -206,5 +244,6 @@ bool is_null(pkt_ptr pkt_Queue);
  * Return Value:
  *      int: the length of the Queue.
  */
-
 int queue_len(pkt_ptr pkt_queue);
+
+#endif

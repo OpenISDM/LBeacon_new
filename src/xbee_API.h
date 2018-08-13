@@ -43,6 +43,7 @@
 #include <unistd.h>
 #include <xbee.h>
 #include "pkt_Queue.h"
+#include "xbee_log.h"
 
 #ifndef xbee_API_H
 #define xbee_API_H
@@ -59,15 +60,16 @@ xbee_err ret;
  *     xbee_device: This parameter is to define where is our zigbee device path.
  *     xbee_baudrate: This parameter is to define what our zigbee working
  *                    baudrate.
- *     LogLevel: To decide libxbee3 whether need to export log or not.
  *     xbee: A pointer to catch zigbee pointer.
- *     pkt_Queue: A pointer of the packet queue we use.
+ *     pkt_Queue: A structure store the packet we decide to send.
+ *     Received_Queue: A structure store the packet we received.
  * Return Value:
  *     xbee_err: If return 0, everything work successfully.
  *               If not 0, somthing wrong.
  */
 xbee_err xbee_initial(char* xbee_mode, char* xbee_device, int xbee_baudrate
-                        , int LogLevel, struct xbee** xbee, pkt_ptr pkt_Queue);
+                    , struct xbee** xbee, pkt_ptr pkt_Queue
+                    , pkt_ptr Received_Queue);
 
 
 /*
@@ -76,15 +78,26 @@ xbee_err xbee_initial(char* xbee_mode, char* xbee_device, int xbee_baudrate
  * Parameter:
  *     xbee: A pointer to catch zigbee pointer.
  *     con: A pointer of the connector of zigbee.
- *     pkt_Queue: A pointer of the packet queue we use.
+ *     pkt_Queue: A structure store the packet we decide to send.
+ *     Received_Queue: A structure store the packet we received.
  * Return Value:
  *     xbee_err: If return 0, everything work successfully.
  *               If not 0, somthing wrong.
  */
 xbee_err xbee_connector(struct xbee** xbee, struct xbee_con** con
-                                                , pkt_ptr pkt_Queue);
+                      , pkt_ptr pkt_Queue, pkt_ptr Received_Queue);
 
-// A function for sending pkt to dest address.
+/* xbee_send_pkt
+ *      A function for sending pkt to dest address.
+ * Parameter:
+ *      xbee: A pointer to catch zigbee pointer.
+ *      con: A pointer of the connector of zigbee.
+ *      pkt_Queue: A structure store the packet we decide to send.
+ *      Received_Queue: A structure store the packet we received.
+ * Return Value:
+ *      xbee_err: If return 0, everything work successfully.
+ *                If not 0, something wrong.
+ */
 xbee_err xbee_send_pkt(struct xbee_con* con, pkt_ptr pkt_Queue);
 
 /*
@@ -97,16 +110,18 @@ xbee_err xbee_send_pkt(struct xbee_con* con, pkt_ptr pkt_Queue);
  *      True if CallBack is disabled and pkt_Queue is NULL, else false.
  *
  */
-bool xbee_check_CallBack(struct xbee_con* con, pkt_ptr pkt_Queue, bool exclude_pkt_Queue);
+bool xbee_check_CallBack(struct xbee_con* con, pkt_ptr pkt_Queue
+                                             , bool exclude_pkt_Queue);
 
+xbee_err xbee_release(struct xbee* xbee, struct xbee_con* con
+                      , pkt_ptr pkt_Queue, pkt_ptr Received_Queue);
 
-/* ---------------------------callback Section------------------------------ */
-/* It will be executed once for each packet that is received on              */
-/* an associated connection                                                  */
-/* ------------------------------------------------------------------------- */
+/* ---------------------------callback Section------------------------------  */
+/* It will be executed once for each packet that is received on               */
+/* an associated connection                                                   */
+/* -------------------------------------------------------------------------  */
 
-
-int CallBack(struct xbee *xbee, struct xbee_con *con, struct xbee_pkt **pkt
+void CallBack(struct xbee *xbee, struct xbee_con *con, struct xbee_pkt **pkt
 , void **data);
 
 #endif

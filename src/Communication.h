@@ -72,7 +72,7 @@ typedef struct Zigbee {
     struct xbee_con *con;
 
     /* Struct of queue of packet which is defined in pkt_Queue.h */
-    spkt_ptr pkt_Queue;
+    spkt_ptr send_queue, received_queue;
 
     /* The message to be sent to the gateway. */
     char zig_message[MESSAGE_LENGTH];
@@ -106,7 +106,7 @@ typedef enum ErrorCode_XBee {
 struct _errordesc_xbee {
     int code;
     char *message;
-} error_xbee[] = {
+} errord_xbee[] = {
 
     {XBEE_SUCCESSFULLY, "The xbee works successfullly"},
     {E_XBEE_VALIDATE, "Error validating xbee"},
