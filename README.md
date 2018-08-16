@@ -43,6 +43,7 @@ sudo ldconfig -v
 ### Compiling and Running LBeacon
 ```sh
 cd LBeacon/src
-gcc LBeacon.c Utilities.c LinkedList.c Queue.c -g -o LBeacon -L/usr/local/lib -lrt -lpthread -lmulticobex -lbfb -lbluetooth -lobexftp -lopenobex
+sudo make clean
+make 
 sudo ./LBeacon
 ```
