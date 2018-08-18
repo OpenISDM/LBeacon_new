@@ -65,6 +65,8 @@ Config get_config(char *file_name) {
 
         /* Error handling */
         perror(errordesc[E_OPEN_FILE].message);
+        zlog_info(category_health_report, 
+                  errordesc[E_OPEN_FILE].message);
         cleanup_exit();
         return;
 
@@ -324,8 +326,12 @@ ErrorCode enable_advertising(int advertising_interval,
     int device_handle = 0;
 
     if ((device_handle = hci_open_dev(dongle_device_id)) < 0) {
+        
         /* Error handling */
         perror(errordesc[E_OPEN_DEVICE].message);
+        zlog_info(category_health_report, 
+                  errordesc[E_OPEN_DEVICE].message);
+
         return E_OPEN_DEVICE;
     }
 
@@ -479,6 +485,9 @@ ErrorCode disable_advertising() {
     if ((device_handle = hci_open_dev(dongle_device_id)) < 0) {
         /* Error handling */
         perror(errordesc[E_OPEN_FILE].message);
+        zlog_info(category_health_report, 
+                  errordesc[E_OPEN_FILE].message);
+
         return E_OPEN_FILE;
     }
 
@@ -541,8 +550,10 @@ void *stop_ble_beacon(void *beacon_location) {
         sigint_handler.sa_flags = 0;
 
         if (sigaction(SIGINT, &sigint_handler, NULL) == -1) {
+            
             /* Error handling */
             perror("sigaction error");
+            zlog_info(category_health_report, "sigaction error");
             return;
         }
 
@@ -643,6 +654,8 @@ void *manage_communication(void) {
 
          /* Could not initialize the zigbee, handle error */
         perror(errordesc[E_INIT_ZIGBEE].message);
+        zlog_info(category_health_report, 
+                  errordesc[E_INIT_ZIGBEE].message);
         cleanup_exit();
 
         return;
@@ -656,6 +669,8 @@ void *manage_communication(void) {
         
         /* Could not create thread pool, handle error */
         perror(errordesc[E_INIT_THREAD_POOL].message);
+        zlog_info(category_health_report, 
+                  errordesc[E_INIT_THREAD_POOL].message);
         cleanup_exit();
 
         return;
@@ -709,6 +724,8 @@ void *manage_communication(void) {
 
                         /* Error handling */
                         perror(errordesc[E_OPEN_FILE].message);
+                        zlog_info(category_health_report, 
+                                  errordesc[E_OPEN_FILE].message);
                         cleanup_exit();
                         return;
                         }
@@ -723,6 +740,8 @@ void *manage_communication(void) {
                 }
             
                 printf("Message: %s \n", zigbee.zig_message);
+                zlog_info(category_health_report, 
+                   "Sent Message: %s \n", zigbee.zig_message);
 
                 zigbee_send_file(&zigbee);
                 /* Add a work item to be executed by a work thread */
@@ -811,6 +830,8 @@ ErrorCode copy_object_data_to_file(char *file_name) {
     if(track_file == NULL){
         
         perror(errordesc[E_OPEN_FILE].message);
+        zlog_info(category_health_report, 
+                  errordesc[E_OPEN_FILE].message);
         return E_OPEN_FILE;
 
     }
@@ -966,7 +987,9 @@ void start_scanning() {
 
          /* Error handling */
          perror(errordesc[E_OPEN_SOCKET].message);
-         ready_to_work = false;
+         zlog_info(category_health_report, 
+                   errordesc[E_OPEN_SOCKET].message);
+         cleanup_exit();
          return;
 
     }
@@ -983,6 +1006,8 @@ void start_scanning() {
 
          /* Error handling */
          perror(errordesc[E_SCAN_SET_HCI_FILTER].message);
+         zlog_info(category_health_report, 
+                   errordesc[E_SCAN_SET_HCI_FILTER].message);
          hci_close_dev(socket);
          return;
 
@@ -995,6 +1020,8 @@ void start_scanning() {
 
          /* Error handling */
          perror(errordesc[E_SCAN_SET_INQUIRY_MODE].message);
+         zlog_info(category_health_report, 
+                   errordesc[E_SCAN_SET_INQUIRY_MODE].message);
          hci_close_dev(socket);
          return;
 
@@ -1013,6 +1040,8 @@ void start_scanning() {
 
          /* Error handling */
          perror(errordesc[E_SCAN_START_INQUIRY].message);
+         zlog_info(category_health_report, 
+                   errordesc[E_SCAN_START_INQUIRY].message);
          hci_close_dev(socket);
          return;
 
@@ -1117,7 +1146,9 @@ void start_scanning() {
 
 
 
-ErrorCode startThread(pthread_t threads ,void * (*threadfunct)(void*), void *arg){
+ErrorCode startThread(pthread_t threads ,
+                      void * (*threadfunct)(void*), 
+                      void *arg){
 
     pthread_attr_t attr;
 
@@ -1196,7 +1227,6 @@ int main(int argc, char **argv) {
     ready_to_work = true;
 
    
-
     if (zlog_init("../config/zlog.conf") != 0) {
         printf("init failed\n");
         return -1;
@@ -1226,6 +1256,7 @@ int main(int argc, char **argv) {
 
         /* Error handling */
         perror(errordesc[E_MALLOC].message);
+        zlog_info(category_health_report, errordesc[E_MALLOC].message);
         cleanup_exit();
         return E_MALLOC;
 
@@ -1245,6 +1276,7 @@ int main(int argc, char **argv) {
 
          /* Error handling */
         perror(errordesc[E_MALLOC].message);
+        zlog_info(category_health_report, errordesc[E_MALLOC].message);
         cleanup_exit();
         return E_MALLOC;
 
@@ -1294,7 +1326,10 @@ int main(int argc, char **argv) {
                                stop_ble_beacon, hex_c);
 
     if(return_value != WORK_SCUCESSFULLY){
-         perror(errordesc[E_START_THREAD].message);
+        
+        perror(errordesc[E_START_THREAD].message);
+        zlog_info(category_health_report, 
+                  errordesc[E_START_THREAD].message);
         cleanup_exit();
     }
 
@@ -1306,7 +1341,10 @@ int main(int argc, char **argv) {
                                cleanup_scanned_list, NULL);
 
     if(return_value != WORK_SCUCESSFULLY){
-         perror(errordesc[E_START_THREAD].message);
+         
+        perror(errordesc[E_START_THREAD].message);
+        zlog_info(category_health_report, 
+                  errordesc[E_START_THREAD].message);
         cleanup_exit();
     }
 
@@ -1319,7 +1357,10 @@ int main(int argc, char **argv) {
                                manage_communication, NULL);
 
     if(return_value != WORK_SCUCESSFULLY){
-         perror(errordesc[E_START_THREAD].message);
+        
+        perror(errordesc[E_START_THREAD].message);
+        zlog_info(category_health_report, 
+                  errordesc[E_START_THREAD].message);
         cleanup_exit();
     }
 
@@ -1381,7 +1422,10 @@ int main(int argc, char **argv) {
                     (void *)dongle_device_id);
 
         if(return_value != WORK_SCUCESSFULLY){
+            
             perror(errordesc[E_START_THREAD].message);
+            zlog_info(category_health_report, 
+                      errordesc[E_START_THREAD].message);
             cleanup_exit();
         }
 
@@ -1401,7 +1445,9 @@ int main(int argc, char **argv) {
         return_value = pthread_join(send_file_thread[device_id], NULL);
 
         if (return_value != 0) {
+            
             perror(strerror(errno));
+            zlog_info(category_health_report, strerror(errno));
             cleanup_exit();
             return;
 
@@ -1423,7 +1469,9 @@ int main(int argc, char **argv) {
     return_value = pthread_join(cleanup_scanned_list_thread, NULL);
 
     if (return_value != 0) {
+        
         perror(strerror(errno));
+        zlog_info(category_health_report, strerror(errno));
         cleanup_exit();
         return;
 
@@ -1435,6 +1483,7 @@ int main(int argc, char **argv) {
 
     if (return_value != 0) {
         perror(strerror(errno));
+        zlog_info(category_health_report, strerror(errno));
         cleanup_exit();
         return;
 

@@ -104,8 +104,8 @@ Authors:
 /* File path of the config file of the logging file*/
 #define LOG_FILE_NAME "../config/zlog.conf" 
 
+/* The category defined for the log file */
 #define LOG_CATEGORY_HEALTH_REPORT "Health_Report"
-
 
 /* Maximum number of characters in each line of config file */
 #define CONFIG_BUFFER_SIZE 64
