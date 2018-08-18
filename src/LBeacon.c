@@ -671,10 +671,10 @@ void *manage_communication(void) {
         polled_type = receive_call_back(&zigbee);
 
       
-        while(polled_type == NOT_YET_POLLED){
+        while(polled_type == TRACK_OBJECT_DATA){
 
             printf("Not yet Polled, go to sleep \n");
-            sleep(TIMEOUT_WAITING);
+            sleep(TIMEOUT_WAITING); 
 
             polled_type = receive_call_back(&zigbee);
         
@@ -683,10 +683,12 @@ void *manage_communication(void) {
         /* According to the polled data type, prepare a different work item */
         switch(polled_type){
 
-            case TRACK_OBJECT_DATA:
-
+            case NOT_YET_POLLED:
+                printf("In the case and sleep for a while \n");
+                sleep(TIMEOUT_WAITING);
+                
                 /* Copy track_obkect data to a file to be transmited */
-               
+               printf("Wakeing up to copy data!!! \n");
                 copy_progress = (int)copy_object_data_to_file("output.txt");
                 
                 if(copy_progress == E_EMPTY_FILE){
@@ -722,15 +724,17 @@ void *manage_communication(void) {
             
                 printf("Message: %s \n", zigbee.zig_message);
 
-
+                zigbee_send_file(&zigbee);
                 /* Add a work item to be executed by a work thread */
+                /*
                 if(thpool_add_work(thpool, 
                                    (void*)zigbee_send_file, 
-                                   &zigbee) != 0){
-
+                                   zigbee) != 0){
+*/
                     /* Error handling */
                     /* Set ready_to_work to false to let other theeads know 
                        of the error */
+/*
                     ready_to_work = false;
                     perror(errordesc[E_OPEN_FILE].message);
                     cleanup_exit();
@@ -738,7 +742,7 @@ void *manage_communication(void) {
                 
                 }
 
-  
+*/  
              break;
 
             case HEALTH_REPORT:
@@ -1190,7 +1194,26 @@ int main(int argc, char **argv) {
 
     /*Initialize the global flag */
     ready_to_work = true;
+
    
+
+    if (zlog_init("../config/zlog.conf") != 0) {
+        printf("init failed\n");
+        return -1;
+    }
+
+    category_health_report = zlog_get_category(LOG_CATEGORY_HEALTH_REPORT);
+    
+    
+    if (!category_health_report) {
+        printf("get cat fail\n");
+        zlog_fini();
+        return -2;
+    }
+
+    zlog_info(category_health_report, "hello, zlog");
+
+    
 
 
     /*Initialize the lists */

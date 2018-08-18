@@ -80,6 +80,7 @@ Authors:
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include "zlog.h"
 #include "LinkedList.h"
 #include "Utilities.h"
 #include "Mempool.h"
@@ -97,12 +98,17 @@ Authors:
 */
 #define cmd_opcode_pack(ogf, ocf) (uint16_t)((ocf &amp; 0x03ff) | \
                                                         (ogf &lt;&lt; 10)) 
-/* File path of the config file */
+/* File path of the config file of the LBeacon */
 #define CONFIG_FILE_NAME "../config/config.conf"
+
+/* File path of the config file of the logging file*/
+#define LOG_FILE_NAME "../config/zlog.conf" 
+
+#define LOG_CATEGORY_HEALTH_REPORT "Health_Report"
+
 
 /* Maximum number of characters in each line of config file */
 #define CONFIG_BUFFER_SIZE 64
-
 
 /* Number of lines in the config file */
 #define CONFIG_FILE_LENGTH 11
@@ -144,7 +150,7 @@ Authors:
 #define ADVERTISING_INTERVAL 300
 
 /* The timeout in milliseconds for waiting in threads */
-#define TIMEOUT_WAITING 3000
+#define TIMEOUT_WAITING 300
 
 /* Timeout interval in seconds */
 #define A_LONG_TIME 30000
@@ -162,7 +168,7 @@ Authors:
 #define LENGTH_OF_MAC_ADDRESS 18
 
 /* Number of digits of MAC address to compare */ 
-#define NO_DIGITS_TO_COMPARE 4
+#define NO_DIGITS_TO_COMPARE 2
 
 /* Number of worker threads in the thread pool used by communication unit */
 #define NO_WORK_THREADS 2
@@ -398,6 +404,8 @@ Memory_Pool mempool;
 
 /* The lock that controls access to lists */
 pthread_mutex_t  list_lock;    
+
+zlog_category_t *category_health_report;
 
 
 /*
@@ -1052,7 +1060,7 @@ extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
       None
 
 */
-extern void *zigbee_send_file(Zigbee *zigbee);
+extern void zigbee_send_file(Zigbee *zigbee);
 
 
 /* Follow are functions for communication via BR/EDR path to Bluetooth
