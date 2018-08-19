@@ -47,6 +47,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include "zlog.h"
 #include "xbee_API.h"
 
 /* The length of the message to be sent to the gateway */
@@ -60,6 +61,9 @@
 
 /* Log level of Zigbee */
 #define XBEE_LOGLEVEL 100
+
+/* The pointer to the category of the log file */
+zlog_category_t *category_health_report, *category_debug;
 
 
 /* Struct of parameters for Zigbee Initialization */
@@ -106,7 +110,7 @@ typedef enum ErrorCode_XBee {
 struct _errordesc_xbee {
     int code;
     char *message;
-} errord_xbee[] = {
+} error_xbee[] = {
 
     {XBEE_SUCCESSFULLY, "The xbee works successfullly"},
     {E_XBEE_VALIDATE, "Error validating xbee"},
@@ -170,7 +174,7 @@ int receive_call_back(Zigbee *zigbee);
     None
 
 */
-void *zigbee_send_file(Zigbee *zigbee);
+void zigbee_send_file(Zigbee *zigbee);
 
 /*
   zigbee_free:

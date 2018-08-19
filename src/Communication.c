@@ -58,24 +58,35 @@ ErrorCode_Xbee zigbee_init(Zigbee *zigbee){
     xbee_initial(xbee_mode, xbee_device, XBEE_BAUDRATE, 
                  &zigbee->xbee, &zigbee->send_queue, &zigbee->received_queue);
    
-    printf("Start establishing Connection to xbee\n");
+#ifdef Debugging 
 
-
-    printf("Establishing Connection...\n");  
+    zlog_debug(category_debug, "Establishing Connection...");
+      
+#endif
 
     xbee_connector(&zigbee->xbee, 
                    &zigbee->con, 
                    &zigbee->send_queue,
                    &zigbee->received_queue);
     
-    printf("Connection Successfully Established\n");
+#ifdef Debugging 
+   
+    zlog_debug(category_debug, 
+               "Zigbee Connection Successfully Established");
+      
+#endif
+
+    zlog_info(category_health_report, 
+              "Zigbee Connection Successfully Established");
 
     /* Start the chain reaction                                             */
     if((ret = xbee_conValidate(zigbee->con)) != XBEE_ENONE){
         
         xbee_log(zigbee->xbee, 1, "con unvalidate ret : %d", ret);
         
-        perror(errord_xbee[E_XBEE_VALIDATE].message);
+        perror(error_xbee[E_XBEE_VALIDATE].message);
+        zlog_info(category_health_report, 
+                  error_xbee[E_XBEE_VALIDATE].message);
         
         return E_XBEE_VALIDATE;
     }
@@ -88,8 +99,10 @@ int receive_call_back(Zigbee *zigbee){
   
     /* Check the connection of call back is enable */ 
     if(xbee_check_CallBack(zigbee->con, &zigbee->send_queue, false)){
-
-      perror(errord_xbee[E_CALL_BACK].message);
+      
+      perror(error_xbee[E_CALL_BACK].message);
+      zlog_info(category_health_report, 
+                error_xbee[E_CALL_BACK].message);
       
       return NULL;
     
@@ -101,6 +114,7 @@ int receive_call_back(Zigbee *zigbee){
     
     if(temppkt != NULL){
 
+      printf("Geting the call back\n");
 
         /* If data[0] == '@', callback will be end.                       */
         if(temppkt -> content[0] == 'T'){
@@ -109,6 +123,7 @@ int receive_call_back(Zigbee *zigbee){
 
         }else if(temppkt -> content[0] == 'H'){
 
+          printf("HEALTH_REPORT \n");
           return HEALTH_REPORT; 
 
         }else if(temppkt -> content[0] == '@'){
@@ -127,8 +142,15 @@ int receive_call_back(Zigbee *zigbee){
 
 }
 
-void *zigbee_send_file(Zigbee *zigbee){
+void zigbee_send_file(Zigbee *zigbee){
     
+    printf("In the send file \n");
+    
+        xbee_connector(&zigbee->xbee, 
+                   &zigbee->con, 
+                   &zigbee->send_queue,
+                   &zigbee->received_queue);
+
     /* Add the content that to be sent to the gateway to the packet queue */
     addpkt(&zigbee->send_queue, Data, Gateway, zigbee->zig_message);
 
@@ -138,10 +160,7 @@ void *zigbee_send_file(Zigbee *zigbee){
 
     usleep(XBEE_TIMEOUT);
         
-    xbee_connector(&zigbee->xbee, 
-                   &zigbee->con, 
-                   &zigbee->send_queue,
-                   &zigbee->received_queue);
+
 
 
    return;
@@ -155,8 +174,11 @@ ErrorCode_Xbee zigbee_free(Zigbee *zigbee){
     if ((ret = xbee_conEnd(zigbee->con)) != XBEE_ENONE) {
         
         xbee_log(zigbee->xbee, 10, "xbee_conEnd() returned: %d", ret);
-        perror(errord_xbee[E_CONNECT].message);
-
+        
+        perror(error_xbee[E_CONNECT].message);
+        zlog_info(category_health_report, 
+                  error_xbee[E_CONNECT].message);
+        
         return;
     }
 
@@ -166,10 +188,14 @@ ErrorCode_Xbee zigbee_free(Zigbee *zigbee){
     /* Free received_Queue for zigbee connection */
     Free_Packet_Queue(&zigbee->received_queue);
     
-    printf("Stop connection Succeeded\n");
+    printf("Stop Xbee connection Succeeded\n");
+    zlog_info(category_health_report, 
+              "Stop Xbee connection Succeeded\n");
 
     /* Close xbee                                                            */
     xbee_shutdown(zigbee->xbee);
     printf("Shutdown Xbee Succeeded\n");
+    zlog_info(category_health_report, 
+              "Shutdown Xbee Succeeded\n");
 
 }

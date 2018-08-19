@@ -53,7 +53,7 @@
 #include "LBeacon.h"
 
 
-
+#define Debugging
 
 Config get_config(char *file_name) {
 
@@ -237,7 +237,14 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
        node, and insert the new  node to the scanned list. */
 
         pthread_mutex_unlock(&list_lock);
-        printf("******Get the memory from the pool. ****** \n");
+
+#ifdef Debugging 
+   
+        zlog_debug(category_debug, 
+               "******Get the memory from the pool. ****** ");
+      
+#endif
+
         new_node = (struct ScannedDevice*) mp_alloc(&mempool);
         
         /* Initialize the list entries */
@@ -359,8 +366,18 @@ ErrorCode enable_advertising(int advertising_interval,
 
         /* Error handling */
         hci_close_dev(device_handle);
-        fprintf(stderr, "Can't send request %s (%d)\n", strerror(errno),
-                errno);
+
+#ifdef Debugging 
+   
+        zlog_debug(category_debug, 
+                   "Can't send request %s (%d)", strerror(errno),
+                   errno);
+      
+#endif
+        zlog_info(category_health_report, 
+                  "Can't send request %s (%d)", strerror(errno),
+                  errno);
+     
         return E_SEND_REQUEST_TIMEOUT;
 
     }
@@ -384,8 +401,17 @@ ErrorCode enable_advertising(int advertising_interval,
 
         /* Error handling */
         hci_close_dev(device_handle);
-        fprintf(stderr, "Can't send request %s (%d)\n", strerror(errno),
-                errno);
+
+#ifdef Debugging 
+   
+        zlog_debug(category_debug, 
+                   "Can't send request %s (%d)", strerror(errno),
+                   errno);
+      
+#endif
+        zlog_info(category_health_report, 
+                  "Can't send request %s (%d)", strerror(errno),
+                  errno);
         return E_SEND_REQUEST_TIMEOUT;
 
     }
@@ -462,14 +488,33 @@ ErrorCode enable_advertising(int advertising_interval,
 
     if (return_value < 0) {
         /* Error handling */
-        fprintf(stderr, "Can't send request %s (%d)\n", strerror(errno),
-                errno);
+
+#ifdef Debugging 
+   
+        zlog_debug(category_debug, 
+                   "Can't send request %s (%d)", strerror(errno),
+                   errno);
+      
+#endif
+        zlog_info(category_health_report, 
+                  "Can't send request %s (%d)", strerror(errno),
+                  errno);
+
         return E_SEND_REQUEST_TIMEOUT;
     }
 
     if (status) {
         /* Error handling */
-        fprintf(stderr, "LE set advertise returned status %d\n", status);
+
+#ifdef Debugging 
+   
+        zlog_debug(category_debug, 
+                   "LE set advertise returned status %d\n", status);
+      
+#endif
+        zlog_info(category_health_report, 
+                  "LE set advertise returned status %d\n", status);
+        
         return E_ADVERTISE_STATUS;
     }
 
@@ -513,8 +558,17 @@ ErrorCode disable_advertising() {
     if (return_value < 0) {
 
         /* Error handling */
-        fprintf(stderr, "Can't set advertise mode: %s (%d)\n",
-                strerror(errno), errno);
+#ifdef Debugging 
+   
+        zlog_debug(category_debug, 
+                   "Can't set advertise mode: %s (%d)\n",
+                   strerror(errno), errno);
+      
+#endif
+        zlog_info(category_health_report, 
+                  "Can't set advertise mode: %s (%d)\n",
+                  strerror(errno), errno);
+        
         return E_ADVERTISE_MODE;
 
     }
@@ -522,8 +576,17 @@ ErrorCode disable_advertising() {
     if (status) {
 
         /* Error handling */
-        fprintf(stderr, "LE set advertise enable on returned status %d\n",
-            status);
+#ifdef Debugging 
+   
+        zlog_debug(category_debug, 
+                   "LE set advertise enable on returned status %d\n",
+                   status);
+      
+#endif
+        zlog_info(category_health_report, 
+                  "LE set advertise enable on returned status %d\n",
+                  status);
+
         return E_ADVERTISE_STATUS;
 
     }
@@ -688,7 +751,11 @@ void *manage_communication(void) {
       
         while(polled_type == TRACK_OBJECT_DATA){
 
-            printf("Not yet Polled, go to sleep \n");
+#ifdef Debugging 
+   
+            zlog_debug(category_debug, "Not yet Polled, go to sleep");   
+#endif
+
             sleep(TIMEOUT_WAITING); 
 
             polled_type = receive_call_back(&zigbee);
@@ -739,9 +806,14 @@ void *manage_communication(void) {
                 
                 }
             
-                printf("Message: %s \n", zigbee.zig_message);
+#ifdef Debugging 
+   
+            zlog_debug(category_debug, 
+                       "Message: %s", zigbee.zig_message);   
+#endif
+
                 zlog_info(category_health_report, 
-                   "Sent Message: %s \n", zigbee.zig_message);
+                   "Sent Message: %s", zigbee.zig_message);
 
                 zigbee_send_file(&zigbee);
                 /* Add a work item to be executed by a work thread */
@@ -843,7 +915,12 @@ ErrorCode copy_object_data_to_file(char *file_name) {
     /* Insert number_to_send at the struct of the track file */
     sprintf(basic_info, "%d;", number_to_send);
     fputs(basic_info, track_file);
-    printf("Number to send: %d\n", number_to_send);
+
+#ifdef Debugging 
+   
+    zlog_debug(category_debug, "Number to send: %d", number_to_send);   
+
+#endif
 
 
     /*Check if number_to_send is zero, if yes, close file and return */
@@ -1033,7 +1110,13 @@ void start_scanning() {
     inquiry_copy.lap[0] = 0x33;
     inquiry_copy.num_rsp = 0;
     inquiry_copy.length = 0x30;
-    printf("Starting inquiry with RSSI...\n");
+
+#ifdef Debugging 
+   
+    zlog_debug(category_debug, "Starting inquiry with RSSI...");   
+
+#endif
+    
 
     if (0 > hci_send_cmd(socket, OGF_LINK_CTL, OCF_INQUIRY, INQUIRY_CP_SIZE,
          &inquiry_copy)) {
@@ -1136,9 +1219,12 @@ void start_scanning() {
 
     } //end while
 
+#ifdef Debugging 
+   
+    zlog_debug(category_debug, "Scanning done");   
 
+#endif
 
-    printf("Scanning done\n");
     close(socket);
 
     return;
@@ -1228,7 +1314,7 @@ int main(int argc, char **argv) {
 
    
     if (zlog_init("../config/zlog.conf") != 0) {
-        printf("init failed\n");
+        
         return -1;
     }
 
@@ -1236,16 +1322,26 @@ int main(int argc, char **argv) {
     
     
     if (!category_health_report) {
-        printf("get cat fail\n");
+        
         zlog_fini();
         return -2;
     }
 
-    zlog_info(category_health_report, "hello, zlog");
+#ifdef Debugging
+
+    category_debug = zlog_get_category(LOG_CATEGORY_DEBUG);
+    if (!category_debug) {
+       
+        zlog_fini();
+        return -2;
+    }
+
+    zlog_debug(category_debug, "Finish inilizing zlog");
+
+#endif
+
 
     
-
-
     /*Initialize the lists */
     init_entry(&scanned_list_head); 
     init_entry(&tracked_object_list_head);

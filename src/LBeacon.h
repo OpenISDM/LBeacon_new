@@ -104,8 +104,11 @@ Authors:
 /* File path of the config file of the logging file*/
 #define LOG_FILE_NAME "../config/zlog.conf" 
 
-/* The category defined for the log file */
+/* The category defined for the log file as health report */
 #define LOG_CATEGORY_HEALTH_REPORT "Health_Report"
+
+/* The category defined for the printf as debugging */
+#define LOG_CATEGORY_DEBUG "LBeacon_Debug"
 
 /* Maximum number of characters in each line of config file */
 #define CONFIG_BUFFER_SIZE 64
@@ -179,7 +182,6 @@ Authors:
 
 /* The number of slots in the memory pool */
 #define SLOTS_IN_MEM_POOL 1024
-
 
 
 
@@ -405,7 +407,7 @@ Memory_Pool mempool;
 /* The lock that controls access to lists */
 pthread_mutex_t  list_lock;    
 
-zlog_category_t *category_health_report;
+
 
 
 /*
