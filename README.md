@@ -39,6 +39,40 @@ Update the links/cache the dynamic loader uses:
 ```sh
 sudo ldconfig -v
 ```
+### Building libxbee3 library 
+If you are building libxbee, then there are a number of options avaliable to you.<br />
+Initially you should run the following command:
+<pre><code>$ make configure</code></pre>
+	
+This will retrieve a default `config.mk` that is suitable for your Respberry Pi.<br />
+In our project you need to<br />
+un-comment `OPTIONS+=       XBEE_LOG_LEVEL=100`<br />
+comment `OPTIONS+=       XBEE_LOG_RX_DEFAULT_OFF`<br />
+comment `OPTIONS+=       XBEE_LOG_TX_DEFAULT_OFF`<br />
+un-comment `OPTIONS+=       XBEE_NO_RTSCTS`<br />
+
+You should review this file and then run the following command:
+<pre><code>$ make all</code></pre>
+
+After the build process has completed, you should find suitable files in **./lib**.<br />
+E.g: for a Unix-like OS you can expect to find **.so** and **.a** files<br />
+        for Windows you can expect to find a **.dll** file<br />
+
+It is highly recommended that you don't modify any of the build system.
+
+
+### Installation of libxbee library 
+To install libxbee simply type (you will require **root permissions**):
+<pre><code>$ sudo make install</code></pre>
+
+
+### Libxbee library usage 
+Compile your applications, including **xbee.h** in the relevant source files.<br />
+Ensure you link with libxbee (e.g: using `gcc -lxbee`)
+
+If you are compiling the object file directly into your executable instead
+of making use of the library,<br />you must include the following link flags:
+`-lpthread -lrt`<br />
 
 ### Compiling and Running LBeacon
 ```sh
