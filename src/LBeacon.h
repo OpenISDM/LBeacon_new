@@ -141,6 +141,9 @@ Authors:
 /* Number of milliseconds in an epoch */
 #define LENGTH_OF_TIME 10
 
+/* The length of the message to be sent to the gateway */
+#define ZIG_MESSAGE_LENGTH 512
+
 /* Maximum length of time in milliseconds a bluetooth device
    stays in the scanned device list 
 */
@@ -1062,7 +1065,7 @@ extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
       None
 
 */
-extern void zigbee_send_file(Zigbee *zigbee);
+extern void zigbee_send_file(char *zig_message);
 
 
 /* Follow are functions for communication via BR/EDR path to Bluetooth

@@ -706,14 +706,15 @@ void *cleanup_scanned_list(void) {
 
 void *manage_communication(void) {
 
-    /* Struct for storing necessary objects for zigbee connection */
-    Zigbee zigbee;
+    
+    
     Threadpool thpool;
     FILE *file_to_send;
+    char *zig_message[ZIG_MESSAGE_LENGTH];
     int polled_type, copy_progress;
     
     /* Initialize the zigbee */
-    if(zigbee_init(&zigbee) != XBEE_SUCCESSFULLY){
+    if(zigbee_init() != XBEE_SUCCESSFULLY){
 
          /* Could not initialize the zigbee, handle error */
         perror(errordesc[E_INIT_ZIGBEE].message);
@@ -746,7 +747,7 @@ void *manage_communication(void) {
            for a short time. If polled, take the action according to the 
            poll type. */
             
-        polled_type = receive_call_back(&zigbee);
+        polled_type = receive_call_back();
 
       
         while(polled_type == TRACK_OBJECT_DATA){
@@ -758,7 +759,7 @@ void *manage_communication(void) {
 
             sleep(TIMEOUT_WAITING); 
 
-            polled_type = receive_call_back(&zigbee);
+            polled_type = receive_call_back();
         
         }
 
@@ -777,7 +778,7 @@ void *manage_communication(void) {
 
                     /* Inform gateway that there is nothing found by this 
                        LBeacon with specific uuid */
-                    sprintf(zigbee.zig_message, 
+                    sprintf(zig_message, 
                             "Nothing was found by this LBeacon: %s",
                             g_config.uuid);
                     
@@ -799,7 +800,7 @@ void *manage_communication(void) {
 
                     /* Read the file to get the content for the message to 
                        send */
-                    fgets(zigbee.zig_message, sizeof(zigbee.zig_message), 
+                    fgets(zig_message, sizeof(zig_message), 
                           file_to_send);
 
                     fclose(file_to_send);
@@ -809,13 +810,13 @@ void *manage_communication(void) {
 #ifdef Debugging 
    
             zlog_debug(category_debug, 
-                       "Message: %s", zigbee.zig_message);   
+                       "Message: %s", zig_message);   
 #endif
 
                 zlog_info(category_health_report, 
-                   "Sent Message: %s", zigbee.zig_message);
+                   "Sent Message: %s", zig_message);
 
-                zigbee_send_file(&zigbee);
+                zigbee_send_file(zig_message);
                 /* Add a work item to be executed by a work thread */
                 /*
                 if(thpool_add_work(thpool, 
@@ -860,7 +861,7 @@ void *manage_communication(void) {
 
     /* After the ready_to_work is set to false, clean up the zigbee and the 
        thread pool */
-    zigbee_free(&zigbee);
+    zigbee_free();
 
     /* Free the thread pool */
     thpool_destroy(thpool);

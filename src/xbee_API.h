@@ -43,78 +43,133 @@
 #include <unistd.h>
 #include <xbee.h>
 #include "pkt_Queue.h"
-#include "xbee_log.h"
+#include "xbee_Serial.h"
 
 #ifndef xbee_API_H
 #define xbee_API_H
 
-/* A variable to get error code */
-xbee_err ret;
+typedef struct xbee_config {
+
+    //Universal
+    char*   xbee_device;
+    char    Local_Address[17];
+
+    //Serial
+    int    xbee_datastream;
+    char*   config_location;
+
+    //API
+    char* xbee_mode;
+    struct xbee *xbee;
+    struct xbee_con *con;
+    spkt_ptr pkt_Queue, Received_Queue;
+
+} sxbee_config;
+
+typedef sxbee_config* pxbee_config;
+
+enum{File_OPEN_ERROR = -1,};
 
 /*
+ *
  * xbee_initial
+ *
  *     For initialize zigbee, include loading config.
+ *
  * Parameter:
- *     xbee_mode: we use xbeeZB as our device, this parameter is for setting
- *                libxbee3 work mode.
- *     xbee_device: This parameter is to define where is our zigbee device path.
- *     xbee_baudrate: This parameter is to define what our zigbee working
- *                    baudrate.
- *     xbee: A pointer to catch zigbee pointer.
- *     pkt_Queue: A structure store the packet we decide to send.
- *     Received_Queue: A structure store the packet we received.
+ *
+ *     xbee_config: A structure contain all variables for xbee.
+ *
+ * Return Value:
+ *
+ *     xbee_err: If return 0, everything work successfully.
+ *               If not 0, somthing wrong.
+ *
+ */
+xbee_err xbee_initial(pxbee_config xbee_config);
+
+/*
+ * xbee_LoadConfig
+ *
+ *     For initialize zigbee, include loading config to xbee.
+ *
+ * Parameter:
+ *
+ *     xbee_config: A structure contain all variables for xbee.
+ *
  * Return Value:
  *     xbee_err: If return 0, everything work successfully.
  *               If not 0, somthing wrong.
  */
-xbee_err xbee_initial(char* xbee_mode, char* xbee_device, int xbee_baudrate
-                    , struct xbee** xbee, pkt_ptr pkt_Queue
-                    , pkt_ptr Received_Queue);
-
+int xbee_LoadConfig(pxbee_config xbee_config);
 
 /*
  * xbee_connector
+ *
  *     For connect to zigbee and assign it's destnation address.
+ *
  * Parameter:
- *     xbee: A pointer to catch zigbee pointer.
- *     con: A pointer of the connector of zigbee.
- *     pkt_Queue: A structure store the packet we decide to send.
- *     Received_Queue: A structure store the packet we received.
+ *
+ *     xbee_config: A structure contain all variables for xbee.
+ *
  * Return Value:
+ *
  *     xbee_err: If return 0, everything work successfully.
  *               If not 0, somthing wrong.
+ *
  */
-xbee_err xbee_connector(struct xbee** xbee, struct xbee_con** con
-                      , pkt_ptr pkt_Queue, pkt_ptr Received_Queue);
+xbee_err xbee_connector(pxbee_config xbee_config);
 
 /* xbee_send_pkt
+ *
  *      A function for sending pkt to dest address.
+ *
  * Parameter:
- *      xbee: A pointer to catch zigbee pointer.
- *      con: A pointer of the connector of zigbee.
- *      pkt_Queue: A structure store the packet we decide to send.
- *      Received_Queue: A structure store the packet we received.
+ *
+ *     xbee_config: A structure contain all variables for xbee.
+ *
  * Return Value:
+ *
  *      xbee_err: If return 0, everything work successfully.
  *                If not 0, something wrong.
+ *
  */
-xbee_err xbee_send_pkt(struct xbee_con* con, pkt_ptr pkt_Queue);
+xbee_err xbee_send_pkt(pxbee_config xbee_config);
 
 /*
  * xbee_check_CallBack
+ *
  *      Check if CallBack is disabled and pkt_Queue is NULL.
+ *
  * Parameter:
- *      con : a pointer for xbee connector.
- *      pkt_Queue : A pointer point to the packet queue we use.
+ *
+ *     xbee_config: A structure contain all variables for xbee.
+ *     exclude_pkt_Queue : If true, ignore pkt_Queue.
+ *
  * Return Value:
- *      True if CallBack is disabled and pkt_Queue is NULL, else false.
+ *
+ *      True if CallBack is disabled and pkt_Queue is NULL(if exclude_pkt_Queue
+ *      is false), else false.
  *
  */
-bool xbee_check_CallBack(struct xbee_con* con, pkt_ptr pkt_Queue
-                                             , bool exclude_pkt_Queue);
+bool xbee_check_CallBack(pxbee_config xbee_config, bool exclude_pkt_Queue);
 
-xbee_err xbee_release(struct xbee* xbee, struct xbee_con* con
-                      , pkt_ptr pkt_Queue, pkt_ptr Received_Queue);
+/*
+ * xbee_release
+ *
+ *      Release All pkt and mutex.
+ *
+ * Parameter:
+ *
+ *     xbee_config: A structure contain all variables for xbee.
+ *
+ * Return Value:
+ *
+ *      xbee_err: If return 0, everything work successfully.
+ *                If not 0, something wrong.
+ *
+ */
+xbee_err xbee_release(pxbee_config xbee_config);
 
 /* ---------------------------callback Section------------------------------  */
 /* It will be executed once for each packet that is received on               */

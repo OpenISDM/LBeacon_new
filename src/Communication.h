@@ -50,38 +50,25 @@
 #include "zlog.h"
 #include "xbee_API.h"
 
-/* The length of the message to be sent to the gateway */
-#define MESSAGE_LENGTH 512
+
 
 /* Length of timeout in number of milliseconds */
 #define XBEE_TIMEOUT 2000000
 
-/* Baud rate of Zigbee */
-#define XBEE_BAUDRATE 9600
+#define XBEE_MODE "xbeeZB"
 
-/* Log level of Zigbee */
-#define XBEE_LOGLEVEL 100
+#define XBEE_DEVICE "/dev/ttyAMA0"
+
+#define XBEE_DATASTREAM -1
+
+#define XBEE_CONFIG_PATH "../config/xbee_config.conf"
 
 /* The pointer to the category of the log file */
 zlog_category_t *category_health_report, *category_debug;
 
+/* Struct for storing necessary objects for zigbee connection */
+sxbee_config xbee_config;
 
-/* Struct of parameters for Zigbee Initialization */
-typedef struct Zigbee {
-
-    /* Struct of xbee main part which is defined in "libxbee" library */
-    struct xbee *xbee; 
-
-    /* Struct of xbee connector which is defined in "libxbee" library */
-    struct xbee_con *con;
-
-    /* Struct of queue of packet which is defined in pkt_Queue.h */
-    spkt_ptr send_queue, received_queue;
-
-    /* The message to be sent to the gateway. */
-    char zig_message[MESSAGE_LENGTH];
-    
-} Zigbee;
 
 /* The enumeration of the polled data */
 typedef enum PolledDataType {
@@ -110,7 +97,7 @@ typedef enum ErrorCode_XBee {
 struct _errordesc_xbee {
     int code;
     char *message;
-} error_xbee[] = {
+} errord_xbee[] = {
 
     {XBEE_SUCCESSFULLY, "The xbee works successfullly"},
     {E_XBEE_VALIDATE, "Error validating xbee"},
@@ -137,7 +124,7 @@ struct _errordesc_xbee {
     ErrorCode: The error code for the corresponding error or successful
 
 */
-ErrorCode_Xbee zigbee_init(Zigbee *zigbee);
+ErrorCode_Xbee zigbee_init();
 
 
 /*
@@ -157,7 +144,7 @@ ErrorCode_Xbee zigbee_init(Zigbee *zigbee);
 
 */
 
-int receive_call_back(Zigbee *zigbee);
+int receive_call_back();
 
 /*
   zigbee_send_file:
@@ -174,7 +161,7 @@ int receive_call_back(Zigbee *zigbee);
     None
 
 */
-void zigbee_send_file(Zigbee *zigbee);
+void zigbee_send_file(char *zig_message);
 
 /*
   zigbee_free:
@@ -190,4 +177,4 @@ void zigbee_send_file(Zigbee *zigbee);
     ErrorCode: The error code for the corresponding error
 
 */
-ErrorCode_Xbee zigbee_free(Zigbee *zigbee);
+ErrorCode_Xbee zigbee_free();

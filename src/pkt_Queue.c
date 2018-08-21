@@ -13,7 +13,7 @@
  *
  * File Description:
  *
- *      This file contains the program for the waiting queue.
+ *   	This file contains the program for the waiting queue.
  *
  * File Name:
  *
@@ -32,38 +32,28 @@
  *      area.
  *
  * Authors:
- *      Gary Xiao       , garyh0205@hotmail.com
+ *      Gary Xiao		, garyh0205@hotmail.com
  */
 
 #include "pkt_Queue.h"
 
-void init_Packet_Queue(pkt_ptr pkt_queue){
+int init_Packet_Queue(pkt_ptr pkt_queue){
 
-    pkt_queue -> locker = false;
+    int ret;
 
-    bool status;
-
-    do{
-
-        status = pkt_queue -> locker;
-
-        pkt_queue -> locker = true;
-
-    } while(status == true);
-
-    init_log_file(&pkt_queue -> xbee_log, ".", "xbee_log.txt");
+    pthread_mutex_init(&pkt_queue -> mutex, 0);
 
     pkt_queue -> front = -1;
 
     pkt_queue -> rear  = -1;
 
-    pkt_queue -> locker = false;
-
-    add_log(&pkt_queue -> xbee_log, collect_info, "init_Packet_Queue Success.", false);
+    return pkt_Queue_SUCCESS;
 
 }
 
-void Free_Packet_Queue(pkt_ptr pkt_queue){
+int Free_Packet_Queue(pkt_ptr pkt_queue){
+
+    int ret;
 
     while (!(is_null(pkt_queue))){
 
@@ -71,43 +61,25 @@ void Free_Packet_Queue(pkt_ptr pkt_queue){
 
     }
 
-    add_log(&pkt_queue -> xbee_log, collect_info, "Free_Packet_Queue Success.", false);
+    pthread_mutex_destroy(&pkt_queue -> mutex);
+
+    return pkt_Queue_SUCCESS;
 
 }
 
-void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
+int addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
 
-    bool status;
+    int ret;
 
-    do{
+    pthread_mutex_lock(&pkt_queue -> mutex);
 
-        status = pkt_queue -> locker;
-
-        pkt_queue -> locker = true;
-
-    } while(status == true);
-
-    add_log(&pkt_queue -> xbee_log, collect_info, "==================", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "Addpkt Start.", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "==================", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "== type ==", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, type_to_str(type), false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "== address ==", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, raw_addr, false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "== content ==", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, content, false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "==================", false);
+    printf("------Content------\n");
+    printf("type    : %s\n", type_to_str(type));
+    printf("address : %s\n", raw_addr);
+    printf("content : %s\n", content);
+    printf("-------------------\n");
 
     if(is_null(pkt_queue)){
-
-        add_log(&pkt_queue -> xbee_log, collect_info, "pkt_Queue is NULL.", false);
 
         pkt_queue -> front = 0;
 
@@ -119,11 +91,9 @@ void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
 
         if(is_full(pkt_queue)){
 
-            add_log(&pkt_queue -> xbee_log, collect_info, "pkt_Queue is FULL.", false);
+            pthread_mutex_unlock(&pkt_queue -> mutex);
 
-            pkt_queue->locker = false;
-
-            return;
+            return pkt_Queue_FULL;
 
         }
 
@@ -131,22 +101,17 @@ void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
 
             if( pkt_queue -> rear == MAX_PKT_LENGTH - 1){
 
-                add_log(&pkt_queue -> xbee_log, collect_info, "pkt_Queue rear pointer return to the first of of the packet Queue.", false);
-
                 pkt_queue -> rear = 0;
 
             }
 
             else{
 
-                add_log(&pkt_queue -> xbee_log, collect_info, "pkt_Queue rear pointer point to next location.", false);
-
                 pkt_queue -> rear ++ ;
 
             }
-        }
 
-        add_log(&pkt_queue -> xbee_log, collect_info, "addpkt Success.", false);
+        }
 
     }
 
@@ -172,34 +137,25 @@ void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
     char len[10];
     memset(len, 0, 10);
     sprintf(len, "%d\0", queue_len(pkt_queue));
-    add_log(&pkt_queue -> xbee_log, collect_info, "= pkt_queue len  =", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, len, false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "==================", false);
 
-    pkt_queue->locker = false;
+    printf("= pkt_queue len  =\n");
+    printf("%d\n", queue_len(pkt_queue));
+    printf("==================\n");
 
-    return;
+    pthread_mutex_unlock(&pkt_queue -> mutex);
+
+    return pkt_Queue_SUCCESS;
 }
 
- void delpkt(pkt_ptr pkt_queue) {
+int delpkt(pkt_ptr pkt_queue) {
 
-    bool status;
-
-    do{
-
-        status = pkt_queue -> locker;
-
-        pkt_queue -> locker = true;
-
-    } while(status == true);
+    pthread_mutex_lock(&pkt_queue -> mutex);
 
     if(is_null(pkt_queue)) {
 
-        add_log(&pkt_queue -> xbee_log, collect_info, "Packet Queue is empty!", false);
+        pthread_mutex_unlock(&pkt_queue -> mutex);
 
-        pkt_queue -> locker = false;
-
-        return;
+        return pkt_Queue_SUCCESS;
 
     }
 
@@ -208,8 +164,6 @@ void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
     free(pkt_queue -> Queue[pkt_queue -> front].content);
 
     if(pkt_queue -> front == pkt_queue -> rear){
-
-        add_log(&pkt_queue -> xbee_log, collect_info, "Packet Queue Reset to NULL", false);
 
         pkt_queue -> front = -1;
 
@@ -220,8 +174,6 @@ void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
 
         if(pkt_queue -> front == MAX_PKT_LENGTH - 1){
 
-            add_log(&pkt_queue -> xbee_log, collect_info, "pkt_Queue front pointer return to the first of of the packet Queue.", false);
-
             pkt_queue -> front = 0;
 
         }
@@ -230,13 +182,9 @@ void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
 
             pkt_queue -> front += 1;
 
-            add_log(&pkt_queue -> xbee_log, collect_info, "pkt_Queue front pointer point to next location.", false);
-
         }
 
     }
-
-    add_log(&pkt_queue -> xbee_log, collect_info, "delpkt Success.", false);
 
     char len[10];
 
@@ -244,13 +192,13 @@ void addpkt(pkt_ptr pkt_queue, int type, char *raw_addr, char *content ) {
 
     sprintf(len, "%d\0", queue_len(pkt_queue));
 
-    add_log(&pkt_queue -> xbee_log, collect_info, "= pkt_queue len  =", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, len, false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "==================", false);
+    printf("= pkt_queue len  =\n");
+    printf("%d\n", queue_len(pkt_queue));
+    printf("==================\n");
 
-    pkt_queue->locker = false;
+    pthread_mutex_unlock(&pkt_queue -> mutex);
 
-    return;
+    return pkt_Queue_SUCCESS;
 }
 
 char* print_address(unsigned char* address){
@@ -291,14 +239,13 @@ char* type_to_str(int type){
 int str_to_type(const char* conType){
 
     if(memcmp(conType, "Transmit Status"
-            , strlen("Transmit Status")* sizeof(char)) == 0){
+     , strlen("Transmit Status")* sizeof(char)) == 0){
 
         return Data;
 
     }
 
-    else if(memcmp(conType, "Data"
-            , strlen("Data")* sizeof(char)) == 0){
+    else if(memcmp(conType, "Data", strlen("Data")* sizeof(char)) == 0){
 
         return Data;
 
@@ -306,7 +253,7 @@ int str_to_type(const char* conType){
 
     else{
 
-        return -1;
+        return UNKNOWN;
 
     }
 
@@ -339,9 +286,12 @@ bool address_compare(unsigned char* addr1,unsigned char* addr2){
     return false;
 
 }
+
 void address_copy(unsigned char* src_addr, unsigned char* dest_addr){
 
     memcpy(dest_addr, src_addr, 8);
+
+    return;
 
 }
 
@@ -353,23 +303,16 @@ void display_pkt(char* content, pkt_ptr pkt_queue, int pkt_num){
 
     char* char_addr = print_address(pkt_queue -> Queue[pkt_num].address);
 
-    add_log(&pkt_queue -> xbee_log, collect_info, "==================", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, content, false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "==================", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "== type ==", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, type_to_str(pkt_queue -> Queue[pkt_num].type), false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "== address ==", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, char_addr, false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "== content ==", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, pkt_queue -> Queue[pkt_num].content, false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "", false);
-    add_log(&pkt_queue -> xbee_log, collect_info, "==================", false);
+    printf("==================\n");
+    printf("%s\n", content);
+    printf("==================\n");
+    printf("== type ==\n");
+    printf("%s\n", type_to_str(pkt_queue -> Queue[pkt_num].type));
+    printf("== address ==\n");
+    printf("%s\n", char_addr);
+    printf("== content ==\n");
+    printf("%s\n", pkt_queue -> Queue[pkt_num].content);
+    printf("==================\n");
 
     free(char_addr);
 
@@ -406,23 +349,17 @@ bool is_full(pkt_ptr pkt_Queue){
 
     if(pkt_Queue -> front == pkt_Queue -> rear + 1){
 
-        add_log(&pkt_Queue -> xbee_log, collect_info, "is_full return true.", false);
-
         return true;
 
     }
 
     else if(pkt_Queue -> front == 0 && pkt_Queue -> rear == MAX_PKT_LENGTH - 1){
 
-        add_log(&pkt_Queue -> xbee_log, collect_info, "is_full return true.", false);
-
         return true;
 
     }
 
     else{
-
-        add_log(&pkt_Queue -> xbee_log, collect_info, "is_full return false.", false);
 
         return false;
 
@@ -443,9 +380,25 @@ int queue_len(pkt_ptr pkt_queue){
 
     }
 
+    else if (pkt_queue -> front == pkt_queue -> rear){
+
+        return 1;
+
+    }
+
+    else if (pkt_queue -> rear > pkt_queue -> front){
+
+        return (pkt_queue -> rear - pkt_queue -> front + 1);
+
+    }
+
+    else if (pkt_queue -> front > pkt_queue -> rear){
+
+        return ((MAX_PKT_LENGTH - pkt_queue -> front) + pkt_queue -> rear + 1);
+
+    }
+
     else{
-
-        return pkt_queue->rear - pkt_queue->front + 1;
-
+        return queue_len_error;
     }
 }
