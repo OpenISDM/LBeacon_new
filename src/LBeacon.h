@@ -51,7 +51,6 @@ Authors:
 */
 
 
-
 /*
 * INCLUDES
 */
@@ -88,6 +87,8 @@ Authors:
 #include "thpool.h"
 
 
+#ifndef LBEACON_H
+#define LBEACON_H
 /*
   CONSTANTS
 */
@@ -96,8 +97,8 @@ Authors:
    group field and Opcofe command field, respectively. See Bluetooth 
    specification - core version 4.0, vol.2, part E Chapter 5.4 for details. 
 */
-#define cmd_opcode_pack(ogf, ocf) (uint16_t)((ocf &amp; 0x03ff) | \
-                                                        (ogf &lt;&lt; 10)) 
+//#define cmd_opcode_pack(ogf, ocf) (uint16_t)((ocf &amp; 0x03ff) | \
+//                                                        (ogf &lt;&lt; 10)) 
 /* File path of the config file of the LBeacon */
 #define CONFIG_FILE_NAME "../config/config.conf"
 
@@ -342,10 +343,10 @@ typedef struct ScannedDevice {
 */
 
 /* In sys/poll.h, the struct for controlling the events. */
-extern struct pollfd;
+//extern struct pollfd;
 
 /* In hci_sock.h, the struct for callback event from the socket. */
-extern struct hci_filter;
+//extern struct hci_filter;
 
 
 
@@ -1112,3 +1113,5 @@ char *choose_file(char *message_to_send);
 void *send_file(void *id);
 
 #endif // Bluetooth_classic
+
+#endif

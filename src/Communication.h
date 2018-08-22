@@ -50,7 +50,8 @@
 #include "zlog.h"
 #include "xbee_API.h"
 
-
+#ifndef COMMUNICATION_H
+#define COMMUNICATION_H
 
 /* Length of timeout in number of milliseconds */
 #define XBEE_TIMEOUT 2000000
@@ -61,7 +62,7 @@
 
 #define XBEE_DATASTREAM -1
 
-#define XBEE_CONFIG_PATH "../config/xbee_config.conf"
+#define XBEE_CONFIG_PATH "/home/pi/LBeacon/config/xbee_config.conf"
 
 /* The pointer to the category of the log file */
 zlog_category_t *category_health_report, *category_debug;
@@ -97,17 +98,15 @@ typedef enum ErrorCode_XBee {
 struct _errordesc_xbee {
     int code;
     char *message;
-} errord_xbee[] = {
+} error_xbee[] = {
 
     {XBEE_SUCCESSFULLY, "The xbee works successfullly"},
     {E_XBEE_VALIDATE, "Error validating xbee"},
     {E_CALL_BACK, "Error enabling call back function for xbee"},
     {E_CONNECT, "Error buildiing xbee connection"},
     {E_SHUT_DOWN, "Error shutting down xbee"}
-
     
 };
-
 
 /*
   zigbee_init:
@@ -115,6 +114,7 @@ struct _errordesc_xbee {
     This function initilizes the zigbee's necessory object.  
 
   Parameters:
+
 
     zigbee - the struct of necessary parameter and data
 
@@ -178,3 +178,5 @@ void zigbee_send_file(char *zig_message);
 
 */
 ErrorCode_Xbee zigbee_free();
+
+#endif

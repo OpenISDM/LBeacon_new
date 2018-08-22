@@ -706,25 +706,12 @@ void *cleanup_scanned_list(void) {
 
 void *manage_communication(void) {
 
-    
-    
     Threadpool thpool;
     FILE *file_to_send;
     char *zig_message[ZIG_MESSAGE_LENGTH];
     int polled_type, copy_progress;
     
-    /* Initialize the zigbee */
-    if(zigbee_init() != XBEE_SUCCESSFULLY){
-
-         /* Could not initialize the zigbee, handle error */
-        perror(errordesc[E_INIT_ZIGBEE].message);
-        zlog_info(category_health_report, 
-                  errordesc[E_INIT_ZIGBEE].message);
-        cleanup_exit();
-
-        return;
-
-    }
+   
 
     /* Initialize the thread pool and work threads waiting for the 
        new work/job to be assigned. */
@@ -743,6 +730,7 @@ void *manage_communication(void) {
     
     while(ready_to_work == true){
 
+
         /* Check call back from the gateway. If not polled by gateway, sleep 
            for a short time. If polled, take the action according to the 
            poll type. */
@@ -750,7 +738,7 @@ void *manage_communication(void) {
         polled_type = receive_call_back();
 
       
-        while(polled_type == TRACK_OBJECT_DATA){
+        while(polled_type == NOT_YET_POLLED){
 
 #ifdef Debugging 
    
@@ -766,9 +754,9 @@ void *manage_communication(void) {
         /* According to the polled data type, prepare a different work item */
         switch(polled_type){
 
-            case NOT_YET_POLLED:
+            case TRACK_OBJECT_DATA:
                 printf("In the case and sleep for a while \n");
-                sleep(TIMEOUT_WAITING);
+                //sleep(TIMEOUT_WAITING);
                 
                 /* Copy track_obkect data to a file to be transmited */
                printf("Wakeing up to copy data!!! \n");
@@ -778,9 +766,7 @@ void *manage_communication(void) {
 
                     /* Inform gateway that there is nothing found by this 
                        LBeacon with specific uuid */
-                    sprintf(zig_message, 
-                            "Nothing was found by this LBeacon: %s",
-                            g_config.uuid);
+                    sprintf(zig_message, "T:0");
                     
                     
                 
@@ -809,12 +795,12 @@ void *manage_communication(void) {
             
 #ifdef Debugging 
    
-            zlog_debug(category_debug, 
-                       "Message: %s", zig_message);   
+                zlog_debug(category_debug, 
+                           "Message: %s", zig_message);   
 #endif
 
                 zlog_info(category_health_report, 
-                   "Sent Message: %s", zig_message);
+                          "Sent Message: %s", zig_message);
 
                 zigbee_send_file(zig_message);
                 /* Add a work item to be executed by a work thread */
@@ -835,7 +821,7 @@ void *manage_communication(void) {
                 }
 
 */  
-             break;
+                break;
 
             case HEALTH_REPORT:
 
@@ -844,11 +830,11 @@ void *manage_communication(void) {
                error log. will be done as soon as possible */ 
 
 
-            break;
+                break;
 
             default:
 
-            break;
+                break;
         
         }
         
@@ -908,11 +894,15 @@ ErrorCode copy_object_data_to_file(char *file_name) {
         return E_OPEN_FILE;
 
     }
-    
+    printf("Here is opening the file for track\n");
     /* Get the number of objects with data to be transmitted */
     number_in_list = get_list_length(&tracked_object_list_head);
+    
+    printf("Get the number of the length %d \n", number_in_list);
+
     number_to_send = min(MAX_NO_OBJECTS, number_in_list);
 
+    printf("Get the number of the length %d \n", number_to_send);
     /* Insert number_to_send at the struct of the track file */
     sprintf(basic_info, "%d;", number_to_send);
     fputs(basic_info, track_file);
@@ -981,8 +971,6 @@ ErrorCode copy_object_data_to_file(char *file_name) {
         sprintf(timestamp_final_str, ", %u", timestamp_end);
 
         /* Write the content to the file */
-        fputs(g_config.uuid, track_file);
-        fputs(":", track_file);
         fputs(&temp->scanned_mac_address[0], track_file);               
         fputs(timestamp_initial_str, track_file);
         fputs(timestamp_final_str, track_file);
@@ -1358,6 +1346,19 @@ int main(int argc, char **argv) {
         return E_MALLOC;
 
     }
+
+     /* Initialize the zigbee */
+    if(zigbee_init() != XBEE_SUCCESSFULLY){
+
+        /* Could not initialize the zigbee, handle error */
+        perror(errordesc[E_INIT_ZIGBEE].message);
+        zlog_info(category_health_report, 
+                  errordesc[E_INIT_ZIGBEE].message);
+        cleanup_exit();
+
+        return;
+
+    }
     
     /* Initialize two locks for two lists */
     pthread_mutex_init(&list_lock,NULL);
@@ -1428,6 +1429,7 @@ int main(int argc, char **argv) {
         zlog_info(category_health_report, 
                   errordesc[E_START_THREAD].message);
         cleanup_exit();
+        return 1;
     }
 
 
@@ -1443,6 +1445,7 @@ int main(int argc, char **argv) {
         zlog_info(category_health_report, 
                   errordesc[E_START_THREAD].message);
         cleanup_exit();
+        return 1;
     }
 
 
@@ -1459,6 +1462,7 @@ int main(int argc, char **argv) {
         zlog_info(category_health_report, 
                   errordesc[E_START_THREAD].message);
         cleanup_exit();
+        return 1;
     }
 
 /* The code for communication over Bluetooth BR/EDR protocol path using 
@@ -1524,6 +1528,7 @@ int main(int argc, char **argv) {
             zlog_info(category_health_report, 
                       errordesc[E_START_THREAD].message);
             cleanup_exit();
+            return 1;
         }
 
 

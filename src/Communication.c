@@ -43,11 +43,8 @@
       
 */
 
-
 #include "Communication.h"
 #define Debugging
-
-
 
 ErrorCode_Xbee zigbee_init(){
 
@@ -95,11 +92,11 @@ ErrorCode_Xbee zigbee_init(){
     if((ret = xbee_conValidate(xbee_config.con)) != XBEE_ENONE){
         
         printf("con unvalidate ret : %d\n", ret);
-        
-        perror(errord_xbee[E_XBEE_VALIDATE].message);
+       /* 
+        perror(error_xbee[E_XBEE_VALIDATE].message);
         zlog_info(category_health_report, 
-                  errord_xbee[E_XBEE_VALIDATE].message);
-        
+                  error_xbee[E_XBEE_VALIDATE].message);
+        */
         return E_XBEE_VALIDATE;
     }
 
@@ -108,15 +105,17 @@ ErrorCode_Xbee zigbee_init(){
 
 
 int receive_call_back(){
-  
+    
+    printf("Receive_CallBack.\n");
+ 
     /* Check the connection of call back is enable */ 
     if(xbee_check_CallBack(&xbee_config, false)){
-      
-      perror(errord_xbee[E_CALL_BACK].message);
+      /*
+      perror(error_xbee[E_CALL_BACK].message);
       zlog_info(category_health_report, 
-                errord_xbee[E_CALL_BACK].message);
-      
-      return NULL;
+                error_xbee[E_CALL_BACK].message);
+      */
+      return 1;
     
     };
 
@@ -131,11 +130,13 @@ int receive_call_back(){
         /* If data[0] == '@', callback will be end.                       */
         if(temppkt -> content[0] == 'T'){
 
+          delpkt(&xbee_config.Received_Queue);
           return TRACK_OBJECT_DATA;
 
         }else if(temppkt -> content[0] == 'H'){
 
           printf("HEALTH_REPORT \n");
+          delpkt(&xbee_config.Received_Queue);
           return HEALTH_REPORT; 
 
         }else if(temppkt -> content[0] == '@'){
@@ -146,7 +147,7 @@ int receive_call_back(){
 
         }
 
-            delpkt(&xbee_config.Received_Queue);
+         delpkt(&xbee_config.Received_Queue);   
 
     }
 
@@ -169,7 +170,7 @@ void zigbee_send_file(char *zig_message){
 
     xbee_connector(&xbee_config);
 
-    usleep(XBEE_TIMEOUT);
+    //usleep(XBEE_TIMEOUT);
         
 
 
@@ -195,24 +196,24 @@ ErrorCode_Xbee zigbee_free(){
         return;
     }
 
-    /* Free Send_Queue for zigbee connection */
-  /*
-    Free_Packet_Queue(&zigbee->send_queue);
+     Free Send_Queue for zigbee connection 
+  
+    //Free_Packet_Queue(&zigbee->send_queue);
 
-    /* Free received_Queue for zigbee connection */
-  /*  
-    Free_Packet_Queue(&zigbee->received_queue);
-    
+     Free received_Queue for zigbee connection 
+   
+    //Free_Packet_Queue(&zigbee->received_queue);
+    */
     
     zlog_info(category_health_report, 
               "Stop Xbee connection Succeeded\n");
 
     /* Close xbee                                                            */
-   /* 
+    /* 
     xbee_shutdown(zigbee->xbee);
     
     zlog_info(category_health_report, 
               "Shutdown Xbee Succeeded\n");
-*/
+    */
 
 }
