@@ -43,9 +43,9 @@
       Johnson Su, johnsonsu@iis.sinica.edu.tw
       Joey Zhou, joeyzhou@iis.sinica.edu.tw
       Kenneth Tang, kennethtang@iis.sinica.edu.tw
+      James Huamg, jameshuang@iis.sinica.edu.tw
       Shirley Huang, shirley.huang.93@gmail.com
-      Jeffrey Lin, lin.jeff03@gmail.com
-      Howard Hsu, haohsu0823@gmail.com
+      
 
       
 */
@@ -285,7 +285,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 struct ScannedDevice *check_is_in_scanned_list(char address[]) {
 
     /* Create a temporary node and set as the head */
-    struct List_Entry *listptrs;
+    struct List_Entry *list_pointers;
     ScannedDevice *temp;
 
     /* If there is no node in the list, reutrn NULL directly. */
@@ -297,9 +297,9 @@ struct ScannedDevice *check_is_in_scanned_list(char address[]) {
 
    
     /* Go through list */
-    list_for_each(listptrs, &scanned_list_head) {
+    list_for_each(list_pointers, &scanned_list_head) {
 
-        temp = ListEntry(listptrs, ScannedDevice, sc_list_entry);
+        temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
         
         int len = strlen(address);
 
@@ -509,11 +509,11 @@ ErrorCode enable_advertising(int advertising_interval,
 #ifdef Debugging 
    
         zlog_debug(category_debug, 
-                   "LE set advertise returned status %d\n", status);
+                   "LE set advertise returned status %d", status);
       
 #endif
         zlog_info(category_health_report, 
-                  "LE set advertise returned status %d\n", status);
+                  "LE set advertise returned status %d", status);
         
         return E_ADVERTISE_STATUS;
     }
@@ -561,12 +561,12 @@ ErrorCode disable_advertising() {
 #ifdef Debugging 
    
         zlog_debug(category_debug, 
-                   "Can't set advertise mode: %s (%d)\n",
+                   "Can't set advertise mode: %s (%d)",
                    strerror(errno), errno);
       
 #endif
         zlog_info(category_health_report, 
-                  "Can't set advertise mode: %s (%d)\n",
+                  "Can't set advertise mode: %s (%d)",
                   strerror(errno), errno);
         
         return E_ADVERTISE_MODE;
@@ -579,12 +579,12 @@ ErrorCode disable_advertising() {
 #ifdef Debugging 
    
         zlog_debug(category_debug, 
-                   "LE set advertise enable on returned status %d\n",
+                   "LE set advertise enable on returned status %d",
                    status);
       
 #endif
         zlog_info(category_health_report, 
-                  "LE set advertise enable on returned status %d\n",
+                  "LE set advertise enable on returned status %d",
                   status);
 
         return E_ADVERTISE_STATUS;
@@ -646,7 +646,7 @@ void *stop_ble_beacon(void *beacon_location) {
 void *cleanup_scanned_list(void) {
 
 
-    struct List_Entry *listptrs, *savelistptrs;
+    struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
 
     while (ready_to_work == true) {
@@ -661,9 +661,11 @@ void *cleanup_scanned_list(void) {
        pthread_mutex_lock(&list_lock);
 
         /* Go through list */
-        list_for_each_safe(listptrs, savelistptrs, &scanned_list_head){
+        list_for_each_safe(list_pointers, 
+                           save_list_pointers, 
+                           &scanned_list_head){
 
-            temp = ListEntry(listptrs, ScannedDevice, sc_list_entry);
+            temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
 
 
             /* If the device has been in the scanned list for at least 30 
@@ -712,7 +714,6 @@ void *manage_communication(void) {
     int polled_type, copy_progress;
     
    
-
     /* Initialize the thread pool and work threads waiting for the 
        new work/job to be assigned. */
     thpool = thpool_init(NO_WORK_THREADS); 
@@ -755,11 +756,9 @@ void *manage_communication(void) {
         switch(polled_type){
 
             case TRACK_OBJECT_DATA:
-                printf("In the case and sleep for a while \n");
-                //sleep(TIMEOUT_WAITING);
+                
                 
                 /* Copy track_obkect data to a file to be transmited */
-               printf("Wakeing up to copy data!!! \n");
                 copy_progress = (int)copy_object_data_to_file("output.txt");
                 
                 if(copy_progress == E_EMPTY_FILE){
@@ -774,6 +773,7 @@ void *manage_communication(void) {
 
                     /* Open the file that is going to sent to the gateway */
                     file_to_send = fopen("output.txt", "r");
+                    
                     if (file_to_send == NULL) {
 
                         /* Error handling */
@@ -802,25 +802,25 @@ void *manage_communication(void) {
                 zlog_info(category_health_report, 
                           "Sent Message: %s", zig_message);
 
-                zigbee_send_file(zig_message);
-                /* Add a work item to be executed by a work thread */
-                /*
+                
+                /* Add a work item to be executed by a work thread */              
                 if(thpool_add_work(thpool, 
                                    (void*)zigbee_send_file, 
-                                   zigbee) != 0){
-*/
+                                   zig_message) != 0){
+
                     /* Error handling */
                     /* Set ready_to_work to false to let other theeads know 
                        of the error */
-/*
                     ready_to_work = false;
-                    perror(errordesc[E_OPEN_FILE].message);
+                    perror(errordesc[E_ADD_THREAD_WORK].message);
+                    zlog_info(category_health_report, 
+                              errordesc[E_ADD_THREAD_WORK].message);
                     cleanup_exit();
                     return;
                 
                 }
 
-*/  
+  
                 break;
 
             case HEALTH_REPORT:
@@ -868,7 +868,7 @@ ErrorCode copy_object_data_to_file(char *file_name) {
     init_entry(&local_object_list_head);
 
     /* Two pointers to be used locally */
-    struct List_Entry *lisptrs, *tailptrs;
+    struct List_Entry *list_pointers, *tail_pointers;
     
     ScannedDevice *temp;
     int number_in_list;
@@ -894,15 +894,20 @@ ErrorCode copy_object_data_to_file(char *file_name) {
         return E_OPEN_FILE;
 
     }
-    printf("Here is opening the file for track\n");
+   
     /* Get the number of objects with data to be transmitted */
     number_in_list = get_list_length(&tracked_object_list_head);
-    
-    printf("Get the number of the length %d \n", number_in_list);
-
     number_to_send = min(MAX_NO_OBJECTS, number_in_list);
 
-    printf("Get the number of the length %d \n", number_to_send);
+
+    /*Check if number_to_send is zero, if yes, close file and return */
+    if(number_to_send == 0){  
+
+       fclose(track_file); 
+       return E_EMPTY_FILE;
+        
+    }
+    
     /* Insert number_to_send at the struct of the track file */
     sprintf(basic_info, "%d;", number_to_send);
     fputs(basic_info, track_file);
@@ -914,55 +919,48 @@ ErrorCode copy_object_data_to_file(char *file_name) {
 #endif
 
 
-    /*Check if number_to_send is zero, if yes, close file and return */
-    if(number_to_send == 0){  
-
-       fclose(track_file); 
-       return E_EMPTY_FILE;
-        
-    }
-        
-
     pthread_mutex_lock(&list_lock);
 
     /* Set temporary pointer points to the head of the track_object_list */
-    lisptrs = tracked_object_list_head.next;
+    list_pointers = tracked_object_list_head.next;
 
     /* Set the pointer of the local list head to the head of the 
        track_object_list */
-    local_object_list_head.next = lisptrs;
+    local_object_list_head.next = list_pointers;
     
     int node_count;
     
     /* Go through the track_object_list to move number_to_send nodes in the 
     list to local list */
     for (node_count = 1; node_count <= number_to_send; 
-                         lisptrs = lisptrs->next){
+                         list_pointers = list_pointers->next){
 
         /* If the node is the last in the list */
         if(node_count == number_to_send){
 
-            /* A marker for the last pointer */
-            tailptrs = lisptrs;
+            /* A marker for the last pointer of the last node */
+            tail_pointers = list_pointers;
             
         }
+
         node_count = node_count + 1;
 
     }
 
     /* Set the track_object_list_head to point to the last node */
-    tracked_object_list_head.next = lisptrs;
+    tracked_object_list_head.next = list_pointers->next;
+    
     /*Set the last node pointing to the local_object_list_head */
-    tailptrs->next = &local_object_list_head;
+    tail_pointers->next = &local_object_list_head;
 
     pthread_mutex_unlock(&list_lock);
 
     /* Go throngh the local object list to get the content and write the 
        content to file */
-    list_for_each(lisptrs, &local_object_list_head){
+    list_for_each(list_pointers, &local_object_list_head){
 
 
-        temp = ListEntry(lisptrs, ScannedDevice, tr_list_entry);
+        temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
 
         /* Convert the timestamp from list to string */
         unsigned timestamp_init = (unsigned)&temp->initial_scanned_time;
@@ -997,17 +995,17 @@ ErrorCode copy_object_data_to_file(char *file_name) {
 void free_list(List_Entry *list_head){
 
     
-    struct List_Entry *lisptrs, *savelistptrs;
+    struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
 
    
-    list_for_each_safe(lisptrs, 
-                       savelistptrs, 
+    list_for_each_safe(list_pointers, 
+                       save_list_pointers, 
                        list_head){
 
-        temp = ListEntry(lisptrs, ScannedDevice, tr_list_entry); 
+        temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry); 
         
-        remove_list_node(lisptrs);
+        remove_list_node(list_pointers);
 
         /* If the node is no longer in any list, free the space
            back to the memory pool. */
@@ -1243,7 +1241,7 @@ ErrorCode startThread(pthread_t threads ,
 void cleanup_exit(){
 
     /* Create a temporary node and set as the head */
-    struct List_Entry *lisptrs, *savelistptrs;
+    struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
 
     /* Set flag to false */
@@ -1252,22 +1250,22 @@ void cleanup_exit(){
     if(&mempool != NULL){
 
         /* Go throgth two lists to release all memory allocated to the nodes */
-        list_for_each_safe(lisptrs, 
-                       savelistptrs, 
+        list_for_each_safe(list_pointers, 
+                       save_list_pointers, 
                        &scanned_list_head){
 
-            temp = ListEntry(lisptrs, ScannedDevice, sc_list_entry);
-            remove_list_node(lisptrs);
+            temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
+            remove_list_node(list_pointers);
             mp_free(&mempool, temp); 
 
         }
 
-        list_for_each_safe(lisptrs, 
-                      savelistptrs, 
+        list_for_each_safe(list_pointers, 
+                      save_list_pointers, 
                       &tracked_object_list_head){
 
-            temp = ListEntry(lisptrs, ScannedDevice, tr_list_entry);
-            remove_list_node(lisptrs);
+            temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+            remove_list_node(list_pointers);
             mp_free(&mempool, temp); 
 
         }
@@ -1347,7 +1345,8 @@ int main(int argc, char **argv) {
 
     }
 
-     /* Initialize the zigbee */
+     /* Initialize the zigbee at a very beginning, because it takes longer 
+        time to make sure all the pins of pi are working  */
     if(zigbee_init() != XBEE_SUCCESSFULLY){
 
         /* Could not initialize the zigbee, handle error */

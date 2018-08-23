@@ -161,7 +161,7 @@ int receive_call_back();
     None
 
 */
-void zigbee_send_file(char *zig_message);
+void *zigbee_send_file(char *zig_message);
 
 /*
   zigbee_free:
@@ -177,6 +177,6 @@ void zigbee_send_file(char *zig_message);
     ErrorCode: The error code for the corresponding error
 
 */
-ErrorCode_Xbee zigbee_free();
+void zigbee_free();
 
 #endif

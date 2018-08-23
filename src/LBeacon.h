@@ -43,10 +43,9 @@ Authors:
     Johnson Su, johnsonsu@iis.sinica.edu.tw
     Joey Zhou, joeyzhou@iis.sinica.edu.tw
     Kenneth Tang, kennethtang@iis.sinica.edu.tw
-    James Huamg, 
+    James Huamg, jameshuang@iis.sinica.edu.tw
     Shirley Huang, shirley.huang.93@gmail.com
-    Jeffrey Lin, lin.jeff03@gmail.com
-    Howard Hsu, haohsu0823@gmail.com
+   
       
 */
 
@@ -182,7 +181,7 @@ Authors:
 
 /* Location data in the maximum number of objects to be transmitted at
    one time */
-#define MAX_NO_OBJECTS 32
+#define MAX_NO_OBJECTS 2
 
 /* The number of slots in the memory pool */
 #define SLOTS_IN_MEM_POOL 1024
@@ -440,7 +439,8 @@ typedef enum ErrorCode {
     E_INIT_ZIGBEE = 17,
     E_ZIGBEE_CONNECT = 18,
     E_EMPTY_FILE = 19,
-    MAX_ERROR_CODE = 20
+    E_ADD_THREAD_WORK = 20,
+    MAX_ERROR_CODE = 21
 
 } ErrorCode;
 
@@ -471,6 +471,7 @@ struct _errordesc {
     {E_INIT_ZIGBEE, "Error initializing the zigbee"},
     {E_ZIGBEE_CONNECT, "Error zigbee connection"},
     {E_EMPTY_FILE, "Error of empty file"},
+    {E_ADD_THREAD_WORK, "Error adding work the work thread"},
     {MAX_ERROR_CODE, "The element is invalid"}
 
 };
@@ -1066,7 +1067,7 @@ extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
       None
 
 */
-extern void zigbee_send_file(char *zig_message);
+extern void *zigbee_send_file(char *zig_message);
 
 
 /* Follow are functions for communication via BR/EDR path to Bluetooth

@@ -48,7 +48,8 @@
 
 ErrorCode_Xbee zigbee_init(){
 
-    int ret;
+    /* The error indicator returns from the libxbee library */
+    int error_indicator;
 
     xbee_config.xbee_mode = XBEE_MODE;
 
@@ -61,7 +62,8 @@ ErrorCode_Xbee zigbee_init(){
     
     xbee_Serial_Power_Reset(xbee_Serial_Power_Pin);
 
-    xbee_Serial_init(&xbee_config.xbee_datastream, xbee_config.xbee_device);
+    xbee_Serial_init(&xbee_config.xbee_datastream, 
+                     xbee_config.xbee_device);
 
     xbee_LoadConfig(&xbee_config);
 
@@ -89,14 +91,19 @@ ErrorCode_Xbee zigbee_init(){
               "Zigbee Connection Successfully Established");
 
     /* Start the chain reaction                                             */
-    if((ret = xbee_conValidate(xbee_config.con)) != XBEE_ENONE){
+    if((error_indicator = xbee_conValidate(xbee_config.con)) != XBEE_ENONE){
+
+#ifdef Debugging 
+
+        zlog_debug(category_debug, "con unvalidate ret : %d", 
+                   error_indicator);
+      
+#endif      
         
-        printf("con unvalidate ret : %d\n", ret);
-       /* 
         perror(error_xbee[E_XBEE_VALIDATE].message);
         zlog_info(category_health_report, 
                   error_xbee[E_XBEE_VALIDATE].message);
-        */
+        
         return E_XBEE_VALIDATE;
     }
 
@@ -106,44 +113,40 @@ ErrorCode_Xbee zigbee_init(){
 
 int receive_call_back(){
     
-    printf("Receive_CallBack.\n");
  
     /* Check the connection of call back is enable */ 
     if(xbee_check_CallBack(&xbee_config, false)){
-      /*
+      
       perror(error_xbee[E_CALL_BACK].message);
       zlog_info(category_health_report, 
                 error_xbee[E_CALL_BACK].message);
-      */
-      return 1;
+      
+      return NOT_YET_POLLED;
     
     };
 
-    /* Get the polled type form the gateway */
+    /* Get the polled type form the queue received from the gateway */
     pPkt temppkt = get_pkt(&xbee_config.Received_Queue);
-    
-    
+        
     if(temppkt != NULL){
 
-      printf("Geting the call back\n");
 
-        /* If data[0] == '@', callback will be end.                       */
         if(temppkt -> content[0] == 'T'){
 
+          /* Delete the packet and return the indicator back. */
           delpkt(&xbee_config.Received_Queue);
           return TRACK_OBJECT_DATA;
 
         }else if(temppkt -> content[0] == 'H'){
 
-          printf("HEALTH_REPORT \n");
+          /* Delete the packet and return the indicator back. */
           delpkt(&xbee_config.Received_Queue);
           return HEALTH_REPORT; 
 
+        /* If data[0] == '@', callback will be end. */
         }else if(temppkt -> content[0] == '@'){
 
             xbee_conCallbackSet(xbee_config.con, NULL, NULL);
-
-            printf("*** DISABLED CALLBACK... ***\n");
 
         }
 
@@ -155,10 +158,8 @@ int receive_call_back(){
 
 }
 
-void zigbee_send_file(char *zig_message){
-    
-    printf("In the send file \n");
-    
+void *zigbee_send_file(char *zig_message){
+
 
     /* Add the content that to be sent to the gateway to the packet queue */
     addpkt(&xbee_config.pkt_Queue, Data, Gateway, zig_message);
@@ -170,50 +171,22 @@ void zigbee_send_file(char *zig_message){
 
     xbee_connector(&xbee_config);
 
-    //usleep(XBEE_TIMEOUT);
+    usleep(XBEE_TIMEOUT);
         
-
-
 
    return;
 }
 
 
-ErrorCode_Xbee zigbee_free(){
+void zigbee_free(){
 
 
+    /* Release the xbee elements and close the connection. */
     xbee_release(&xbee_config);
-    /* Close connection                                                      */
-    /*
-    if ((ret = xbee_conEnd(zigbee->con)) != XBEE_ENONE) {
-        
-        xbee_log(zigbee->xbee, 10, "xbee_conEnd() returned: %d", ret);
-        
-        perror(errord_xbee[E_CONNECT].message);
-        zlog_info(category_health_report, 
-                  errord_xbee[E_CONNECT].message);
-        
-        return;
-    }
-
-     Free Send_Queue for zigbee connection 
-  
-    //Free_Packet_Queue(&zigbee->send_queue);
-
-     Free received_Queue for zigbee connection 
    
-    //Free_Packet_Queue(&zigbee->received_queue);
-    */
-    
     zlog_info(category_health_report, 
               "Stop Xbee connection Succeeded\n");
 
-    /* Close xbee                                                            */
-    /* 
-    xbee_shutdown(zigbee->xbee);
-    
-    zlog_info(category_health_report, 
-              "Shutdown Xbee Succeeded\n");
-    */
+    return;
 
 }
