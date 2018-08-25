@@ -1173,16 +1173,7 @@ int main(int argc, char **argv) {
         pthread_exit(NULL);
     }
 
-    /* Send message to the scanned MAC address */
-    pthread_t send_file_id[maximum_number_of_devices];
-    for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
-        return_value = pthread_create(&send_file_id[device_id], NULL,
-                                      (void *)send_file, (void *)device_id);
-        if (return_value != 0) {
-            perror("Error with send_file using pthread_create");
-            pthread_exit(NULL);
-        }
-    }
+
 
     /* An indicator for continuing to run the beacon */
     bool start_scanning_cancelled = false;
@@ -1192,13 +1183,6 @@ int main(int argc, char **argv) {
         start_scanning();
     }
 
-    for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
-        return_value = pthread_join(send_file_id[device_id], NULL);
-        if (return_value != 0) {
-            perror("Error with send_file_id using pthread_join");
-            exit(EXIT_FAILURE);
-        }
-    }
 
     return_value = pthread_join(queue_to_array_id, NULL);
     if (return_value != 0) {
