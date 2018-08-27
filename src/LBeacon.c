@@ -14,9 +14,9 @@
  * File Description:
  *
  *      This file contains the program to allow the beacon to discover bluetooth
- *	devices and then scan the Bluetooth addresses of the devices. Depending
- *	on the RSSI value of each discovered and scanned deviced, the beacon
- * 	determines whether it should send location related files to the device.
+ *  devices and then scan the Bluetooth addresses of the devices. Depending
+ *  on the RSSI value of each discovered and scanned deviced, the beacon
+ *  determines whether it should send location related files to the device.
  *
  * File Name:
  *
@@ -1139,7 +1139,7 @@ int main(int argc, char **argv) {
     }
 
     /* Store coordinates of the beacon location */
-    sprintf(hex_c, "E2C56DB5DFFB48D2B060D0F5%02x%02x%02x%02x%02x%02x%02x%02x",
+    sprintf(hex_c, "OPENISDMN402%02x%02x%02x%02xD0F5%02x%02x%02x%02x48D2B060",
             coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
             coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
             coordinate_Y.b[2], coordinate_Y.b[3]);
