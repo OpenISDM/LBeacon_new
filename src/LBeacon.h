@@ -776,6 +776,24 @@ void free_list(List_Entry *list_head);
 
 void start_scanning();
 
+/*
+  timeout_clean:
+
+      This function sets a timer to countdowm a specific time. After time's 
+      up, clean up two lists to make sure the spcae in the memory is always
+      available.  
+
+  Parameters:
+
+      None
+
+  Return value:
+
+      None
+*/
+
+void *timeout_clean();
+
 
 /*
   startThread:
