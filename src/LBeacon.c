@@ -1070,7 +1070,7 @@ int disable_advertising() {
  */
 void *ble_beacon(void *beacon_location) {
     int enable_advertising_success =
-        enable_advertising(300, beacon_location, 20);
+        enable_advertising(300, beacon_location, -45);
 
     if (enable_advertising_success == 0) {
         struct sigaction sigint_handler;
@@ -1139,7 +1139,7 @@ int main(int argc, char **argv) {
     }
 
     /* Store coordinates of the beacon location */
-    sprintf(hex_c, "OPENISDMN402%02x%02x%02x%02xD0F5%02x%02x%02x%02x48D2B060",
+    sprintf(hex_c, "402000000000%02x%02x%02x%02xD0F5%02x%02x%02x%02x00000000",
             coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
             coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
             coordinate_Y.b[2], coordinate_Y.b[3]);
