@@ -13,8 +13,8 @@ Project Name:
 
 File Description:
 
-    This header file contains function declarations of variables, struct and
-    functions and definitions pf global variables used in the LBeacon.c file.
+    This header file contains declarations of variables, structs and
+    functions and definitions of global variables used in the LBeacon.c file.
 
 File Name:
 
@@ -101,13 +101,13 @@ Authors:
 /* File path of the config file of the LBeacon */
 #define CONFIG_FILE_NAME "../config/config.conf"
 
-/* File path of the config file of the logging file*/
+/* File path of the logging file*/
 #define LOG_FILE_NAME "../config/zlog.conf" 
 
-/* The category defined for the log file as health report */
+/* The category defined of log file used for health report */
 #define LOG_CATEGORY_HEALTH_REPORT "Health_Report"
 
-/* The category defined for the printf as debugging */
+/* The category defined for the printf during debugging */
 #define LOG_CATEGORY_DEBUG "LBeacon_Debug"
 
 /* Maximum number of characters in each line of config file */
@@ -141,7 +141,7 @@ Authors:
 /* Number of milliseconds in an epoch */
 #define LENGTH_OF_TIME 10
 
-/* The length of the message to be sent to the gateway */
+/* The maxinum length of the message to be sent to the gateway */
 #define ZIG_MESSAGE_LENGTH 512
 
 /* Maximum length of time in milliseconds a bluetooth device
@@ -164,7 +164,7 @@ Authors:
 #define A_VERY_SHORT_TIME 300
 
 /* Nominal transmission range limited. Only devices in this RSSI range are 
-   allowed to be discovered and sent. */
+   to be discovered and data sent. */
 #define RSSI_RANGE -60
 
 /* RSSI value for TX power of calibration and broadcast  */
@@ -179,7 +179,7 @@ Authors:
 /* Number of worker threads in the thread pool used by communication unit */
 #define NO_WORK_THREADS 2
 
-/* Location data in the maximum number of objects to be transmitted at
+/* Location data of the maximum number of objects to be transmitted at
    one time */
 #define MAX_NO_OBJECTS 2
 
@@ -303,7 +303,6 @@ typedef struct Config {
     /* String length needed to store uuid */
     int uuid_length;
 
-
 } Config;
 
 /* The structure for storing information and status of a thread */
@@ -316,7 +315,7 @@ typedef struct ThreadStatus {
 } ThreadStatus;
 
 
-/* Struct for storing MAC address of a user's device and the time instant
+/* Struct for storing MAC address of a user's device and the time instants
    at which the address is scanned 
 */
 typedef struct ScannedDevice {
@@ -386,7 +385,7 @@ List_Entry scanned_list_head;
 
 /* Head of tracking_object_list that holds the scanned device structs of 
    devices discovered in recent scans. The MAC address elements of some 
-   structs in the list may be identical but their associate timestamps 
+   structs in the list may be identical but their associated timestamps 
    indicate disjoint time intervals. The contents of the list await to be 
    sent via the gateway to the server to be processed there. 
 */
@@ -419,7 +418,7 @@ pthread_mutex_t  list_lock;
 
 typedef enum ErrorCode {
 
-    WORK_SCUCESSFULLY = 0,
+    WORK_SUCCESSFULLY = 0,
     E_MALLOC = 1,
     E_OPEN_FILE = 2,
     E_OPEN_DEVICE = 3,
@@ -451,27 +450,27 @@ struct _errordesc {
     char *message;
 } errordesc[] = {
 
-    {WORK_SCUCESSFULLY, "The code works successfullly"},
+    {WORK_SUCCESSFULLY, "The code works successfullly"},
     {E_MALLOC, "Error allocating memory"},
     {E_OPEN_FILE, "Error opening file"},
     {E_OPEN_DEVICE, "Error opening the dvice"},
     {E_OPEN_SOCKET, "Error opening socket"},
     {E_SEND_OBEXFTP_CLIENT, "Error opening obexftp client"},
     {E_SEND_CONNECT_DEVICE, "Error connecting to obexftp device"},
-    {E_SEND_PUT_FILE, "Error putting file"},
+    {E_SEND_PUSH_FILE, "Error pushing file to device"},
     {E_SEND_DISCONNECT_CLIENT, "Disconnecting the client"},
     {E_SCAN_SET_HCI_FILTER, "Error setting HCI filter"},
     {E_SCAN_SET_INQUIRY_MODE, "Error settnig inquiry mode"},
     {E_SCAN_START_INQUIRY, "Error starting inquiry"},
-    {E_SEND_REQUEST_TIMEOUT, "Timeout for sending request"},
+    {E_SEND_REQUEST_TIMEOUT, "Sending request timeout"},
     {E_ADVERTISE_STATUS, "LE set advertise returned status"},
     {E_ADVERTISE_MODE, "Error setting advertise mode"},
     {E_START_THREAD, "Error creating thread"},
     {E_INIT_THREAD_POOL, "Error initializing thread pool"},
     {E_INIT_ZIGBEE, "Error initializing the zigbee"},
     {E_ZIGBEE_CONNECT, "Error zigbee connection"},
-    {E_EMPTY_FILE, "Error of empty file"},
-    {E_ADD_THREAD_WORK, "Error adding work the work thread"},
+    {E_EMPTY_FILE, "Empty file"},
+    {E_ADD_WORK_THREAD, "Error adding work to the work thread"},
     {MAX_ERROR_CODE, "The element is invalid"}
 
 };
@@ -561,7 +560,7 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
       function allocates from memory pool space for a ScannedDeice struct, 
       sets the MAC address of the new struct to the input MAC address, the 
       initial scanned time and final scanned time to the current time, and 
-      inserts the sruct at the head of of the scanned list and tail of the 
+      inserts the sruct at the head of the scanned list and tail of the 
       tracked object list. If a struct with MAC address matching the input 
       device address is found, this function sets the final scanned time of 
       the struct to current time.
@@ -693,9 +692,9 @@ void *cleanup_scanned_list(void);
   manage_communication:
 
       This is the start function of the main thread in the communication 
-      unit of LBeacon. After initlizaiing the zigbee struct, it creates a 
-      thread pool with NO_WORK_THREADS worker threads; then while beacon is 
-      ready to work, the function waits for poll from the gateway, when 
+      unit of LBeacon. After initializing the zigbee struct, it creates a 
+      thread pool with NO_WORK_THREADS worker threads; then while the beacon 
+      is ready to work, the function waits for poll from the gateway, when 
       polled, the function creates appropriate work items to be executed by 
       a worker thread. 
 
@@ -715,7 +714,7 @@ void *manage_communication(void);
 /*
   copy_object_data_to_file:
 
-      This function copies the MAC addresses of scanned (i.e/ discovered)
+      This function copies the MAC addresses of scanned (i.e., discovered)
       bluetooth devices under a location beacon to a file. The output file
       contains for each MAC address in a ScannedDevice struct found in the 
       track object list, the initial and final timestamps. 
@@ -738,7 +737,7 @@ ErrorCode copy_object_data_to_file(char *file_name);
   free_list:
 
       This function removes nodes from the specified list and if the removed 
-      node is not in any list, call memory pool to release memoory used by 
+      node is not in any list, calls memory pool to release memory used by 
       the node.
 
   Parameters:

@@ -13,7 +13,7 @@
 
  File Description:
 
-      This file contains the program executed by location beacons to 
+      This file contains the programs executed by location beacons to 
       support indoor poositioning and object tracking functions.
 
  File Name:
@@ -253,7 +253,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 
         /* Get the initial scan time for the new node. */
         new_node->initial_scanned_time = get_system_time();
-        new_node->final_scanned_time = get_system_time();
+        new_node->final_scanned_time = new_node->initial_scanned_time;
 
         /* Copy the MAC address to the node */
         strncpy(new_node->scanned_mac_address, 
@@ -518,7 +518,7 @@ ErrorCode enable_advertising(int advertising_interval,
         return E_ADVERTISE_STATUS;
     }
 
-    return WORK_SCUCESSFULLY;
+    return WORK_SUCCESSFULLY;
 }
 
 
@@ -592,7 +592,7 @@ ErrorCode disable_advertising() {
     }
 
 
-    return WORK_SCUCESSFULLY;
+    return WORK_SUCCESSFULLY;
 
 }
 
@@ -752,13 +752,13 @@ void *manage_communication(void) {
         
         }
 
-        /* According to the polled data type, prepare a different work item */
+        /* According to the polled data type, prepare a work item */
         switch(polled_type){
 
             case TRACK_OBJECT_DATA:
                 
                 
-                /* Copy track_obkect data to a file to be transmited */
+                /* Copy track_object data to a file to be transmited */
                 copy_progress = (int)copy_object_data_to_file("output.txt");
                 
                 if(copy_progress == E_EMPTY_FILE){
@@ -769,7 +769,7 @@ void *manage_communication(void) {
                     
                     
                 
-                }else if(copy_progress == WORK_SCUCESSFULLY){
+                }else if(copy_progress == WORK_SUCCESSFULLY){
 
                     /* Open the file that is going to sent to the gateway */
                     file_to_send = fopen("output.txt", "r");
@@ -812,9 +812,9 @@ void *manage_communication(void) {
                     /* Set ready_to_work to false to let other theeads know 
                        of the error */
                     ready_to_work = false;
-                    perror(errordesc[E_ADD_THREAD_WORK].message);
+                    perror(errordesc[E_ADD_WORK_THREAD].message);
                     zlog_info(category_health_report, 
-                              errordesc[E_ADD_THREAD_WORK].message);
+                              errordesc[E_ADD_WORK_THREAD].message);
                     cleanup_exit();
                     return;
                 
@@ -900,7 +900,7 @@ ErrorCode copy_object_data_to_file(char *file_name) {
     number_to_send = min(MAX_NO_OBJECTS, number_in_list);
 
 
-    /*Check if number_to_send is zero, if yes, close file and return */
+    /*Check if number_to_send is zero. If yes, close file and return */
     if(number_to_send == 0){  
 
        fclose(track_file); 
@@ -938,7 +938,7 @@ ErrorCode copy_object_data_to_file(char *file_name) {
         /* If the node is the last in the list */
         if(node_count == number_to_send){
 
-            /* A marker for the last pointer of the last node */
+            /* Set a marker for the last pointer of the last node */
             tail_pointers = list_pointers;
             
         }
@@ -965,6 +965,9 @@ ErrorCode copy_object_data_to_file(char *file_name) {
         /* Convert the timestamp from list to string */
         unsigned timestamp_init = (unsigned)&temp->initial_scanned_time;
         unsigned timestamp_end = (unsigned)&temp->final_scanned_time;
+        
+        /* sprintf() is the function to set a format and convert the 
+           datatype to char */
         sprintf(timestamp_initial_str, ", %u", timestamp_init);
         sprintf(timestamp_final_str, ", %u", timestamp_end);
 
@@ -984,10 +987,10 @@ ErrorCode copy_object_data_to_file(char *file_name) {
 
     pthread_mutex_unlock(&list_lock);
 
-    /* Close the file for tracking */
+    /* Close the file for storing data in the tracked_object_list */
     fclose(track_file);
     
-    return WORK_SCUCESSFULLY;
+    return WORK_SUCCESSFULLY;
 
 }
 
@@ -1007,7 +1010,7 @@ void free_list(List_Entry *list_head){
         
         remove_list_node(list_pointers);
 
-        /* If the node is no longer in any list, free the space
+        /* If the node is no longer in any list, return the space
            back to the memory pool. */
         if(&temp->sc_list_entry.next == &temp->sc_list_entry.prev){
 
@@ -1030,13 +1033,13 @@ void start_scanning() {
     struct hci_filter filter; /*Filter for controling the events*/
     struct pollfd output; /*A callback event from the socket */
     unsigned char event_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the
-                                                      *callback event*/
+                                                      callback event */
     unsigned char *event_buffer_pointer; /*A pointer for the event buffer */
     hci_event_hdr *event_handler; /*Record the event type */
     inquiry_cp inquiry_copy; /*Storing the message from the socket */
-    inquiry_info_with_rssi *info_rssi; /*Record an
-                                         *EVT_INQUIRY_RESULT_WITH_RSSI message
-                                         */
+    inquiry_info_with_rssi *info_rssi; /* Record an
+                                          EVT_INQUIRY_RESULT_WITH_RSSI 
+                                          message */
     inquiry_info *info; /*Record an EVT_INQUIRY_RESULT message */
     int event_buffer_length; /*Length of the event buffer */
     int dongle_device_id = 0; /*dongle id */
@@ -1320,7 +1323,7 @@ ErrorCode startThread(pthread_t threads ,
     return E_START_THREAD;
   }
 
-  return WORK_SCUCESSFULLY;
+  return WORK_SUCCESSFULLY;
 
 }
 
@@ -1386,9 +1389,9 @@ int main(int argc, char **argv) {
     /*Initialize the global flag */
     ready_to_work = true;
 
-   
+   /* Initialize the application log */
     if (zlog_init("../config/zlog.conf") != 0) {
-        
+        perror
         return -1;
     }
 
@@ -1410,7 +1413,7 @@ int main(int argc, char **argv) {
         return -2;
     }
 
-    zlog_debug(category_debug, "Finish inilizing zlog");
+    zlog_debug(category_debug, "Finish initializing zlog");
 
 #endif
 
@@ -1446,7 +1449,7 @@ int main(int argc, char **argv) {
 
     }
     
-    /* Initialize two locks for two lists */
+    /* Initialize the lock for accessing the lists */
     pthread_mutex_init(&list_lock,NULL);
 
 
@@ -1477,12 +1480,12 @@ int main(int argc, char **argv) {
     coordinate_Z.f = (float)atof(g_config.coordinate_Z);
 
 
-    /* Allocate an array with the size of maximum number of devices */
+    /* the  maximum number of devices of an array */
     int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
     
 
 
-    /* Initialize each ThreadStatus struct in the array */
+    /* Initialize each ThreadStatus struct in the g_idle_handler array */
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
 
          strncpy(g_idle_handler[device_id].scanned_mac_address, "0",
@@ -1509,13 +1512,13 @@ int main(int argc, char **argv) {
     return_value = startThread(stop_ble_beacon_thread, 
                                stop_ble_beacon, hex_c);
 
-    if(return_value != WORK_SCUCESSFULLY){
+    if(return_value != WORK_SUCCESSFULLY){
         
         perror(errordesc[E_START_THREAD].message);
         zlog_info(category_health_report, 
                   errordesc[E_START_THREAD].message);
         cleanup_exit();
-        return 1;
+        return E_START_THREAD;
     }
 
 
@@ -1525,13 +1528,13 @@ int main(int argc, char **argv) {
     return_value = startThread(cleanup_scanned_list_thread,
                                cleanup_scanned_list, NULL);
 
-    if(return_value != WORK_SCUCESSFULLY){
+    if(return_value != WORK_SUCCESSFULLY){
          
         perror(errordesc[E_START_THREAD].message);
         zlog_info(category_health_report, 
                   errordesc[E_START_THREAD].message);
         cleanup_exit();
-        return 1;
+        return E_START_THREAD;
     }
 
 
@@ -1542,13 +1545,13 @@ int main(int argc, char **argv) {
     return_value = startThread(track_communication_thread, 
                                manage_communication, NULL);
 
-    if(return_value != WORK_SCUCESSFULLY){
+    if(return_value != WORK_SUCCESSFULLY){
         
         perror(errordesc[E_START_THREAD].message);
         zlog_info(category_health_report, 
                   errordesc[E_START_THREAD].message);
         cleanup_exit();
-        return 1;
+        return E_START_THREAD;
     }
 
 
@@ -1558,13 +1561,13 @@ int main(int argc, char **argv) {
     return_value = startThread(timer_thread, 
                                timeout_clean, NULL);
 
-    if(return_value != WORK_SCUCESSFULLY){
+    if(return_value != WORK_SUCCESSFULLY){
         
         perror(errordesc[E_START_THREAD].message);
         zlog_info(category_health_report, 
                   errordesc[E_START_THREAD].message);
         cleanup_exit();
-        return 1;
+        return E_START_THREAD;
     }
 
 
@@ -1625,7 +1628,7 @@ int main(int argc, char **argv) {
         return_value =  startThread(send_file_thread[device_id], send_file,
                     (void *)dongle_device_id);
 
-        if(return_value != WORK_SCUCESSFULLY){
+        if(return_value != WORK_SUCCESSFULLY){
             
             perror(errordesc[E_START_THREAD].message);
             zlog_info(category_health_report, 
@@ -1913,7 +1916,7 @@ void *send_file(void *id) {
                 if (0 > return_value) {
 
                     /* TODO: Error handling */
-                    perror(errordesc[E_SEND_PUT_FILE].message);
+                    perror(errordesc[E_SEND_PUSH_FILE].message);
                 }
 
                 /* Disconnect connection */
