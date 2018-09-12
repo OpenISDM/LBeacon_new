@@ -13,7 +13,7 @@
 
  File Description:
 
-      This header file contains the function declarations and
+      This header file contains the declarations of the function  and
       variables used in the Communication.c file.
 
  File Name:
@@ -111,12 +111,13 @@ struct _errordesc_xbee {
 /*
   zigbee_init:
 
-    This function initilizes the zigbee's necessory object.  
+    This function initilizes the zigbee object containing parameters and 
+    data governing communication of the zigbee link.  
 
   Parameters:
 
 
-    zigbee - the struct of necessary parameter and data
+    None
 
 
   Return value:
@@ -130,12 +131,12 @@ ErrorCode_Xbee zigbee_init();
 /*
   receive_call_back:
 
-    This function receives a pointer to the packet sent by the gateway and 
-    return an indicatior for the polled data type of the packet.   
+    This function receives the packet sent by the gateway and return an 
+    indicator for the data as the polled type of the packet.   
 
   Parameters:
 
-    zigbee - the struct of necessary parameter and data
+    None
 
 
   Return value:
@@ -149,12 +150,12 @@ int receive_call_back();
 /*
   zigbee_send_file:
 
-    When called, this function sends a packet containing the specified 
+    When called, this function sends a packet that containing the specified 
     message to the gateway via xbee module.
 
   Parameters:
 
-    zigbee - the struct of necessary parameter and data
+    zig_message - the message to be sent via xbee module 
 
   Return value:
 
@@ -166,11 +167,11 @@ void *zigbee_send_file(char *zig_message);
 /*
   zigbee_free:
 
-    When called, this function frees the necessory element.
+    When called, this function frees zigbee struct.
 
   Parameters:
 
-    zigbee - the struct of necessary parameter and data
+    None
 
   Return value:
 

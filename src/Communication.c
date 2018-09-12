@@ -13,7 +13,7 @@
 
  File Description:
 
-      This file contains the program to allow transmission between 
+      This file contains the programs to allow data transmission between 
        LBeacon and Gateway. 
 
  File Name:
@@ -52,11 +52,8 @@ ErrorCode_Xbee zigbee_init(){
     int error_indicator;
 
     xbee_config.xbee_mode = XBEE_MODE;
-
     xbee_config.xbee_device = XBEE_DEVICE;
-
     xbee_config.xbee_datastream = XBEE_DATASTREAM;
-
     xbee_config.config_location = XBEE_CONFIG_PATH;
 
     
@@ -125,7 +122,7 @@ int receive_call_back(){
     
     };
 
-    /* Get the polled type form the queue received from the gateway */
+    /* Get the polled type from the packet received from the gateway */
     pPkt temppkt = get_pkt(&xbee_config.Received_Queue);
         
     if(temppkt != NULL){
@@ -133,7 +130,7 @@ int receive_call_back(){
 
         if(temppkt -> content[0] == 'T'){
 
-          /* Delete the packet and return the indicator back. */
+          /* Delete the packet and return the indicator. */
           delpkt(&xbee_config.Received_Queue);
           return TRACK_OBJECT_DATA;
 

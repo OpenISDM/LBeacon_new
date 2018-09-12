@@ -864,14 +864,14 @@ extern DIR *opendir(const char *dirname);
 
   Parameters:
 
-      transport - the transport type that will be used
-      ctrans - optional custom transport
+      transport - the transport protocol that will be used
+      ctrans - optional custom transport protocol
       infocb - optional info callback
       infocb_data - optional info callback data
 
   Return value:
 
-      cli - a new allocated ObexFTP client instance, NULL on error.
+      cli - a new allocated ObexFTP client instance, or NULL on error.
 */
 extern obexftp_client_t * obexftp_open(int transport, obex_ctrans_t *ctrans,
     obexftp_info_cb_t infocb, void *infocb_data);
@@ -886,7 +886,8 @@ extern obexftp_client_t * obexftp_open(int transport, obex_ctrans_t *ctrans,
 
       ptr - the pointer points to the memory area
       value - the constant byte to replace the memory area
-      number - number of bytes in the memory area to be filled
+      number - number of bytes in the memory area starting from ptr to be 
+               filled
 
   Return value:
 
@@ -898,7 +899,8 @@ extern void * memset(void * ptr, int value, size_t number);
 /*
   hci_open_dev:
   
-      This function is called to open a Bluetooth socket with the specified resource number.
+      This function is called to open a Bluetooth socket with the specified 
+      resource number.
 
   Parameters:
 
@@ -1003,11 +1005,12 @@ extern int  hci_send_cmd(int dd, uint16_t ogf, uint16_t ocf, uint8_t plen,
 /* 
   pthread_attr_init:
 
-      This function is called to initialize thread attributes object
+      This function is called to initialize thread attributes object pointed
+      to by attr with default attribute values
 
   Parameters:
 
-      attr - the thread attributes object to be initiallized
+      attr - pointer to the thread attributes object to be initialized
 
   Return value:
 
@@ -1019,7 +1022,8 @@ extern int pthread_attr_init(pthread_attr_t *attr);
 /* 
   pthread_attr_destroy:
 
-      This function is called to destroy thread attributes object
+      This function is called to destroy the thread attributes object 
+      pointed to by attr
 
   Parameters:
 
@@ -1035,7 +1039,9 @@ extern int pthread_attr_destroy(pthread_attr_t *attr);
 /* 
   pthread_detach:
 
-      This function is called to detach a thread
+      This function is called to make the thread identified by thread as 
+      detached. When a detached thread returns, its resources are
+      automatically released back to the system.
 
   Parameters:
 
@@ -1051,13 +1057,15 @@ extern int pthread_detach(pthread_t thread);
 /* 
   pthread_create:
 
-      This function is called to create a new thread
+      This function is called to start a new thread in the calling process.
+      The new thrad starts execution by invoking start_routine.
 
   Parameters:
 
       thread - a pointer to the new thread
       attr - set thread properties
-      arg - the parameters that function runs with
+      start_routine - routine to be executed by the new thread
+      arg - the parameters of the start_routine. 
 
   Return value:
 
@@ -1071,13 +1079,12 @@ extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 /*
   zigbee_send_file:
 
-      When called, this function sends a containing the specified message 
-      packet to the gateway via xbee module and and receives command or data 
-      from the gateway. 
+      When called, this function sends a packet that containing the specified 
+      message to the gateway via xbee module.
 
   Parameters:
 
-      zigbee - the struct of necessary parameter and data
+    zig_message - the message to be sent via xbee module 
 
   Return value:
 
@@ -1087,17 +1094,18 @@ extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 extern void *zigbee_send_file(char *zig_message);
 
 
-/* Follow are functions for communication via BR/EDR path to Bluetooth
+/* Functions for communication via BR/EDR path to Bluetooth
    classic devices */
+
 #ifdef Bluetooth_classic
 
 /*
   choose_file:
 
-    This function receives the name of the message file and returns the file 
+    This function receives the name of a message file and returns the file 
     path where the message is located. It goes through each directory in the 
-    messages folder and in each category, it reads each file name to find the 
-    designated message we want to broadcast to the users under the beacon.
+    messages folder and in each category, it reads each file name to find 
+    the designated message to be broadcast to the users under the beacon.
 
   Parameters:
 
