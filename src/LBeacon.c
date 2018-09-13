@@ -1391,7 +1391,7 @@ int main(int argc, char **argv) {
 
    /* Initialize the application log */
     if (zlog_init("../config/zlog.conf") != 0) {
-        perror
+    
         return -1;
     }
 

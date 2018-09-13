@@ -425,7 +425,7 @@ typedef enum ErrorCode {
     E_OPEN_SOCKET = 4,
     E_SEND_OBEXFTP_CLIENT = 5,
     E_SEND_CONNECT_DEVICE = 6,
-    E_SEND_PUT_FILE = 7,
+    E_SEND_PUSH_FILE = 7,
     E_SEND_DISCONNECT_CLIENT = 8,
     E_SCAN_SET_HCI_FILTER = 9,
     E_SCAN_SET_INQUIRY_MODE = 10,
@@ -438,7 +438,7 @@ typedef enum ErrorCode {
     E_INIT_ZIGBEE = 17,
     E_ZIGBEE_CONNECT = 18,
     E_EMPTY_FILE = 19,
-    E_ADD_THREAD_WORK = 20,
+    E_ADD_WORK_THREAD = 20,
     MAX_ERROR_CODE = 21
 
 } ErrorCode;
