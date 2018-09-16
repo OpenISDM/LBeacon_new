@@ -1024,6 +1024,111 @@ void free_list(List_Entry *list_head){
     return;
 }
 
+static volatile int signal_received = 0;
+static void sigint_handler(int sig)
+{
+    signal_received = sig;
+}
+
+void *start_ble_scanning(void){
+
+    unsigned char ble_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the
+                                                      callback event */
+    unsigned char *ble_buffer_pointer; /*A pointer for the event buffer */
+    int socket = 0; /*Number of the socket */
+    int dongle_device_id = 0; /*dongle id */
+    struct hci_filter new_filter, original_filiter; /*Filter for controling the events*/
+    socklen_t olen;
+    evt_le_meta_event *meta;
+    le_advertising_info *info;
+    struct sigaction sa;
+    char addr[18];
+
+
+    /* Open Bluetooth device */
+    socket = hci_open_dev(dongle_device_id);
+
+    if (0 > dongle_device_id || 0 > socket) {
+
+         /* Error handling */
+         perror(errordesc[E_OPEN_SOCKET].message);
+         zlog_info(category_health_report, 
+                   errordesc[E_OPEN_SOCKET].message);
+         cleanup_exit();
+         return;
+
+    }
+
+    if( 0> hci_le_set_scan_parameters(socket, 0x01, htobs(0x0010), htobs(0x0010), 0x00, 0x00, 1000)){
+
+        printf("Error with LE set para \n");
+
+    }
+    if( 0> hci_le_set_scan_enable(socket, 0x01, 1, 1000)){
+
+        printf("Error with LE enable  \n");
+
+    }
+
+    printf("LE Scan ...\n");
+
+    olen = sizeof(original_filiter);
+    if(0 > getsockopt(socket, SOL_HCI, HCI_FILTER, &original_filiter, &olen)) 
+    {
+        printf("Error with get sockopt  \n");
+    }
+
+    hci_filter_clear(&new_filter);
+    hci_filter_set_ptype(HCI_EVENT_PKT, &new_filter);
+    hci_filter_set_event(EVT_LE_META_EVENT, &new_filter);
+
+    if (0 > setsockopt(socket, SOL_HCI, HCI_FILTER, &new_filter, sizeof(new_filter)) ) {
+        printf("Could not set socket options\n");
+        
+    }
+
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_flags = SA_NOCLDSTOP;
+    sa.sa_handler = sigint_handler;
+    sigaction(SIGINT, &sa, NULL);
+
+    bool keep_scanning = true;
+    while(keep_scanning = true){
+
+        while (read(socket, ble_buffer, sizeof(ble_buffer)) < 0) {
+            if (errno == EINTR && signal_received == SIGINT) {
+               
+                keep_scanning = false;
+                
+            }
+
+            if (errno == EAGAIN || errno == EINTR)
+                keep_scanning = false;
+
+        }
+
+        ble_buffer_pointer = ble_buffer + (1 + HCI_EVENT_HDR_SIZE);
+        meta = (void *) ble_buffer_pointer;
+
+        if (meta->subevent != 0x02)
+             keep_scanning = false;
+
+        info = (le_advertising_info *) (meta->data + 1);
+
+        ba2str(&info->bdaddr, addr);
+
+        printf("BLE: %s\n", addr);
+
+
+
+
+
+    }
+
+
+
+
+}
 
 
 void start_scanning() {
@@ -1060,14 +1165,14 @@ void start_scanning() {
          return;
 
     }
-
+    
     /* Setup filter */
     hci_filter_clear(&filter);
     hci_filter_set_ptype(HCI_EVENT_PKT, &filter);
     hci_filter_set_event(EVT_INQUIRY_RESULT, &filter);
     hci_filter_set_event(EVT_INQUIRY_RESULT_WITH_RSSI, &filter);
     hci_filter_set_event(EVT_INQUIRY_COMPLETE, &filter);
-    hci_filter_set_event(EVT_LE_META_EVENT, &filter);
+    
 
     if (0 > setsockopt(socket, SOL_HCI, HCI_FILTER, &filter,
                         sizeof(filter))) {
@@ -1206,21 +1311,6 @@ void start_scanning() {
 
             } break;
 
-            case EVT_LE_META_EVENT: {
-
-                for (results_id = 0; results_id < results; results_id++) {
-                    
-                    info = (void *)event_buffer_pointer +
-                         (sizeof(*info) * results_id) + 1;
-
-                    print_RSSI_value(&info->bdaddr, 0, 0);
-
-
-                }
-
-
-
-            } break;
 
             default:
 
@@ -1511,6 +1601,21 @@ int main(int argc, char **argv) {
 
     return_value = startThread(stop_ble_beacon_thread, 
                                stop_ble_beacon, hex_c);
+
+    if(return_value != WORK_SUCCESSFULLY){
+        
+        perror(errordesc[E_START_THREAD].message);
+        zlog_info(category_health_report, 
+                  errordesc[E_START_THREAD].message);
+        cleanup_exit();
+        return E_START_THREAD;
+    }
+
+    /* Create the thread for track device */
+    pthread_t ble_scanning_thread;
+
+    return_value = startThread(ble_scanning_thread, 
+                               start_ble_scanning, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
         

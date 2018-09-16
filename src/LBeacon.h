@@ -773,6 +773,7 @@ void free_list(List_Entry *list_head);
       None
 */
 
+void *start_ble_scanning(void);
 void start_scanning();
 
 /*
