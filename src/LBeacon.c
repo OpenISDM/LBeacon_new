@@ -1030,6 +1030,42 @@ static void sigint_handler(int sig)
     signal_received = sig;
 }
 
+static void eir_parse_name(uint8_t *eir, size_t eir_len,
+                        char *buf, size_t buf_len)
+{
+    size_t offset;
+
+    offset = 0;
+    while (offset < eir_len) {
+        uint8_t field_len = eir[0];
+        size_t name_len;
+
+        /* Check for the end of EIR */
+        if (field_len == 0)
+            break;
+
+        if (offset + field_len > eir_len)
+            goto failed;
+
+        switch (eir[1]) {
+        case EIR_NAME_SHORT:
+        case EIR_NAME_COMPLETE:
+            name_len = field_len - 1;
+            if (name_len > buf_len)
+                goto failed;
+
+            memcpy(buf, &eir[2], name_len);
+            return;
+        }
+
+        offset += field_len + 1;
+        eir += field_len + 1;
+    }
+
+failed:
+    snprintf(buf, buf_len, NULL);
+}
+
 void *start_ble_scanning(void){
 
     unsigned char ble_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the
@@ -1043,6 +1079,7 @@ void *start_ble_scanning(void){
     le_advertising_info *info;
     struct sigaction sa;
     char addr[18];
+
 
 
     /* Open Bluetooth device */
@@ -1097,12 +1134,13 @@ void *start_ble_scanning(void){
 
         while (read(socket, ble_buffer, sizeof(ble_buffer)) < 0) {
             if (errno == EINTR && signal_received == SIGINT) {
-               
+                printf("Inside the r=error\n");
                 keep_scanning = false;
                 
             }
 
             if (errno == EAGAIN || errno == EINTR)
+                printf("Inside the false\n" );
                 keep_scanning = false;
 
         }
@@ -1110,14 +1148,24 @@ void *start_ble_scanning(void){
         ble_buffer_pointer = ble_buffer + (1 + HCI_EVENT_HDR_SIZE);
         meta = (void *) ble_buffer_pointer;
 
-        if (meta->subevent != 0x02)
-             keep_scanning = false;
+        if (meta->subevent != 0x02){
+            printf("Here is the subevent\n");
+            keep_scanning = false;
+        }
 
         info = (le_advertising_info *) (meta->data + 1);
 
+        char name[30];
         ba2str(&info->bdaddr, addr);
+        eir_parse_name(info->data, info->length,
+                            name, sizeof(name) - 1);
 
-        printf("BLE: %s\n", addr);
+        if(strcmp(name, "")!= 0){
+
+            printf("BLE: %s %s \n", addr, name);
+
+        }
+        
 
 
 
