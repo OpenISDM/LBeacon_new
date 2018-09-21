@@ -325,6 +325,7 @@ typedef struct ScannedDevice {
     long long final_scanned_time;
     struct List_Entry sc_list_entry;
     struct List_Entry tr_list_entry;
+    struct List_Entry ble_list_entry;
 
 /* Pad added to make the struct size an integer multiple of 32 byte, size of
    D-cache line.
@@ -391,6 +392,14 @@ List_Entry scanned_list_head;
 */
 List_Entry tracked_object_list_head;
 
+/* Head of tracking_ble_object_list that holds the scanned BLE device structs 
+   of devices discovered in recent scans. The MAC address elements of some 
+   structs in the list may be identical but their associated timestamps 
+   indicate disjoint time intervals. The contents of the list await to be 
+   sent via the gateway to the server to be processed there. 
+*/
+List_Entry tracked_ble_object_list_head;
+
 
 /* Global flags for communication among threads */
 
@@ -407,7 +416,7 @@ bool ready_to_work;
 Memory_Pool mempool;
 
 /* The lock that controls access to lists */
-pthread_mutex_t  list_lock;    
+pthread_mutex_t  list_lock, ble_list_lock;    
 
 
 
@@ -433,13 +442,16 @@ typedef enum ErrorCode {
     E_SEND_REQUEST_TIMEOUT = 12,
     E_ADVERTISE_STATUS = 13,
     E_ADVERTISE_MODE = 14,
-    E_START_THREAD = 15,
-    E_INIT_THREAD_POOL = 16,
-    E_INIT_ZIGBEE = 17,
-    E_ZIGBEE_CONNECT = 18,
-    E_EMPTY_FILE = 19,
-    E_ADD_WORK_THREAD = 20,
-    MAX_ERROR_CODE = 21
+    E_SET_BLE_PARAMETER = 15,
+    E_BLE_ENABLE = 16,
+    E_GET_BLE_SOCKET =17,
+    E_START_THREAD = 18,
+    E_INIT_THREAD_POOL = 19,
+    E_INIT_ZIGBEE = 20,
+    E_ZIGBEE_CONNECT = 21,
+    E_EMPTY_FILE = 22,
+    E_ADD_WORK_THREAD = 23,
+    MAX_ERROR_CODE = 24
 
 } ErrorCode;
 
@@ -465,6 +477,9 @@ struct _errordesc {
     {E_SEND_REQUEST_TIMEOUT, "Sending request timeout"},
     {E_ADVERTISE_STATUS, "LE set advertise returned status"},
     {E_ADVERTISE_MODE, "Error setting advertise mode"},
+    {E_SET_BLE_PARAMETER, "Error setting parameters of BLE scanning "},
+    {E_BLE_ENABLE, "Error enabling BLE scanning"},
+    {E_GET_BLE_SOCKET, "Error getting BLE socket options"},
     {E_START_THREAD, "Error creating thread"},
     {E_INIT_THREAD_POOL, "Error initializing thread pool"},
     {E_INIT_ZIGBEE, "Error initializing the zigbee"},
@@ -569,28 +584,32 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 
       bluetooth_device_address - MAC address of a bluetooth device discovered
                                  during inquiry
+      is_ble - the indicator to show whether the input is a BLE device
 
   Return value:
 
       None
 */
 
-void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
+void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble);
 
 
 
 
 /*
-  check_is_in_scanned_list:
+  check_is_in_list:
 
       This function checks whether the MAC address given as input is in the 
-      scanned list. If a node with MAC address matching the input address is 
-      found in the list, the function returns the pointer to the node with 
-      matching address; otherwise it returns NULL.
+      scanned list or in the tracked_ble_object_list. If a node with MAC 
+      address matching the input address is found in the list, the function 
+      returns the pointer to the node with matching address; otherwise it 
+      returns NULL.
 
   Parameters:
 
       address - MAC address of a bluetooth device
+      list_head - the head of a specified list
+      list_id - the indicator to a specific list type
 
   Return value:
 
@@ -599,7 +618,9 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address);
                or NULL
 */
 
-struct ScannedDevice *check_is_in_scanned_list(char address[]);
+struct ScannedDevice *check_is_in_list(char address[], 
+                                       List_Entry list_head, 
+                                       int list_id);
 
 
 
@@ -709,7 +730,25 @@ void *cleanup_scanned_list(void);
 
 void *manage_communication(void);
 
+/*
+  copy_object_data_to_file:
 
+      This function copies the MAC addresses of scanned (i.e., discovered)
+      BLE bluetooth devices under a location beacon to a file. The output file
+      contains for each MAC address in a ScannedDevice struct found in the 
+      track ble object list, the initial and final timestamps. 
+
+  Parameters:
+
+      file_name - name of the file where data is stored in all ScannedDevice 
+                  struct found in tracked ble object list
+
+  Return value:
+
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise 
+*/
+ErrorCode copy_ble_data_to_file(char *file_name);
 
 /*
   copy_object_data_to_file:
@@ -733,6 +772,8 @@ void *manage_communication(void);
 ErrorCode copy_object_data_to_file(char *file_name);
 
 
+
+
 /*
   free_list:
 
@@ -743,13 +784,36 @@ ErrorCode copy_object_data_to_file(char *file_name);
   Parameters:
 
       list_head - the head of a specified list.
+      list_id - the indicator to a specific list type
 
   Return value:
 
       None
 */
 
-void free_list(List_Entry *list_head);
+void free_list(List_Entry *list_head, int list_id);
+
+
+/*
+  start_ble_scanning:
+
+      This function scans continuously for BLE bluetooth devices under the 
+      coverage of the  beacon until scanning is cancelled. When the name of 
+      the device is available, this function calls send_to_push_dongle to 
+      either add a new ScannedDevice struct of the device to 
+      track_ble_object_list or update the final scan time of a struct in the 
+      list. 
+
+  Parameters:
+
+      None
+
+  Return value:
+
+      None
+*/
+
+void *start_ble_scanning(void);
 
 
 /*
@@ -772,8 +836,6 @@ void free_list(List_Entry *list_head);
 
       None
 */
-
-void *start_ble_scanning(void);
 void start_scanning();
 
 /*
@@ -812,7 +874,7 @@ void *timeout_clean();
                  fails or WORK SUCCESSFULLY otherwise
 */
 
-ErrorCode startThread(pthread_t thread, void * (*threadfunct)(void*), 
+ErrorCode startThread(pthread_t *threads, void * (*threadfunct)(void*), 
                                         void *arg);
 
 

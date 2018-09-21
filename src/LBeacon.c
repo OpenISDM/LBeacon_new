@@ -207,7 +207,7 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 
 
 
-void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
+void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
 
     /* Stores the MAC address as a string */
     char address[LENGTH_OF_MAC_ADDRESS];
@@ -218,89 +218,174 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address) {
 
     struct ScannedDevice *new_node;
 
-    pthread_mutex_lock(&list_lock);
-    new_node = check_is_in_scanned_list(address);
-   
+    /* Check the flag to see whether is a BLE device is scanned. */
+    if(is_ble == true){
+        printf("Here is OK\n");
+        pthread_mutex_lock(&ble_list_lock);
+        printf("Here is OK\n");
+        new_node = check_is_in_list(address, 
+                                    tracked_ble_object_list_head, 
+                                    1);
 
+        if (new_node != NULL) {
 
-    if (new_node != NULL) {
-
-        /* Update the final scan time, release lock and return */
-        new_node->final_scanned_time = get_system_time();
+            /* Update the final scan time, release lock and return */
+            new_node->final_scanned_time = get_system_time();
         
-        pthread_mutex_unlock(&list_lock);      
+            pthread_mutex_unlock(&ble_list_lock);      
     
-    }else{
+        }else{
         
 
-       /* Allocate memory from memory pool for a new node, initilize the 
-       node, and insert the new  node to the scanned list. */
+            /* Allocate memory from memory pool for a new node, initilize the 
+            node, and insert the new  node to the tracked_ble_object_list. */
 
-        pthread_mutex_unlock(&list_lock);
+            pthread_mutex_unlock(&ble_list_lock);
 
 #ifdef Debugging 
    
-        zlog_debug(category_debug, 
-               "******Get the memory from the pool. ****** ");
+            zlog_debug(category_debug, 
+                       "******Get the memory from the pool. ****** ");
       
 #endif
         
-        new_node = (struct ScannedDevice*) mp_alloc(&mempool);
+            new_node = (struct ScannedDevice*) mp_alloc(&mempool);
         
-        /* Initialize the list entries */
-        init_entry(&new_node->sc_list_entry);
-        init_entry(&new_node->tr_list_entry);
+            /* Initialize the list entries */
+            init_entry(&new_node->sc_list_entry);
+            init_entry(&new_node->tr_list_entry);
+            init_entry(&new_node->ble_list_entry);
 
-        /* Get the initial scan time for the new node. */
-        new_node->initial_scanned_time = get_system_time();
-        new_node->final_scanned_time = new_node->initial_scanned_time;
+            /* Get the initial scan time for the new node. */
+            new_node->initial_scanned_time = get_system_time();
+            new_node->final_scanned_time = new_node->initial_scanned_time;
 
-        /* Copy the MAC address to the node */
-        strncpy(new_node->scanned_mac_address, 
-                address, 
-                LENGTH_OF_MAC_ADDRESS);
+            /* Copy the MAC address to the node */
+            strncpy(new_node->scanned_mac_address, 
+                    address, 
+                    LENGTH_OF_MAC_ADDRESS);
 
+        
+            pthread_mutex_lock(&ble_list_lock);
+        
+            /* Insert the new code to the scanned list */
+            insert_list_first(&new_node->ble_list_entry, 
+                              &tracked_ble_object_list_head);
+
+
+            pthread_mutex_unlock(&ble_list_lock);
+              
+        }
+
+    /* If it is not BLE device, check the device whether has been scanned 
+       before. */
+    }else{
         
         pthread_mutex_lock(&list_lock);
+        new_node = check_is_in_list(address, 
+                                    scanned_list_head, 
+                                    0);
+
+        if (new_node != NULL) {
+
+            /* Update the final scan time, release lock and return */
+            new_node->final_scanned_time = get_system_time();
         
-        /* Insert the new code to the scanned list */
-        insert_list_first(&new_node->sc_list_entry, 
-                          &scanned_list_head);
+            pthread_mutex_unlock(&list_lock);      
+    
+        }else{
+        
 
-        /* Insert the new node to the track_object_list  */
-        insert_list_first(&new_node->tr_list_entry, 
-                          &tracked_object_list_head);
+            /* Allocate memory from memory pool for a new node, initilize the 
+            node, and insert the new  node to the scanned list. */
 
-        pthread_mutex_unlock(&list_lock);
+            pthread_mutex_unlock(&list_lock);
+
+#ifdef Debugging 
+   
+            zlog_debug(category_debug, 
+                       "******Get the memory from the pool. ****** ");
+      
+#endif
+        
+            new_node = (struct ScannedDevice*) mp_alloc(&mempool);
+        
+            /* Initialize the list entries */
+            init_entry(&new_node->sc_list_entry);
+            init_entry(&new_node->tr_list_entry);
+            init_entry(&new_node->ble_list_entry);
+
+            /* Get the initial scan time for the new node. */
+            new_node->initial_scanned_time = get_system_time();
+            new_node->final_scanned_time = new_node->initial_scanned_time;
+
+            /* Copy the MAC address to the node */
+            strncpy(new_node->scanned_mac_address, 
+                    address, 
+                    LENGTH_OF_MAC_ADDRESS);
+
+        
+            pthread_mutex_lock(&list_lock);
+        
+            /* Insert the new code to the scanned list */
+            insert_list_first(&new_node->sc_list_entry, 
+                              &scanned_list_head);
+
+            /* Insert the new node to the track_object_list  */
+            insert_list_first(&new_node->tr_list_entry, 
+                              &tracked_object_list_head);
+
+            pthread_mutex_unlock(&list_lock);
               
+        }
+
+
+
+
+
     }
 
+        
     return;
 
 }
 
 
 
+struct ScannedDevice *check_is_in_list(char address[], 
+                                       List_Entry list_head, 
+                                       int list_id) {
 
-struct ScannedDevice *check_is_in_scanned_list(char address[]) {
-
-    /* Create a temporary node and set as the head */
+    /* Create a temporary list pointer and set as the head */
     struct List_Entry *list_pointers;
     ScannedDevice *temp;
 
+
     /* If there is no node in the list, reutrn NULL directly. */
-    if(scanned_list_head.next == scanned_list_head.prev){
+    if(list_head.next == list_head.prev){
        
         return NULL;
 
     }
-
    
     /* Go through list */
-    list_for_each(list_pointers, &scanned_list_head) {
+    list_for_each(list_pointers, &list_head) {
 
-        temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
-        
+        /* According to the list indicator, get the specific data */ 
+        switch(list_id){
+
+            case 0:
+                temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
+
+                break;
+
+            case 1:
+
+                temp = ListEntry(list_pointers, ScannedDevice, ble_list_entry);
+                break;
+
+        }
+
         int len = strlen(address);
 
         char *addr_last_digits = &address[len - NO_DIGITS_TO_COMPARE];
@@ -792,15 +877,57 @@ void *manage_communication(void) {
                     fclose(file_to_send);
                 
                 }
+                /* Copy BLE_tracked data to the a file to be transmited */
+                copy_progress = (int)copy_ble_data_to_file("tracked_ble.txt");
+
+                if(copy_progress == E_EMPTY_FILE){
+
+                    /* Inform gateway that there is nothing BLE deviced found 
+                       by this LBeacon */
+                    strcat(zig_message, "BLE:0;");
+                    
+                    
+                
+                }else if(copy_progress == WORK_SUCCESSFULLY){
+
+                    /* Open the file that is going to sent to the gateway */
+                    file_to_send = fopen("tracked_ble.txt", "r");
+                    
+                    if (file_to_send == NULL) {
+
+                        /* Error handling */
+                        perror(errordesc[E_OPEN_FILE].message);
+                        zlog_info(category_health_report, 
+                                  errordesc[E_OPEN_FILE].message);
+                        cleanup_exit();
+                        return;
+                        }
+
+                    /* Read the file to get the content for the message to 
+                       send */
+                    char temp_char[ZIG_MESSAGE_LENGTH];
+                    fgets(temp_char, sizeof(zig_message), 
+                          file_to_send);
+                    
+                    /* Add the result of BLE scanning to the message that is 
+                    going to be sent to the gateway */
+                    strcat(zig_message, temp_char);
+
+                    fclose(file_to_send);
+                
+                }
+
             
 #ifdef Debugging 
    
                 zlog_debug(category_debug, 
-                           "Message: %s", zig_message);   
+                           "Message: %s", zig_message);
+        
 #endif
 
                 zlog_info(category_health_report, 
                           "Sent Message: %s", zig_message);
+
 
                 
                 /* Add a work item to be executed by a work thread */              
@@ -819,6 +946,7 @@ void *manage_communication(void) {
                     return;
                 
                 }
+
 
   
                 break;
@@ -855,6 +983,143 @@ void *manage_communication(void) {
     return;
 
 }
+
+ErrorCode copy_ble_data_to_file(char *file_name) {
+
+    FILE *track_ble_file;
+    
+    /* Head of a local list for track ble object */
+    List_Entry local_object_list_head;
+    /* Initilize the local list */
+    init_entry(&local_object_list_head);
+
+    /* Two pointers to be used locally */
+    struct List_Entry *list_pointers, *tail_pointers;
+    
+    ScannedDevice *temp;
+    int number_in_list;
+    int number_to_send;
+    char timestamp_initial_str[LENGTH_OF_TIME];
+    char timestamp_final_str[LENGTH_OF_TIME];
+    char basic_info[LENGTH_OF_INFO];
+
+
+    /* Create a new file to store data in the tracked_ble_object_list */        
+    track_ble_file = fopen(file_name, "w");
+        
+    if(track_ble_file == NULL){
+
+        track_ble_file = fopen(file_name, "wt");
+        
+    }
+    if(track_ble_file == NULL){
+        
+        perror(errordesc[E_OPEN_FILE].message);
+        zlog_info(category_health_report, 
+                  errordesc[E_OPEN_FILE].message);
+        return E_OPEN_FILE;
+
+    }
+   
+    /* Get the number of objects with data to be transmitted */
+    number_in_list = get_list_length(&tracked_ble_object_list_head);
+    number_to_send = min(MAX_NO_OBJECTS, number_in_list);
+
+
+    /*Check if number_to_send is zero. If yes, close file and return */
+    if(number_to_send == 0){  
+
+       fclose(track_ble_file); 
+       return E_EMPTY_FILE;
+        
+    }
+    
+    /* Insert number_to_send at the struct of the track file */
+    sprintf(basic_info, "%d;", number_to_send);
+    fputs(basic_info, track_ble_file);
+
+#ifdef Debugging 
+   
+    zlog_debug(category_debug, "Number to send: %d", number_to_send);   
+
+#endif
+
+
+    pthread_mutex_lock(&ble_list_lock);
+
+    /* Set temporary pointer points to the head of the track_ble_object_list */
+    list_pointers = tracked_ble_object_list_head.next;
+
+    /* Set the pointer of the local list head to the head of the 
+       track_object_list */
+    local_object_list_head.next = list_pointers;
+    
+    int node_count;
+    
+    /* Go through the track_ble_object_list to move number_to_send nodes in 
+    the list to local list */
+    for (node_count = 1; node_count <= number_to_send; 
+                         list_pointers = list_pointers->next){
+
+        /* If the node is the last in the list */
+        if(node_count == number_to_send){
+
+            /* Set a marker for the last pointer of the last node */
+            tail_pointers = list_pointers;
+            
+        }
+
+        node_count = node_count + 1;
+
+    }
+
+    /* Set the track_object_list_head to point to the last node */
+    tracked_ble_object_list_head.next = list_pointers->next;
+    
+    /*Set the last node pointing to the local_object_list_head */
+    tail_pointers->next = &local_object_list_head;
+
+    pthread_mutex_unlock(&ble_list_lock);
+
+    /* Go throngh the local object list to get the content and write the 
+       content to file */
+    list_for_each(list_pointers, &local_object_list_head){
+
+
+        temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+
+        /* Convert the timestamp from list to string */
+        unsigned timestamp_init = (unsigned)&temp->initial_scanned_time;
+        unsigned timestamp_end = (unsigned)&temp->final_scanned_time;
+        
+        /* sprintf() is the function to set a format and convert the 
+           datatype to char */
+        sprintf(timestamp_initial_str, ", %u", timestamp_init);
+        sprintf(timestamp_final_str, ", %u", timestamp_end);
+
+        /* Write the content to the file */
+        fputs(&temp->scanned_mac_address[0], track_ble_file);               
+        fputs(timestamp_initial_str, track_ble_file);
+        fputs(timestamp_final_str, track_ble_file);
+        fputs(";", track_ble_file);
+
+    }
+
+    pthread_mutex_lock(&ble_list_lock);
+
+    /* Remove nodes from the local list and release memory allocated to
+       nodes that are also not in scanned_device_list */
+    free_list(&local_object_list_head, 1);
+
+    pthread_mutex_unlock(&ble_list_lock);
+
+    /* Close the file for storing data in the tracked_ble_object_list */
+    fclose(track_ble_file);
+    
+    return WORK_SUCCESSFULLY;
+
+}
+
 
 
 
@@ -983,7 +1248,7 @@ ErrorCode copy_object_data_to_file(char *file_name) {
 
     /* Remove nodes from the local list and release memory allocated to
        nodes that are also not in scanned_device_list */
-    free_list(&local_object_list_head);
+    free_list(&local_object_list_head, 0);
 
     pthread_mutex_unlock(&list_lock);
 
@@ -995,7 +1260,7 @@ ErrorCode copy_object_data_to_file(char *file_name) {
 }
 
 
-void free_list(List_Entry *list_head){
+void free_list(List_Entry *list_head, int list_id){
 
     
     struct List_Entry *list_pointers, *save_list_pointers;
@@ -1006,7 +1271,20 @@ void free_list(List_Entry *list_head){
                        save_list_pointers, 
                        list_head){
 
-        temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry); 
+        /* According to the list indicator, get the specific data */ 
+        switch(list_id){
+
+            case 0:
+                temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+
+                break;
+
+            case 1:
+
+                temp = ListEntry(list_pointers, ScannedDevice, ble_list_entry);
+                break;
+
+        }
         
         remove_list_node(list_pointers);
 
@@ -1030,6 +1308,7 @@ static void sigint_handler(int sig)
     signal_received = sig;
 }
 
+/* A static function for prase the name from the BLE device. */
 static void eir_parse_name(uint8_t *eir, size_t eir_len,
                         char *buf, size_t buf_len)
 {
@@ -1048,15 +1327,18 @@ static void eir_parse_name(uint8_t *eir, size_t eir_len,
             goto failed;
 
         switch (eir[1]) {
-        case EIR_NAME_SHORT:
-        case EIR_NAME_COMPLETE:
-            name_len = field_len - 1;
-            if (name_len > buf_len)
-                goto failed;
+        
+            case EIR_NAME_SHORT:
+            case EIR_NAME_COMPLETE:
+                
+                name_len = field_len - 1;
+                
+                if (name_len > buf_len)
+                    goto failed;
 
-            memcpy(buf, &eir[2], name_len);
-            return;
-        }
+                memcpy(buf, &eir[2], name_len);
+                return;
+            }
 
         offset += field_len + 1;
         eir += field_len + 1;
@@ -1073,7 +1355,8 @@ void *start_ble_scanning(void){
     unsigned char *ble_buffer_pointer; /*A pointer for the event buffer */
     int socket = 0; /*Number of the socket */
     int dongle_device_id = 0; /*dongle id */
-    struct hci_filter new_filter, original_filiter; /*Filter for controling the events*/
+    struct hci_filter new_filter, original_filiter; /*Filter for controling 
+                                                      the events*/
     socklen_t olen;
     evt_le_meta_event *meta;
     le_advertising_info *info;
@@ -1096,14 +1379,24 @@ void *start_ble_scanning(void){
 
     }
 
-    if( 0> hci_le_set_scan_parameters(socket, 0x01, htobs(0x0010), htobs(0x0010), 0x00, 0x00, 1000)){
+    if( 0> hci_le_set_scan_parameters(socket, 0x01, htobs(0x9000), 
+                                      htobs(0x0010), 0x00, 0x00, 1000)){
 
-        printf("Error with LE set para \n");
+        /* Error handling */
+        perror(errordesc[E_SET_BLE_PARAMETER].message);
+        zlog_info(category_health_report, 
+                   errordesc[E_SET_BLE_PARAMETER].message);
+        
 
     }
-    if( 0> hci_le_set_scan_enable(socket, 0x01, 1, 1000)){
+    
 
-        printf("Error with LE enable  \n");
+    if( 0> hci_le_set_scan_enable(socket, 0x01, 1, 1000)){
+        
+        /* Error handling */
+        perror(errordesc[E_BLE_ENABLE].message);
+        zlog_info(category_health_report, 
+                   errordesc[E_BLE_ENABLE].message);
 
     }
 
@@ -1112,15 +1405,25 @@ void *start_ble_scanning(void){
     olen = sizeof(original_filiter);
     if(0 > getsockopt(socket, SOL_HCI, HCI_FILTER, &original_filiter, &olen)) 
     {
-        printf("Error with get sockopt  \n");
+
+       /* Error handling */
+        perror(errordesc[E_GET_BLE_SOCKET].message);
+        zlog_info(category_health_report, 
+                   errordesc[E_GET_BLE_SOCKET].message);
+    
     }
 
     hci_filter_clear(&new_filter);
     hci_filter_set_ptype(HCI_EVENT_PKT, &new_filter);
     hci_filter_set_event(EVT_LE_META_EVENT, &new_filter);
 
-    if (0 > setsockopt(socket, SOL_HCI, HCI_FILTER, &new_filter, sizeof(new_filter)) ) {
-        printf("Could not set socket options\n");
+    if (0 > setsockopt(socket, SOL_HCI, HCI_FILTER, &new_filter, 
+            sizeof(new_filter)) ) {
+        
+        /* Error handling */
+        perror(errordesc[E_SCAN_SET_HCI_FILTER].message);
+        zlog_info(category_health_report, 
+                   errordesc[E_SCAN_SET_HCI_FILTER].message);
         
     }
 
@@ -1134,13 +1437,13 @@ void *start_ble_scanning(void){
 
         while (read(socket, ble_buffer, sizeof(ble_buffer)) < 0) {
             if (errno == EINTR && signal_received == SIGINT) {
-                printf("Inside the r=error\n");
+               
                 keep_scanning = false;
                 
             }
 
             if (errno == EAGAIN || errno == EINTR)
-                printf("Inside the false\n" );
+                
                 keep_scanning = false;
 
         }
@@ -1149,7 +1452,7 @@ void *start_ble_scanning(void){
         meta = (void *) ble_buffer_pointer;
 
         if (meta->subevent != 0x02){
-            printf("Here is the subevent\n");
+            
             keep_scanning = false;
         }
 
@@ -1163,18 +1466,13 @@ void *start_ble_scanning(void){
         if(strcmp(name, "")!= 0){
 
             printf("BLE: %s %s \n", addr, name);
+            send_to_push_dongle(&info->bdaddr, true);
+            
 
         }
         
 
-
-
-
-
     }
-
-
-
 
 }
 
@@ -1342,7 +1640,8 @@ void start_scanning() {
                          print_RSSI_value(&info_rssi->bdaddr, 1,
                          info_rssi->rssi);
 
-                         send_to_push_dongle(&info_rssi->bdaddr);
+
+                         send_to_push_dongle(&info_rssi->bdaddr, false);
 
                      }
 
@@ -1436,6 +1735,27 @@ void *timeout_clean(void){
             pthread_mutex_unlock(&list_lock);
 
         }
+
+
+        if(tracked_ble_object_list_head.next 
+            != tracked_ble_object_list_head.prev){
+
+            pthread_mutex_lock(&ble_list_lock);
+
+            list_for_each_safe(list_pointers, 
+                               save_list_pointers, 
+                               &tracked_ble_object_list_head){
+
+                temp = ListEntry(list_pointers, ScannedDevice, 
+                                 ble_list_entry);
+                remove_list_node(list_pointers);
+                mp_free(&mempool, temp); 
+
+            }
+
+            pthread_mutex_unlock(&ble_list_lock);
+
+        }
         
         
 
@@ -1447,16 +1767,16 @@ void *timeout_clean(void){
 
 
 
-ErrorCode startThread(pthread_t threads ,
+ErrorCode startThread(pthread_t *threads ,
                       void * (*threadfunct)(void*), 
                       void *arg){
 
     pthread_attr_t attr;
 
     if ( pthread_attr_init(&attr) != 0
-      || pthread_create(&threads, &attr, threadfunct, arg) != 0
+      || pthread_create(threads, &attr, threadfunct, arg) != 0
       || pthread_attr_destroy(&attr) != 0
-      || pthread_detach(threads) != 0) {
+      ) {
 
     return E_START_THREAD;
   }
@@ -1589,6 +1909,8 @@ int main(int argc, char **argv) {
     
     /* Initialize the lock for accessing the lists */
     pthread_mutex_init(&list_lock,NULL);
+    pthread_mutex_init(&ble_list_lock,NULL);
+
 
 
     /* Load config struct */
@@ -1647,7 +1969,7 @@ int main(int argc, char **argv) {
     /* Create the thread for message advertising to BLE bluetooth devices */
     pthread_t stop_ble_beacon_thread;
 
-    return_value = startThread(stop_ble_beacon_thread, 
+    return_value = startThread(&stop_ble_beacon_thread, 
                                stop_ble_beacon, hex_c);
 
     if(return_value != WORK_SUCCESSFULLY){
@@ -1662,7 +1984,7 @@ int main(int argc, char **argv) {
     /* Create the thread for track device */
     pthread_t ble_scanning_thread;
 
-    return_value = startThread(ble_scanning_thread, 
+    return_value = startThread(&ble_scanning_thread, 
                                start_ble_scanning, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
@@ -1678,7 +2000,7 @@ int main(int argc, char **argv) {
     /* Create the the cleanup_scanned_list thread */
     pthread_t cleanup_scanned_list_thread;
 
-    return_value = startThread(cleanup_scanned_list_thread,
+    return_value = startThread(&cleanup_scanned_list_thread,
                                cleanup_scanned_list, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
@@ -1695,7 +2017,7 @@ int main(int argc, char **argv) {
     /* Create the thread for track device */
     pthread_t track_communication_thread;
 
-    return_value = startThread(track_communication_thread, 
+    return_value = startThread(&track_communication_thread, 
                                manage_communication, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
@@ -1711,7 +2033,7 @@ int main(int argc, char **argv) {
     /* Create the thread for track device */
     pthread_t timer_thread;
 
-    return_value = startThread(timer_thread, 
+    return_value = startThread(&timer_thread, 
                                timeout_clean, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
@@ -1778,7 +2100,7 @@ int main(int argc, char **argv) {
 
             }
 
-        return_value =  startThread(send_file_thread[device_id], send_file,
+        return_value =  startThread(&send_file_thread[device_id], send_file,
                     (void *)dongle_device_id);
 
         if(return_value != WORK_SUCCESSFULLY){
@@ -1826,7 +2148,6 @@ int main(int argc, char **argv) {
 
    
 
-
     return_value = pthread_join(cleanup_scanned_list_thread, NULL);
 
     if (return_value != 0) {
@@ -1838,8 +2159,6 @@ int main(int argc, char **argv) {
 
     }
 
-
-    pthread_cancel(stop_ble_beacon_thread);
     return_value = pthread_join(stop_ble_beacon_thread, NULL);
 
     if (return_value != 0) {
