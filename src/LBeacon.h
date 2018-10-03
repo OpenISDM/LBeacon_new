@@ -141,8 +141,11 @@ Authors:
 /* Number of milliseconds in an epoch */
 #define LENGTH_OF_TIME 10
 
-/* The maxinum length of the message to be sent to the gateway */
-#define ZIG_MESSAGE_LENGTH 512
+/* The maxinum length in bytes of the message to be sent over zigbee link */
+#define ZIG_MESSAGE_LENGTH 104
+
+/* Maximum length of message to be sent over WiFi in bytes */
+#define WIFI_MESSAGE_LENGTH 4096
 
 /* Maximum length of time in milliseconds a bluetooth device
    stays in the scanned device list 
@@ -152,7 +155,7 @@ Authors:
 /* Timeout in milliseconds of hci_send_req  */
 #define HCI_SEND_REQUEST_TIMEOUT 1000
 
-/* Time interval in milliseconds for a LBeacon to advertise*/
+/* Time interval in milliseconds between advertising by a LBeacon */
 #define ADVERTISING_INTERVAL 300
 
 /* The timeout in milliseconds for waiting in threads */
@@ -163,11 +166,11 @@ Authors:
 #define A_SHORT_TIME 5000
 #define A_VERY_SHORT_TIME 300
 
-/* Nominal transmission range limited. Only devices in this RSSI range are 
+/* Nominal transmission range limit. Only devices in this RSSI range are 
    to be discovered and data sent. */
 #define RSSI_RANGE -60
 
-/* RSSI value for TX power of calibration and broadcast  */
+/* RSSI value of TX power for calibration and broadcast  */
 #define RSSI_VALUE -50
 
 /* Number of characters in a Bluetooth MAC address */
@@ -180,7 +183,7 @@ Authors:
 #define NO_WORK_THREADS 2
 
 /* Location data of the maximum number of objects to be transmitted at
-   one time */
+   one time over zigbee link */
 #define MAX_NO_OBJECTS 2
 
 /* The number of slots in the memory pool */
@@ -305,6 +308,15 @@ typedef struct Config {
 
 } Config;
 
+/* Type of device to be tracked. */
+typedef enum DeviceType {
+
+  BR_EDR = 0;
+  BLE = 1;
+  max_type = 2;
+  
+} DeviceType;
+
 /* The structure for storing information and status of a thread */
 typedef struct ThreadStatus {
     
@@ -315,7 +327,7 @@ typedef struct ThreadStatus {
 } ThreadStatus;
 
 
-/* Struct for storing MAC address of a user's device and the time instants
+/* Struct for storing MAC address of a Bluetooth device and the time instants
    at which the address is scanned 
 */
 typedef struct ScannedDevice {
@@ -323,9 +335,12 @@ typedef struct ScannedDevice {
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
     long long initial_scanned_time;
     long long final_scanned_time;
+    /* List entries for linking the struct to scanned_list and 
+       tracked_BR_object_list or to tracked_BLE_object_list, depending 
+       whether the device type is BR_EDR or BLE. */ 
     struct List_Entry sc_list_entry;
     struct List_Entry tr_list_entry;
-    struct List_Entry ble_list_entry;
+ 
 
 /* Pad added to make the struct size an integer multiple of 32 byte, size of
    D-cache line.
@@ -334,6 +349,14 @@ typedef struct ScannedDevice {
 */    
 
 } ScannedDevice;
+
+/* struct for device list head. */
+typedef struct object_list_head{
+
+  struct List_Entry list_head;
+  DeviceType device_type;
+
+} ObjectListHead;
 
 
 
@@ -376,29 +399,29 @@ Config g_config;
 ThreadStatus g_idle_handler[MAX_NO_OBJECTS];
 
 
-/* Two lists of structs for recording scanned devices */
+/* Thress lists of structs for recording scanned devices */
 
-/* Head of scanned_list that holds the scanned device structs of devices 
-   found in recent scans. The MAC address elements of all the structs in this
-   list are distinct. 
+/* Head of scanned_list that holds the scanned device structs of 
+   BR/EDR devices found in recent scans. The MAC address elements of all the 
+   structs in this list are distinct. 
 */
-List_Entry scanned_list_head;
+ObjectListHead scanned_list_head;
 
-/* Head of tracking_object_list that holds the scanned device structs of 
-   devices discovered in recent scans. The MAC address elements of some 
-   structs in the list may be identical but their associated timestamps 
+/* Head of tracking_BR_object_list that holds the scanned device structs of 
+   Bluetooth devices discovered in recent scans. The MAC address elements of 
+   some structs in the list may be identical but their associated timestamps 
    indicate disjoint time intervals. The contents of the list await to be 
    sent via the gateway to the server to be processed there. 
 */
-List_Entry tracked_object_list_head;
+ObjectListHead tracked_BR_object_list_head;
 
-/* Head of tracking_ble_object_list that holds the scanned BLE device structs 
-   of devices discovered in recent scans. The MAC address elements of some 
-   structs in the list may be identical but their associated timestamps 
+/* Head of tracking_BLE_object_list that holds the scanned device structs 
+   of BLE devices discovered in recent scans. The MAC address elements of 
+   some structs in the list may be identical but their associated timestamps 
    indicate disjoint time intervals. The contents of the list await to be 
    sent via the gateway to the server to be processed there. 
 */
-List_Entry tracked_ble_object_list_head;
+ObjectListHead tracked_BLE_object_list_head;
 
 
 /* Global flags for communication among threads */
@@ -416,8 +439,7 @@ bool ready_to_work;
 Memory_Pool mempool;
 
 /* The lock that controls access to lists */
-pthread_mutex_t  list_lock, ble_list_lock;    
-
+pthread_mutex_t  list_lock;    
 
 
 
@@ -564,6 +586,50 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi);
 
 
+/*
+  start_ble_scanning:
+
+      This function scans continuously for BLE bluetooth devices under the 
+      coverage of the  beacon until scanning is cancelled. When the name of 
+      the device is available, this function calls send_to_push_dongle to 
+      either add a new ScannedDevice struct of the device to 
+      track_ble_object_list or update the final scan time of a struct in the 
+      list. 
+
+  Parameters:
+
+      None
+
+  Return value:
+
+      None
+*/
+
+void *start_ble_scanning(void);
+
+
+/*
+  start_br_scanning:
+
+      This function scans continuously for bluetooth devices under the 
+      coverage of the  beacon until scanning is cancelled. When the RSSI 
+      value of the device is within the threshold, this function calls 
+      send_to_push_dongle to either add a new ScannedDevice struct of the 
+      device to scanned list and track_object_list or update the final scan 
+      time of a struct in the lists. 
+
+      [N.B. This function is executed by the main thread. ]
+
+  Parameters:
+
+      None
+
+  Return value:
+
+      None
+*/
+void start_br_scanning();
+
 
 
 /*
@@ -575,8 +641,8 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
       function allocates from memory pool space for a ScannedDeice struct, 
       sets the MAC address of the new struct to the input MAC address, the 
       initial scanned time and final scanned time to the current time, and 
-      inserts the sruct at the head of the scanned list and tail of the 
-      tracked object list. If a struct with MAC address matching the input 
+      inserts the sruct at the head of the scanned_list and tail of the 
+      tracked_BR_object list. If a struct with MAC address matching the input 
       device address is found, this function sets the final scanned time of 
       the struct to current time.
 
@@ -599,17 +665,16 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble);
 /*
   check_is_in_list:
 
-      This function checks whether the MAC address given as input is in the 
-      scanned list or in the tracked_ble_object_list. If a node with MAC 
-      address matching the input address is found in the list, the function 
-      returns the pointer to the node with matching address; otherwise it 
-      returns NULL.
+      This function checks whether the MAC address given as input is in the
+      specified list. If a node with MAC address matching the input address 
+      is found in the list, the function returns the pointer to the node with 
+      matching address; otherwise it returns NULL.
 
   Parameters:
 
       address - MAC address of a bluetooth device
       list_head - the head of a specified list
-      list_id - the indicator to a specific list type
+     
 
   Return value:
 
@@ -619,8 +684,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble);
 */
 
 struct ScannedDevice *check_is_in_list(char address[], 
-                                       List_Entry list_head, 
-                                       int list_id);
+                                       ObjectListHead list_head);
 
 
 
@@ -683,7 +747,7 @@ ErrorCode disable_advertising();
       None
 */
 
-void *stop_ble_beacon(void *beacon_location);
+void *stop_beacon(void *beacon_location);
 
 
 /*
@@ -708,6 +772,25 @@ void *stop_ble_beacon(void *beacon_location);
 void *cleanup_scanned_list(void);
 
 
+/*
+  timeout_cleanup:
+
+      This function sets a timer to countdown a specific time. And when timer
+      expires, clean up tracked object lists to make sure the space in the 
+      memory is always available.  
+
+  Parameters:
+
+      None
+
+  Return value:
+
+      None
+*/
+
+void *timeout_cleanup(void);
+
+
 
 /*
   manage_communication:
@@ -730,47 +813,29 @@ void *cleanup_scanned_list(void);
 
 void *manage_communication(void);
 
-/*
-  copy_object_data_to_file:
 
-      This function copies the MAC addresses of scanned (i.e., discovered)
-      BLE bluetooth devices under a location beacon to a file. The output file
-      contains for each MAC address in a ScannedDevice struct found in the 
-      track ble object list, the initial and final timestamps. 
+/*
+  copy_object_to_file:
+
+      This finction copies the data on tracked objects captured in the 
+      specifed tracked object list to file to be transfer to gateway. The
+      output file contains for each ScannedDevice struct found in the list, 
+      the MAC address and the initial and final timestamps. 
 
   Parameters:
 
-      file_name - name of the file where data is stored in all ScannedDevice 
-                  struct found in tracked ble object list
+      file_name - name of the file containing data stored in all 
+                  ScannedDevice struct found in specified tracked object 
+                  list.
+      list_head - head of the tracked object list from which data is to be 
+                  copied.
 
   Return value:
 
       ErrorCode - The error code for the corresponding error if the function
                   fails or WORK SUCCESSFULLY otherwise 
 */
-ErrorCode copy_ble_data_to_file(char *file_name);
-
-/*
-  copy_object_data_to_file:
-
-      This function copies the MAC addresses of scanned (i.e., discovered)
-      bluetooth devices under a location beacon to a file. The output file
-      contains for each MAC address in a ScannedDevice struct found in the 
-      track object list, the initial and final timestamps. 
-
-  Parameters:
-
-      file_name - name of the file where data is stored in all ScannedDevice 
-                  struct found in tracked object list
-
-  Return value:
-
-      ErrorCode - The error code for the corresponding error if the function
-                  fails or WORK SUCCESSFULLY otherwise 
-*/
-
-ErrorCode copy_object_data_to_file(char *file_name);
-
+ErrorCode copy_object_to_file(char *file_name);
 
 
 
@@ -784,77 +849,17 @@ ErrorCode copy_object_data_to_file(char *file_name);
   Parameters:
 
       list_head - the head of a specified list.
-      list_id - the indicator to a specific list type
+      device_type - type of device with data contained in the list
 
   Return value:
 
       None
 */
 
-void free_list(List_Entry *list_head, int list_id);
+void free_list(List_Entry *list_head, DeviceType device_type);
 
 
-/*
-  start_ble_scanning:
 
-      This function scans continuously for BLE bluetooth devices under the 
-      coverage of the  beacon until scanning is cancelled. When the name of 
-      the device is available, this function calls send_to_push_dongle to 
-      either add a new ScannedDevice struct of the device to 
-      track_ble_object_list or update the final scan time of a struct in the 
-      list. 
-
-  Parameters:
-
-      None
-
-  Return value:
-
-      None
-*/
-
-void *start_ble_scanning(void);
-
-
-/*
-  start_scanning:
-
-      This function scans continuously for bluetooth devices under the 
-      coverage of the  beacon until scanning is cancelled. When the RSSI 
-      value of the device is within the threshold, this function calls 
-      send_to_push_dongle to either add a new ScannedDevice struct of the 
-      device to scanned list and track_object_list or update the final scan 
-      time of a struct in the lists. 
-
-      [N.B. This function is executed by the main thread. ]
-
-  Parameters:
-
-      None
-
-  Return value:
-
-      None
-*/
-void start_scanning();
-
-/*
-  timeout_clean:
-
-      This function sets a timer to countdowm a specific time. After time's 
-      up, clean up two lists to make sure the spcae in the memory is always
-      available.  
-
-  Parameters:
-
-      None
-
-  Return value:
-
-      None
-*/
-
-void *timeout_clean();
 
 
 /*
