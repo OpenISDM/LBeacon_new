@@ -405,7 +405,7 @@ ThreadStatus g_idle_handler[MAX_NO_OBJECTS];
    BR/EDR devices found in recent scans. The MAC address elements of all the 
    structs in this list are distinct. 
 */
-ObjectListHead scanned_list_head;
+ObjectListHead scanned_list;
 
 /* Head of tracking_BR_object_list that holds the scanned device structs of 
    Bluetooth devices discovered in recent scans. The MAC address elements of 
@@ -413,7 +413,7 @@ ObjectListHead scanned_list_head;
    indicate disjoint time intervals. The contents of the list await to be 
    sent via the gateway to the server to be processed there. 
 */
-ObjectListHead tracked_BR_object_list_head;
+ObjectListHead tracked_BR_object_list;
 
 /* Head of tracking_BLE_object_list that holds the scanned device structs 
    of BLE devices discovered in recent scans. The MAC address elements of 
@@ -421,7 +421,7 @@ ObjectListHead tracked_BR_object_list_head;
    indicate disjoint time intervals. The contents of the list await to be 
    sent via the gateway to the server to be processed there. 
 */
-ObjectListHead tracked_BLE_object_list_head;
+ObjectListHead tracked_BLE_object_list;
 
 
 /* Global flags for communication among threads */
@@ -733,9 +733,9 @@ ErrorCode disable_advertising();
 
 
 /*
-  stop_ble_beacon:
+  start_broadcast:
 
-      This function allows avertising to be stopped with ctrl-c if a 
+      This function allows advertising to be stopped with ctrl-c if a 
       precious call to enable_advertising was a success.
 
   Parameters:
@@ -747,7 +747,7 @@ ErrorCode disable_advertising();
       None
 */
 
-void *stop_beacon(void *beacon_location);
+void *start_broadcast(void *beacon_location);
 
 
 /*
