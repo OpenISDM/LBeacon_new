@@ -42,7 +42,7 @@ sudo ldconfig -v
 ### Building libxbee3 library 
 If you are building libxbee, then there are a number of options avaliable to you.<br />
 Initially you should run the following command:
-<pre><code>$ make configure</code></pre>
+<pre><code> make configure</code></pre>
 	
 This will retrieve a default `config.mk` that is suitable for your Respberry Pi.<br />
 In our project you need to<br />
@@ -52,7 +52,7 @@ comment `OPTIONS+=       XBEE_LOG_TX_DEFAULT_OFF`<br />
 un-comment `OPTIONS+=       XBEE_NO_RTSCTS`<br />
 
 You should review this file and then run the following command:
-<pre><code>$ make all</code></pre>
+<pre><code> make all</code></pre>
 
 After the build process has completed, you should find suitable files in **./lib**.<br />
 E.g: for a Unix-like OS you can expect to find **.so** and **.a** files<br />
@@ -63,7 +63,8 @@ It is highly recommended that you don't modify any of the build system.
 
 ### Installation of libxbee library 
 To install libxbee simply type (you will require **root permissions**):
-<pre><code>$ sudo make install</code></pre>
+<pre><code> sudo make install 
+</code></pre>
 
 
 ### Libxbee library usage 
@@ -74,6 +75,25 @@ If you are compiling the object file directly into your executable instead
 of making use of the library,<br />you must include the following link flags:
 `-lpthread -lrt`<br />
 
+### Installation of Zlog library
+Download the lastest version (1.2.12.tar.gz) of the library:
+[Download here](https://github.com/HardySimpson/zlog/releases) <br />
+<pre>
+tar -zxvf zlog-latest-stable.tar.gz
+cd zlog-latest-stable/
+make 
+sudo make install
+</pre>
+After installation, refresh your dynamic linker to make sure your program can find zlog library.
+<pre><code>sudo nano /etc/ld.so.conf </code></pre>
+
+Add one line to the file:
+/usr/local/lib <br />
+
+<pre><code>sudo ldconfig </code></pre>
+
+Before running a real program, make sure libzlog.so is in the directory where the system's dynamic lib loader can find it.
+
 ### Compiling and Running LBeacon
 ```sh
 cd LBeacon/src
@@ -81,3 +101,7 @@ sudo make clean
 make 
 sudo ./LBeacon
 ```
+## Link for referance
+* Libxbee: <https://github.com/attie/libxbee3>
+* Zlog: <https://github.com/HardySimpson/zlog>
+
