@@ -472,8 +472,9 @@ typedef enum ErrorCode {
     E_INIT_ZIGBEE = 20,
     E_ZIGBEE_CONNECT = 21,
     E_EMPTY_FILE = 22,
-    E_ADD_WORK_THREAD = 23,
-    MAX_ERROR_CODE = 24
+    E_INPUT_PARAMETER = 23,
+    E_ADD_WORK_THREAD = 24,
+    MAX_ERROR_CODE = 25
 
 } ErrorCode;
 
@@ -507,6 +508,7 @@ struct _errordesc {
     {E_INIT_ZIGBEE, "Error initializing the zigbee"},
     {E_ZIGBEE_CONNECT, "Error zigbee connection"},
     {E_EMPTY_FILE, "Empty file"},
+    {E_INPUT_PARAMETER , "Error of invalid input parameter"},
     {E_ADD_WORK_THREAD, "Error adding work to the work thread"},
     {MAX_ERROR_CODE, "The element is invalid"}
 
@@ -815,7 +817,7 @@ void *manage_communication(void);
 
 
 /*
-  copy_object_to_file:
+  copy_tracked_object_to_file:
 
       This finction copies the data on tracked objects captured in the 
       specifed tracked object list to file to be transfer to gateway. The
@@ -827,15 +829,15 @@ void *manage_communication(void);
       file_name - name of the file containing data stored in all 
                   ScannedDevice struct found in specified tracked object 
                   list.
-      list_head - head of the tracked object list from which data is to be 
-                  copied.
+      list - head of the tracked object list from which data is to be 
+             copied.
 
   Return value:
 
       ErrorCode - The error code for the corresponding error if the function
                   fails or WORK SUCCESSFULLY otherwise 
 */
-ErrorCode copy_object_to_file(char *file_name);
+ErrorCode copy_tracked_object_to_file(char *file_name, ObjectListHead list);
 
 
 

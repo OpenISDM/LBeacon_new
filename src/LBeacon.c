@@ -326,7 +326,7 @@ struct ScannedDevice *check_is_in_list(char address[],
     list_for_each(list_pointers, &list.list_head) {
 
         /* According to the device type stored in the list, get the specific 
-           data */ 
+        data */ 
         switch(list.device_type){
 
             case BR_EDR:
@@ -712,14 +712,14 @@ void *cleanup_scanned_list(void) {
 
 
             /* If the device has been in the scanned list for at least 30 
-               seconds, remove its struct node from the scanned list */
+            seconds, remove its struct node from the scanned list */
             if (get_system_time() - temp->initial_scanned_time > TIMEOUT) {
 
                 
                 remove_list_node(&temp->sc_list_entry);
 
                 /* If the node no longer is in the tracked_BR_object_lists, 
-                   free the space back to the memory pool. */
+                free the space back to the memory pool. */
 
                 if(&temp->tr_list_entry.next 
                                         == &temp->tr_list_entry.prev){
@@ -751,13 +751,13 @@ void *cleanup_scanned_list(void) {
 void *manage_communication(void) {
 
     Threadpool thpool;
-    FILE *file_to_send;
+    FILE *br_object_file, *ble_object_file;
     char *zig_message[ZIG_MESSAGE_LENGTH];
     int polled_type, copy_progress;
     
    
     /* Initialize the thread pool and work threads waiting for the 
-       new work/job to be assigned. */
+    new work/job to be assigned. */
     thpool = thpool_init(NO_WORK_THREADS); 
     if(thpool == NULL){
         
@@ -775,8 +775,8 @@ void *manage_communication(void) {
 
 
         /* Check call back from the gateway. If not polled by gateway, sleep 
-           for a short time. If polled, take the action according to the 
-           poll type. */
+        for a short time. If polled, take the action according to the 
+        poll type. */
             
         polled_type = receive_call_back();
 
@@ -801,22 +801,16 @@ void *manage_communication(void) {
                 
                 
                 /* Copy track_object data to a file to be transmited */
-                copy_progress = (int)copy_object_data_to_file("output.txt");
+                copy_progress = 
+                (int)copy_tracked_object_to_file("tracked_br_txt.txt",
+                                                tracked_BR_object_list);
                 
-                if(copy_progress == E_EMPTY_FILE){
-
-                    /* Inform gateway that there is nothing found by this 
-                       LBeacon with specific uuid */
-                    sprintf(zig_message, "T:0");
-                    
-                    
-                
-                }else if(copy_progress == WORK_SUCCESSFULLY){
+                if(copy_progress == WORK_SUCCESSFULLY){
 
                     /* Open the file that is going to sent to the gateway */
-                    file_to_send = fopen("output.txt", "r");
+                    br_object_file = fopen("tracked_br_list.txt", "r");
                     
-                    if (file_to_send == NULL) {
+                    if (br_object_file == NULL) {
 
                         /* Error handling */
                         perror(errordesc[E_OPEN_FILE].message);
@@ -829,28 +823,23 @@ void *manage_communication(void) {
                     /* Read the file to get the content for the message to 
                        send */
                     fgets(zig_message, sizeof(zig_message), 
-                          file_to_send);
+                          br_object_file);
 
-                    fclose(file_to_send);
+                    fclose(br_object_file);
                 
                 }
+
                 /* Copy BLE_tracked data to the a file to be transmited */
-                copy_progress = (int)copy_ble_data_to_file("tracked_ble.txt");
+                copy_progress = 
+                (int)copy_tracked_object_to_file("tracked_ble_txt.txt",
+                                                tracked_BLE_object_list);
 
-                if(copy_progress == E_EMPTY_FILE){
-
-                    /* Inform gateway that there is nothing BLE deviced found 
-                       by this LBeacon */
-                    strcat(zig_message, "BLE:0;");
-                    
-                    
-                
-                }else if(copy_progress == WORK_SUCCESSFULLY){
+                if(copy_progress == WORK_SUCCESSFULLY){
 
                     /* Open the file that is going to sent to the gateway */
-                    file_to_send = fopen("tracked_ble.txt", "r");
+                    ble_object_file = fopen("tracked_ble_txt.txt", "r");
                     
-                    if (file_to_send == NULL) {
+                    if (ble_object_file == NULL) {
 
                         /* Error handling */
                         perror(errordesc[E_OPEN_FILE].message);
@@ -858,19 +847,19 @@ void *manage_communication(void) {
                                   errordesc[E_OPEN_FILE].message);
                         cleanup_exit();
                         return;
-                        }
+                    }
 
                     /* Read the file to get the content for the message to 
-                       send */
+                    send */
                     char temp_char[ZIG_MESSAGE_LENGTH];
                     fgets(temp_char, sizeof(zig_message), 
-                          file_to_send);
+                          ble_object_file);
                     
                     /* Add the result of BLE scanning to the message that is 
                     going to be sent to the gateway */
                     strcat(zig_message, temp_char);
 
-                    fclose(file_to_send);
+                    fclose(ble_object_file);
                 
                 }
 
@@ -927,8 +916,6 @@ void *manage_communication(void) {
 
     } // end of the while 
 
-    /*Close the file for transmission */
-    fclose(file_to_send);
 
     /* After the ready_to_work is set to false, clean up the zigbee and the 
        thread pool */
@@ -941,11 +928,22 @@ void *manage_communication(void) {
 
 }
 
-ErrorCode copy_object_to_file(char *file_name) {
+ErrorCode copy_tracked_object_to_file(char *file_name, ObjectListHead list) {
 
-    FILE *track_ble_file;
+    /* Check the input parameter if is valid */
+    if(list != tracked_BR_object_list || list != tracked_BLE_object_list){
+
+        perror(errordesc[E_INPUT_PARAMETER].message);
+        zlog_info(category_health_report, 
+                  errordesc[E_INPUT_PARAMETER].message);
+
+        return E_INPUT_PARAMETER;
+
+    }
+
+    FILE *track_file;
     
-    /* Head of a local list for track ble object */
+    /* Head of a local list for tracked object */
     List_Entry local_object_list_head;
     /* Initilize the local list */
     init_entry(&local_object_list_head);
@@ -960,16 +958,18 @@ ErrorCode copy_object_to_file(char *file_name) {
     char timestamp_final_str[LENGTH_OF_TIME];
     char basic_info[LENGTH_OF_INFO];
 
+    DeviceType device_type = list.device_type;
+
 
     /* Create a new file to store data in the tracked_ble_object_list */        
-    track_ble_file = fopen(file_name, "w");
+    track_file = fopen(file_name, "w");
         
-    if(track_ble_file == NULL){
+    if(track_file == NULL){
 
-        track_ble_file = fopen(file_name, "wt");
+        track_file = fopen(file_name, "wt");
         
     }
-    if(track_ble_file == NULL){
+    if(track_file == NULL){
         
         perror(errordesc[E_OPEN_FILE].message);
         zlog_info(category_health_report, 
@@ -979,21 +979,23 @@ ErrorCode copy_object_to_file(char *file_name) {
     }
    
     /* Get the number of objects with data to be transmitted */
-    number_in_list = get_list_length(&tracked_ble_object_list_head);
+    number_in_list = get_list_length(&list.list_head);
     number_to_send = min(MAX_NO_OBJECTS, number_in_list);
 
 
-    /*Check if number_to_send is zero. If yes, close file and return */
+    /*Check if number_to_send is zero. If yes, no need to fo more; close file 
+    and return */
     if(number_to_send == 0){  
 
-       fclose(track_ble_file); 
-       return E_EMPTY_FILE;
+       fclose(track_file); 
+       return WORK_SUCCESSFULLY;
         
     }
     
-    /* Insert number_to_send at the struct of the track file */
-    sprintf(basic_info, "%d;", number_to_send);
-    fputs(basic_info, track_ble_file);
+    /* Insert device_type and number_to_send at the struct of the track 
+    file */
+    sprintf(basic_info, "%d; %d;", device_type, number_to_send);
+    fputs(basic_info, track_file);
 
 #ifdef Debugging 
    
@@ -1002,19 +1004,19 @@ ErrorCode copy_object_to_file(char *file_name) {
 #endif
 
 
-    pthread_mutex_lock(&ble_list_lock);
+    pthread_mutex_lock(&list_lock);
 
-    /* Set temporary pointer points to the head of the track_ble_object_list */
-    list_pointers = tracked_ble_object_list_head.next;
+    /* Set temporary pointer points to the head of the input list */
+    list_pointers = list.list_head.next;
 
-    /* Set the pointer of the local list head to the head of the 
-       track_object_list */
+    /* Set the pointer of the local list head to the head of the input 
+    list */
     local_object_list_head.next = list_pointers;
     
     int node_count;
     
-    /* Go through the track_ble_object_list to move number_to_send nodes in 
-    the list to local list */
+    /* Go through the input tracked_object list to move number_to_send nodes 
+    in the list to local list */
     for (node_count = 1; node_count <= number_to_send; 
                          list_pointers = list_pointers->next){
 
@@ -1030,13 +1032,13 @@ ErrorCode copy_object_to_file(char *file_name) {
 
     }
 
-    /* Set the track_object_list_head to point to the last node */
-    tracked_ble_object_list_head.next = list_pointers->next;
+    /* Set the head of the input list to point to the last node */
+    list.list_head.next = list_pointers->next;
     
     /*Set the last node pointing to the local_object_list_head */
     tail_pointers->next = &local_object_list_head;
 
-    pthread_mutex_unlock(&ble_list_lock);
+    pthread_mutex_unlock(&list_lock);
 
     /* Go throngh the local object list to get the content and write the 
        content to file */
@@ -1062,23 +1064,23 @@ ErrorCode copy_object_to_file(char *file_name) {
 
     }
 
-    pthread_mutex_lock(&ble_list_lock);
+    pthread_mutex_lock(&list_lock);
 
     /* Remove nodes from the local list and release memory allocated to
        nodes that are also not in scanned_device_list */
-    free_list(&local_object_list_head, 1);
+    free_list(&local_object_list_head, device_type);
 
-    pthread_mutex_unlock(&ble_list_lock);
+    pthread_mutex_unlock(&list_lock);
 
-    /* Close the file for storing data in the tracked_ble_object_list */
-    fclose(track_ble_file);
+    /* Close the file for storing data in the input list */
+    fclose(track_file);
     
     return WORK_SUCCESSFULLY;
 
 }
 
 
-void free_list(List_Entry *list_head, int list_id){
+void free_list(List_Entry *list_head, DeviceType device_type){
 
     
     struct List_Entry *list_pointers, *save_list_pointers;
@@ -1089,31 +1091,26 @@ void free_list(List_Entry *list_head, int list_id){
                        save_list_pointers, 
                        list_head){
 
-        /* According to the list indicator, get the specific data */ 
-        switch(list_id){
-
-            case 0:
-                temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
-
-                break;
-
-            case 1:
-
-                temp = ListEntry(list_pointers, ScannedDevice, ble_list_entry);
-                break;
-
-        }
         
+        temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+    
         remove_list_node(list_pointers);
 
-        /* If the node is no longer in any list, return the space
-           back to the memory pool. */
-        if(&temp->sc_list_entry.next == &temp->sc_list_entry.prev){
+        if(device_type == BLE){
 
             mp_free(&mempool, temp);
+        
+        }else{
+
+            /* If the node is no longer in scanned list, return the space
+             back to the memory pool. */
+            if(&temp->sc_list_entry.next == &temp->sc_list_entry.prev){
+
+                mp_free(&mempool, temp);
+
+            }
 
         }
-
 
     }
 
