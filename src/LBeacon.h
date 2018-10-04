@@ -311,9 +311,9 @@ typedef struct Config {
 /* Type of device to be tracked. */
 typedef enum DeviceType {
 
-  BR_EDR = 0;
-  BLE = 1;
-  max_type = 2;
+  BR_EDR = 0,
+  BLE = 1,
+  max_type = 2
   
 } DeviceType;
 

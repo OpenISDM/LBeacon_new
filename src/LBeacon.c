@@ -224,13 +224,13 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
     if(is_ble == true){
 
         new_node = check_is_in_list(address, 
-                                    tracked_BLE_object_list_head);
+                                    tracked_BLE_object_list);
 
 
     }else{
 
         new_node = check_is_in_list(address, 
-                                    scanned_list_head);
+                                    scanned_list);
 
     }
 
@@ -282,18 +282,18 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
 
             /* Insert the new code to the tracked_BLE_object_list */
             insert_list_first(&new_node->tr_list_entry, 
-                              &tracked_BLE_object_list_head);
+                              &tracked_BLE_object_list.list_head);
 
 
         }else{
 
             /* Insert the new code to the scanned list */
             insert_list_first(&new_node->sc_list_entry, 
-                              &scanned_list_head);
+                              &scanned_list.list_head);
 
             /* Insert the new node to the track_BR_object_list  */
             insert_list_first(&new_node->tr_list_entry, 
-                              &tracked_BR_object_list_head);
+                              &tracked_BR_object_list.list_head);
 
         }
        
@@ -308,7 +308,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
 
 
 struct ScannedDevice *check_is_in_list(char address[], 
-                                       ObjectList_head list) {
+                                       ObjectListHead list) {
 
     /* Create a temporary list pointer and set as the head */
     struct List_Entry *list_pointers;
@@ -931,7 +931,8 @@ void *manage_communication(void) {
 ErrorCode copy_tracked_object_to_file(char *file_name, ObjectListHead list) {
 
     /* Check the input parameter if is valid */
-    if(list != tracked_BR_object_list || list != tracked_BLE_object_list){
+    if(&list != &tracked_BR_object_list || 
+       &list != &tracked_BLE_object_list){
 
         perror(errordesc[E_INPUT_PARAMETER].message);
         zlog_info(category_health_report, 
@@ -1057,10 +1058,10 @@ ErrorCode copy_tracked_object_to_file(char *file_name, ObjectListHead list) {
         sprintf(timestamp_final_str, ", %u", timestamp_end);
 
         /* Write the content to the file */
-        fputs(&temp->scanned_mac_address[0], track_ble_file);               
-        fputs(timestamp_initial_str, track_ble_file);
-        fputs(timestamp_final_str, track_ble_file);
-        fputs(";", track_ble_file);
+        fputs(&temp->scanned_mac_address[0], track_file);               
+        fputs(timestamp_initial_str, track_file);
+        fputs(timestamp_final_str, track_file);
+        fputs(";", track_file);
 
     }
 
@@ -1521,13 +1522,13 @@ void *timeout_cleanup(void){
                 temp = ListEntry(list_pointers, ScannedDevice, 
                                  sc_list_entry);
 
-                remove_list_node(&temp.sc_list_entry);
+                remove_list_node(&temp->sc_list_entry);
                 
                 /* Make sure that the node is removed from the 
                 tracked_BR_object_list. */  
-                if(temp.tr_list_entry.next != temp.tr_list_entry.prev){
+                if(temp->tr_list_entry.next != temp->tr_list_entry.prev){
 
-                    remove_list_node(&temp.tr_list_entry);
+                    remove_list_node(&temp->tr_list_entry);
 
                 }
 
@@ -1583,8 +1584,7 @@ void *timeout_cleanup(void){
             pthread_mutex_unlock(&list_lock);
 
         }
-        
-        
+               
 
     }
 
@@ -1627,7 +1627,7 @@ void cleanup_exit(){
         /* Go throgth two lists to release all memory allocated to the nodes */
         list_for_each_safe(list_pointers, 
                        save_list_pointers, 
-                       &scanned_list_head){
+                       &scanned_list.list_head){
 
             temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
             remove_list_node(list_pointers);
@@ -1637,7 +1637,7 @@ void cleanup_exit(){
 
         list_for_each_safe(list_pointers, 
                       save_list_pointers, 
-                      &tracked_object_list_head){
+                      &tracked_BR_object_list.list_head){
 
             temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
             remove_list_node(list_pointers);
@@ -1705,8 +1705,9 @@ int main(int argc, char **argv) {
 
     
     /*Initialize the lists */
-    init_entry(&scanned_list_head); 
-    init_entry(&tracked_object_list_head);
+    init_entry(&scanned_list.list_head); 
+    init_entry(&tracked_BR_object_list.list_head);
+    init_entry(&tracked_BLE_object_list.list_head);
 
     /* Initialize the memory pool */
     if(mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_IN_MEM_POOL) 
@@ -1794,10 +1795,10 @@ int main(int argc, char **argv) {
     strcpy(g_config.uuid, hex_c);
 
     /* Create the thread for message advertising to BLE bluetooth devices */
-    pthread_t stop_ble_beacon_thread;
+    pthread_t start_broadcast_thread;
 
-    return_value = startThread(&stop_ble_beacon_thread, 
-                               stop_ble_beacon, hex_c);
+    return_value = startThread(&start_broadcast_thread, 
+                               start_broadcast, hex_c);
 
     if(return_value != WORK_SUCCESSFULLY){
         
@@ -1861,7 +1862,7 @@ int main(int argc, char **argv) {
     pthread_t timer_thread;
 
     return_value = startThread(&timer_thread, 
-                               timeout_clean, NULL);
+                               timeout_cleanup, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
         
@@ -1969,7 +1970,7 @@ int main(int argc, char **argv) {
   
     while(ready_to_work == true){
 
-        start_scanning();
+        start_br_scanning();
 
     }
 
@@ -1986,7 +1987,7 @@ int main(int argc, char **argv) {
 
     }
 
-    return_value = pthread_join(stop_ble_beacon_thread, NULL);
+    return_value = pthread_join(start_broadcast_thread, NULL);
 
     if (return_value != 0) {
         perror(strerror(errno));
