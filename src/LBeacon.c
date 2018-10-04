@@ -1502,27 +1502,35 @@ void *timeout_cleanup(void){
 
     while(ready_to_work == true){
 
-        /* Set a timer to count down the specific time. After, timeout, 
-           clean up and remove all the node in the list to maintain the 
-           space in the memory. */
+        /* Set a timer to count down the specific time. When timer expires, 
+           clean up and remove all the node. */
         sleep(A_SHORT_TIME);
         
         
         /*Check whether the list is empty */
-        if(scanned_list_head.next != scanned_list_head.prev){
+        if(scanned_list.list_head.next != scanned_list.list_head.prev){
 
             pthread_mutex_lock(&list_lock);
             
-            /* Go throgth two lists to release all memory allocated to the 
+            /* Go throgth lists to release all memory allocated to the 
                nodes */
             list_for_each_safe(list_pointers, 
                                save_list_pointers, 
-                               &scanned_list_head){
+                               &scanned_list.list_head){
 
                 temp = ListEntry(list_pointers, ScannedDevice, 
                                  sc_list_entry);
 
-                remove_list_node(list_pointers);
+                remove_list_node(&temp.sc_list_entry);
+                
+                /* Make sure that the node is removed from the 
+                tracked_BR_object_list. */  
+                if(temp.tr_list_entry.next != temp.tr_list_entry.prev){
+
+                    remove_list_node(&temp.tr_list_entry);
+
+                }
+
                 mp_free(&mempool, temp); 
 
             }
@@ -1531,17 +1539,20 @@ void *timeout_cleanup(void){
 
         }
         
-        if(tracked_object_list_head.next != tracked_object_list_head.prev){
+        if(tracked_BR_object_list.list_head.next 
+           != tracked_BR_object_list.list_head.prev){
 
             pthread_mutex_lock(&list_lock);
 
             list_for_each_safe(list_pointers, 
                                save_list_pointers, 
-                               &tracked_object_list_head){
+                               &tracked_BR_object_list.list_head){
 
                 temp = ListEntry(list_pointers, ScannedDevice, 
                                  tr_list_entry);
+
                 remove_list_node(list_pointers);
+
                 mp_free(&mempool, temp); 
 
             }
@@ -1551,23 +1562,25 @@ void *timeout_cleanup(void){
         }
 
 
-        if(tracked_ble_object_list_head.next 
-            != tracked_ble_object_list_head.prev){
+        if(tracked_BLE_object_list.list_head.next 
+           != tracked_BLE_object_list.list_head.prev){
 
-            pthread_mutex_lock(&ble_list_lock);
+            pthread_mutex_lock(&list_lock);
 
             list_for_each_safe(list_pointers, 
                                save_list_pointers, 
-                               &tracked_ble_object_list_head){
+                               &tracked_BLE_object_list.list_head){
 
                 temp = ListEntry(list_pointers, ScannedDevice, 
-                                 ble_list_entry);
+                                 tr_list_entry);
+                
                 remove_list_node(list_pointers);
+                
                 mp_free(&mempool, temp); 
 
             }
 
-            pthread_mutex_unlock(&ble_list_lock);
+            pthread_mutex_unlock(&list_lock);
 
         }
         
