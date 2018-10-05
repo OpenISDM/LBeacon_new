@@ -471,10 +471,11 @@ typedef enum ErrorCode {
     E_INIT_THREAD_POOL = 19,
     E_INIT_ZIGBEE = 20,
     E_ZIGBEE_CONNECT = 21,
-    E_EMPTY_FILE = 22,
-    E_INPUT_PARAMETER = 23,
-    E_ADD_WORK_THREAD = 24,
-    MAX_ERROR_CODE = 25
+    E_LOG_GET_CATEGORY = 22,
+    E_EMPTY_FILE = 23,
+    E_INPUT_PARAMETER = 24,
+    E_ADD_WORK_THREAD = 25,
+    MAX_ERROR_CODE = 26
 
 } ErrorCode;
 
@@ -507,6 +508,7 @@ struct _errordesc {
     {E_INIT_THREAD_POOL, "Error initializing thread pool"},
     {E_INIT_ZIGBEE, "Error initializing the zigbee"},
     {E_ZIGBEE_CONNECT, "Error zigbee connection"},
+    {E_LOG_GET_CATEGORY, "Error getting log category"},
     {E_EMPTY_FILE, "Empty file"},
     {E_INPUT_PARAMETER , "Error of invalid input parameter"},
     {E_ADD_WORK_THREAD, "Error adding work to the work thread"},
@@ -630,7 +632,7 @@ void *start_ble_scanning(void);
 
       None
 */
-void start_br_scanning();
+void *start_br_scanning();
 
 
 

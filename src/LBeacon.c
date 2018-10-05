@@ -1293,7 +1293,7 @@ void *start_ble_scanning(void){
 }
 
 
-void start_br_scanning() {
+void *start_br_scanning(void) {
 
 
     struct hci_filter filter; /*Filter for controling the events*/
@@ -1686,7 +1686,8 @@ int main(int argc, char **argv) {
     if (!category_health_report) {
         
         zlog_fini();
-        return -2;
+        perror(errordesc[E_LOG_GET_CATEGORY].message);
+        return E_LOG_GET_CATEGORY;
     }
 
 #ifdef Debugging
@@ -1695,7 +1696,8 @@ int main(int argc, char **argv) {
     if (!category_debug) {
        
         zlog_fini();
-        return -2;
+        perror(errordesc[E_LOG_GET_CATEGORY].message);
+        return E_LOG_GET_CATEGORY;
     }
 
     zlog_debug(category_debug, "Finish initializing zlog");
@@ -1704,10 +1706,13 @@ int main(int argc, char **argv) {
 
 
     
-    /*Initialize the lists */
-    init_entry(&scanned_list.list_head); 
+    /*Initialize the global lists */
+    init_entry(&scanned_list.list_head);
+    scanned_list.device_type = BR_EDR; 
     init_entry(&tracked_BR_object_list.list_head);
+    tracked_BR_object_list.device_type = BR_EDR;
     init_entry(&tracked_BLE_object_list.list_head);
+    tracked_BLE_object_list.device_type = BLE;
 
     /* Initialize the memory pool */
     if(mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_IN_MEM_POOL) 
@@ -1784,7 +1789,7 @@ int main(int argc, char **argv) {
     }
 
 
-    /* Store coordinates of the beacon location */
+    /* Store coordinates of the beacon */
     sprintf(hex_c,
             "OPENISDMN402%02x%02x%02x%02xD0F5%02x%02x%02x%02x48D2B060",
             coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
@@ -1794,7 +1799,7 @@ int main(int argc, char **argv) {
 
     strcpy(g_config.uuid, hex_c);
 
-    /* Create the thread for message advertising to BLE bluetooth devices */
+    /* Create the thread for advertising to bluetooth devices */
     pthread_t start_broadcast_thread;
 
     return_value = startThread(&start_broadcast_thread, 
@@ -1809,7 +1814,23 @@ int main(int argc, char **argv) {
         return E_START_THREAD;
     }
 
-    /* Create the thread for track device */
+
+    /* Create the thread for track BR_EDR device */
+    pthread_t br_scanning_thread;
+
+    return_value = startThread(&br_scanning_thread, 
+                               start_br_scanning, NULL);
+
+    if(return_value != WORK_SUCCESSFULLY){
+        
+        perror(errordesc[E_START_THREAD].message);
+        zlog_info(category_health_report, 
+                  errordesc[E_START_THREAD].message);
+        cleanup_exit();
+        return E_START_THREAD;
+    }
+
+    /* Create the thread for track BLE device */
     pthread_t ble_scanning_thread;
 
     return_value = startThread(&ble_scanning_thread, 
@@ -1967,14 +1988,14 @@ int main(int argc, char **argv) {
 
 #endif //Bluetooth_classic
 
-  
-    while(ready_to_work == true){
 
-        start_br_scanning();
-
-    }
-
+#ifdef Debugging 
    
+    zlog_debug(category_debug, "All the threads are created."); 
+
+#endif
+
+ 
 
     return_value = pthread_join(cleanup_scanned_list_thread, NULL);
 
