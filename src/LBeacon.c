@@ -347,15 +347,15 @@ struct ScannedDevice *check_is_in_list(char address[],
 
         int len = strlen(address);
 
-        char *addr_last_digits = &address[len - NO_DIGITS_TO_COMPARE];
+        char *addr_last_digits = &address[len - NUM_DIGITS_TO_COMPARE];
         char *temp_last_digits = 
-                     &temp->scanned_mac_address[len - NO_DIGITS_TO_COMPARE];
+                     &temp->scanned_mac_address[len - NUM_DIGITS_TO_COMPARE];
 
-        /* Compare the last digits of the MAC address */
+        /* Compare the first and the last digits of the MAC address */
         if ((!strncmp(address, temp->scanned_mac_address, 
-                      NO_DIGITS_TO_COMPARE))&&
+                      NUM_DIGITS_TO_COMPARE))&&
             (!strncmp(addr_last_digits, temp_last_digits, 
-                      NO_DIGITS_TO_COMPARE))) {
+                      NUM_DIGITS_TO_COMPARE))) {
 
             return temp;
 
@@ -643,7 +643,7 @@ ErrorCode disable_advertising() {
 
 
 
-void *start_broadcast(void *beacon_location) {
+void *stop_broadcast(void *beacon_location) {
 
     int enable_advertising_success =
         enable_advertising(ADVERTISING_INTERVAL, beacon_location,
@@ -762,7 +762,7 @@ void *manage_communication(void) {
    
     /* Initialize the thread pool and work threads waiting for the 
     new work/job to be assigned. */
-    thpool = thpool_init(NO_WORK_THREADS); 
+    thpool = thpool_init(NUM_WORK_THREADS); 
     if(thpool == NULL){
         
         /* Could not create thread pool, handle error */
@@ -811,7 +811,7 @@ void *manage_communication(void) {
                 
                 if(copy_progress == WORK_SUCCESSFULLY){
 
-                    /* Open the file that is going to sent to the gateway */
+                    /* Open the file that is going to be sent to the gateway */
                     br_object_file = fopen("tracked_br_list.txt", "r");
                     
                     if (br_object_file == NULL) {
@@ -840,7 +840,7 @@ void *manage_communication(void) {
 
                 if(copy_progress == WORK_SUCCESSFULLY){
 
-                    /* Open the file that is going to sent to the gateway */
+                    /* Open the file that is going to be sent to the gateway */
                     ble_object_file = fopen("tracked_ble_txt.txt", "r");
                     
                     if (ble_object_file == NULL) {
@@ -985,11 +985,11 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
    
     /* Get the number of objects with data to be transmitted */
     number_in_list = get_list_length(&list.list_entry);
-    number_to_send = min(MAX_NO_OBJECTS, number_in_list);
+    number_to_send = min(MAX_NUM_OBJECTS, number_in_list);
 
 
-    /*Check if number_to_send is zero. If yes, no need to fo more; close file 
-    and return */
+    /*Check if number_to_send is zero. If yes, no need to do more; close 
+    file and return */
     if(number_to_send == 0){  
 
        fclose(track_file); 
@@ -1011,7 +1011,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
 
     pthread_mutex_lock(&list_lock);
 
-    /* Set temporary pointer points to the head of the input list */
+    /* Set temporary pointer to point to the head of the input list */
     list_pointers = list.list_entry.next;
 
     /* Set the pointer of the local list head to the head of the input 
@@ -1052,7 +1052,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
 
         temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
 
-        /* Convert the timestamp from list to string */
+        /* Convert the timestamp to string */
         unsigned timestamp_init = (unsigned)&temp->initial_scanned_time;
         unsigned timestamp_end = (unsigned)&temp->final_scanned_time;
         
@@ -1256,15 +1256,13 @@ void *start_ble_scanning(void){
     while(keep_scanning = true){
 
         while (read(socket, ble_buffer, sizeof(ble_buffer)) < 0) {
-            if (errno == EINTR && signal_received == SIGINT) {
+            
+            if ((errno == EINTR && signal_received == SIGINT) ||
+                (errno == EAGAIN || errno == EINTR)) {
                
                 keep_scanning = false;
                 
             }
-
-            if (errno == EAGAIN || errno == EINTR)
-                
-                keep_scanning = false;
 
         }
         printf("Here is 4:\n");
@@ -1471,8 +1469,8 @@ void *start_br_scanning(void) {
             /* Stop the scanning process */
             case EVT_INQUIRY_COMPLETE: {
 
-                 /* In order to jump out of the while loop. If without this
-                  * flag, new socket will not been received. */
+                 /* In order to jump out of the while loop. Set Keep_scanning
+                 flag to false, new socket will not been received. */
                  keep_scanning = false;
 
             } break;
@@ -1681,7 +1679,7 @@ int main(int argc, char **argv) {
    /* Initialize the application log */
     if (zlog_init("../config/zlog.conf") != 0) {
     
-        return -1;
+        perror(errordesc[E_LOG_INIT].message);
     }
 
     category_health_report = zlog_get_category(LOG_CATEGORY_HEALTH_REPORT);
@@ -1730,8 +1728,8 @@ int main(int argc, char **argv) {
 
     }
 
-     /* Initialize the zigbee at a very beginning, because it takes longer 
-        time to make sure all the pins of pi are working  */
+     /* Initialize the zigbee at a very beginning. Because it takes longer 
+        time  */
     if(zigbee_init() != XBEE_SUCCESSFULLY){
 
         /* Could not initialize the zigbee, handle error */
@@ -1804,10 +1802,10 @@ int main(int argc, char **argv) {
     strcpy(g_config.uuid, hex_c);
 
     /* Create the thread for advertising to bluetooth devices */
-    pthread_t start_broadcast_thread;
+    pthread_t stop_broadcast_thread;
 
-    return_value = startThread(&start_broadcast_thread, 
-                               start_broadcast, hex_c);
+    return_value = startThread(&stop_broadcast_thread, 
+                               stop_broadcast, hex_c);
 
     if(return_value != WORK_SUCCESSFULLY){
         
@@ -2013,7 +2011,7 @@ int main(int argc, char **argv) {
 
     }
 */
-    return_value = pthread_join(start_broadcast_thread, NULL);
+    return_value = pthread_join(stop_broadcast_thread, NULL);
 
     if (return_value != 0) {
         perror(strerror(errno));
