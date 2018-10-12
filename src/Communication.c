@@ -59,6 +59,8 @@ ErrorCode_Xbee zigbee_init(){
     
     xbee_Serial_Power_Reset(xbee_Serial_Power_Pin);
 
+    usleep(XBEE_TIMEOUT);
+
     xbee_Serial_init(&xbee_config.xbee_datastream, 
                      xbee_config.xbee_device);
 

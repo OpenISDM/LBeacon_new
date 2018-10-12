@@ -94,7 +94,7 @@ typedef enum ErrorCode_XBee {
     E_SHUT_DOWN = 4
 
 } ErrorCode_Xbee;
-
+/*
 struct _errordesc_xbee {
     int code;
     char *message;
@@ -107,7 +107,7 @@ struct _errordesc_xbee {
     {E_SHUT_DOWN, "Error shutting down xbee"}
     
 };
-
+*/
 /*
   zigbee_init:
 
