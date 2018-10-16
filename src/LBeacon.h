@@ -168,7 +168,7 @@ Authors:
 
 /* Nominal transmission range limit. Only devices in this RSSI range are 
    to be discovered and data sent. */
-#define RSSI_RANGE -60
+#define RSSI_RANGE -100
 
 /* RSSI value of TX power for calibration and broadcast  */
 #define RSSI_VALUE -50
@@ -693,7 +693,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble);
 */
 
 struct ScannedDevice *check_is_in_list(char address[], 
-                                       ObjectListHead list_head);
+                                       ObjectListHead *list);
 
 
 
@@ -778,7 +778,7 @@ void *stop_broadcast(void *beacon_location);
       None
 */
 
-void *cleanup_scanned_list(void);
+void *cleanup_scanned_list(ObjectListHead *list);
 
 
 /*
