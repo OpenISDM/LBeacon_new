@@ -778,7 +778,7 @@ void *stop_broadcast(void *beacon_location);
       None
 */
 
-void *cleanup_scanned_list(ObjectListHead *list);
+void *cleanup_scanned_list(void);
 
 
 /*

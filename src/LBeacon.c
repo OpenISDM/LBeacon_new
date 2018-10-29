@@ -686,7 +686,7 @@ void *stop_broadcast(void *beacon_location) {
 
 
 
-void *cleanup_scanned_list(ObjectListHead *list) {
+void *cleanup_scanned_list(void) {
 
 
     struct List_Entry *list_pointers, *save_list_pointers;
@@ -696,20 +696,21 @@ void *cleanup_scanned_list(ObjectListHead *list) {
 
 
         /*Check whether the list is empty */
-        while(&list->list_entry.next 
-              == &list->list_entry.prev){
-            
+        while(&scanned_list_head.list_entry.next 
+              == &scanned_list_head.list_entry.prev){
             
             sleep(TIMEOUT_WAITING);
 
         }
  
        pthread_mutex_lock(&list_lock);
-
+    
         /* Go through list */
         list_for_each_safe(list_pointers, 
                            save_list_pointers, 
-                           &list->list_entry){
+                           &scanned_list_head.list_entry){
+
+           
 
             temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
 
