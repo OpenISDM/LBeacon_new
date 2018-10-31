@@ -803,7 +803,10 @@ void *manage_communication(void) {
 
             case TRACK_OBJECT_DATA:
                 
-                
+                /* Set is_polled_by_gateway flage to true in order to notice 
+                the timeup_cleanup function to reset the countdown timer. */
+                is_polled_by_gateway = true;
+
                 /* Copy track_object data to a file to be transmited */
                 copy_progress = 
                 (int)copy_object_data_to_file("tracked_br_txt.txt",
@@ -1508,90 +1511,108 @@ void *timeout_cleanup(void){
     /* Create a temporary node and set as the head */
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
+    time_t start_time = time(NULL);
 
     while(ready_to_work == true){
-
+        
         /* Set a timer to count down the specific time. When timer expires, 
-           clean up and remove all the node. */
-        sleep(A_SHORT_TIME);
-        
-        
-        /*Check whether the list is empty */
-        if(scanned_list_head.list_entry.next != scanned_list_head.list_entry.prev){
+        clean up and remove all the node. But, if the gateway polls, reset
+        the timer. */
+        if(is_polled_by_gateway == true){
 
-            pthread_mutex_lock(&list_lock);
+            start_time = start_time + A_SHORT_TIME;
+            is_polled_by_gateway = false;
+        }
+
+        if(start_time - time(NULL) >= A_SHORT_TIME){
+
+            /*Check whether the list is empty */
+            if(scanned_list_head.list_entry.next 
+               != scanned_list_head.list_entry.prev){
+
+                pthread_mutex_lock(&list_lock);
             
-            /* Go throgth lists to release all memory allocated to the 
-               nodes */
-            list_for_each_safe(list_pointers, 
-                               save_list_pointers, 
-                               &scanned_list_head.list_entry){
+                /* Go throgth lists to release all memory allocated to the 
+                nodes */
+                list_for_each_safe(list_pointers, 
+                                   save_list_pointers, 
+                                   &scanned_list_head.list_entry){
 
-                temp = ListEntry(list_pointers, ScannedDevice, 
-                                 sc_list_entry);
+                    temp = ListEntry(list_pointers, ScannedDevice, 
+                                     sc_list_entry);
 
-                remove_list_node(&temp->sc_list_entry);
+                    remove_list_node(&temp->sc_list_entry);
                 
-                /* Make sure that the node is removed from the 
-                tracked_BR_object_list. */  
-                if(temp->tr_list_entry.next != temp->tr_list_entry.prev){
+                    /* Make sure that the node is removed from the 
+                    tracked_BR_object_list. */  
+                    if(temp->tr_list_entry.next != temp->tr_list_entry.prev){
 
-                    remove_list_node(&temp->tr_list_entry);
+                        remove_list_node(&temp->tr_list_entry);
+
+                    }
+
+                    mp_free(&mempool, temp); 
 
                 }
 
-                mp_free(&mempool, temp); 
+                pthread_mutex_unlock(&list_lock);
 
             }
-
-            pthread_mutex_unlock(&list_lock);
-
-        }
         
-        if(BR_object_list_head.list_entry.next 
-           != BR_object_list_head.list_entry.prev){
+            if(BR_object_list_head.list_entry.next 
+               != BR_object_list_head.list_entry.prev){
 
-            pthread_mutex_lock(&list_lock);
+                pthread_mutex_lock(&list_lock);
 
-            list_for_each_safe(list_pointers, 
-                               save_list_pointers, 
-                               &BR_object_list_head.list_entry){
+                list_for_each_safe(list_pointers, 
+                                   save_list_pointers, 
+                                   &BR_object_list_head.list_entry){
 
-                temp = ListEntry(list_pointers, ScannedDevice, 
-                                 tr_list_entry);
+                    temp = ListEntry(list_pointers, ScannedDevice, 
+                                     tr_list_entry);
 
-                remove_list_node(list_pointers);
+                    remove_list_node(list_pointers);
 
-                mp_free(&mempool, temp); 
+                    mp_free(&mempool, temp); 
 
-            }
+                }
 
-            pthread_mutex_unlock(&list_lock);
-
-        }
-
-
-        if(BLE_object_list_head.list_entry.next 
-           != BLE_object_list_head.list_entry.prev){
-
-            pthread_mutex_lock(&list_lock);
-
-            list_for_each_safe(list_pointers, 
-                               save_list_pointers, 
-                               &BLE_object_list_head.list_entry){
-
-                temp = ListEntry(list_pointers, ScannedDevice, 
-                                 tr_list_entry);
-                
-                remove_list_node(list_pointers);
-                
-                mp_free(&mempool, temp); 
+                pthread_mutex_unlock(&list_lock);
 
             }
 
-            pthread_mutex_unlock(&list_lock);
 
+            if(BLE_object_list_head.list_entry.next 
+              != BLE_object_list_head.list_entry.prev){
+
+                pthread_mutex_lock(&list_lock);
+
+                list_for_each_safe(list_pointers, 
+                                   save_list_pointers, 
+                                   &BLE_object_list_head.list_entry){
+
+                    temp = ListEntry(list_pointers, ScannedDevice, 
+                                     tr_list_entry);
+                
+                    remove_list_node(list_pointers);
+                
+                    mp_free(&mempool, temp); 
+
+                }
+
+                pthread_mutex_unlock(&list_lock);
+
+            }
+            
+            start_time = start_time + A_SHORT_TIME;
+        
         }
+
+       
+        
+        
+        
+
                
 
     }
@@ -1681,6 +1702,7 @@ int main(int argc, char **argv) {
 
     /*Initialize the global flag */
     ready_to_work = true;
+    is_polled_by_gateway = false;
 
    /* Initialize the application log */
     if (zlog_init("../config/zlog.conf") != 0) {

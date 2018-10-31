@@ -428,14 +428,17 @@ ObjectListHead BLE_object_list_head;
 
 /* A global flag that is initially set to true by the main thread. It is set
    to false by any thread when the thread encounters a fatal error, 
-   indicating that it is about to exit. 
-*/
+   indicating that it is about to exit. */
 bool ready_to_work;
+
+/* A global flag that is initially set to false by the main thread. When the
+gateway polls, set to be true in order to notice timeup_cleanup function to 
+reset the countdown timer. */
+bool is_polled_by_gateway;
 
 
 /* The memory pool for the allocation of all nodes in scanned device list and
-   tracked object lists. 
-*/
+   tracked object lists. */
 Memory_Pool mempool;
 
 /* The lock that controls access to lists */
