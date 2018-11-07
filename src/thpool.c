@@ -80,7 +80,8 @@ struct thpool_* thpool_init(int num_threads){
 
 
 /* Add work to the thread pool */
-int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), void* arg_p){
+int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), 
+					void* arg_p, int priority){
 	job* newjob;
 
 	newjob=(struct job*)mp_alloc(&mempool);
@@ -92,6 +93,7 @@ int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), void* arg_p){
 	/* add function and argument */
 	newjob->function=function_p;
 	newjob->arg=arg_p;
+	newjob->priority=priority;
 
 	/* add job to queue */
 	jobqueue_push(&thpool_p->jobqueue, newjob);
@@ -263,6 +265,7 @@ static void* thread_do(struct thread* thread_p){
 			if (job_p) {
 				func_buff = job_p->function;
 				arg_buff  = job_p->arg;
+				pthread_setschedprio(thread_p->pthread, job_p->priority);
 				func_buff(arg_buff);
 				mp_free(&mempool ,job_p);
 			}

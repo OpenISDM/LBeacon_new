@@ -39,6 +39,7 @@ typedef struct job{
 	struct job*  prev;                   /* pointer to previous job   */
 	void   (*function)(void* arg);       /* function pointer          */
 	void*  arg;                          /* function's argument       */
+	int priority;					     /* Priority of this job  	  */
 } job;
 
 
@@ -147,9 +148,11 @@ Threadpool thpool_init(int num_threads);
  * @param  threadpool    threadpool to which the work will be added
  * @param  function_p    pointer to function to add as work
  * @param  arg_p         pointer to an argument
+ * @param  priority      priority of this work
  * @return 0 on successs, -1 otherwise.
  */
-int thpool_add_work(Threadpool threadpool, void (*function_p)(void*), void* arg_p);
+int thpool_add_work(Threadpool threadpool, void (*function_p)(void*), 
+					void* arg_p, int priority);
 
 
 /**
