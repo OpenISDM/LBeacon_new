@@ -21,8 +21,8 @@
       Communication.h
 
  Version:
- 
-       1.2
+
+       1.2,  20181114
 
  Abstract:
 
@@ -38,8 +38,8 @@
  Authors:
 
       Han Wang, hollywang@iis.sinica.edu.tw
-      Gary Xiao, garyh0205@hotmail.com     
-     
+      Gary Xiao, garyh0205@hotmail.com
+
 */
 
 #include <stdbool.h>
@@ -71,19 +71,6 @@ zlog_category_t *category_health_report, *category_debug;
 sxbee_config xbee_config;
 
 
-/* The enumeration of the polled data */
-typedef enum PolledDataType {
-
-    NOT_YET_POLLED = 0,
-    TRACK_OBJECT_DATA = 1,
-    HEALTH_REPORT = 2,
-    MAX_NO_DATA_TYPES = 3
-
-} PolledDataType;
-
-
-
-
 /* The enumeration of the error code */
 typedef enum ErrorCode_XBee {
 
@@ -94,7 +81,18 @@ typedef enum ErrorCode_XBee {
     E_SHUT_DOWN = 4
 
 } ErrorCode_Xbee;
-/*
+
+/* The enumeration of the polled data */
+typedef enum PolledDataType {
+
+    NOT_YET_POLLED = 5,
+    TRACK_OBJECT_DATA = 6,
+    HEALTH_REPORT = 7,
+    MAX_NO_DATA_TYPES = 8
+
+} PolledDataType;
+
+
 struct _errordesc_xbee {
     int code;
     char *message;
@@ -105,14 +103,14 @@ struct _errordesc_xbee {
     {E_CALL_BACK, "Error enabling call back function for xbee"},
     {E_CONNECT, "Error buildiing xbee connection"},
     {E_SHUT_DOWN, "Error shutting down xbee"}
-    
+
 };
-*/
+
 /*
   zigbee_init:
 
-    This function initilizes the zigbee object containing parameters and 
-    data governing communication of the zigbee link.  
+    This function initilizes the zigbee object containing parameters and
+    data governing communication of the zigbee link.
 
   Parameters:
 
@@ -131,8 +129,8 @@ ErrorCode_Xbee zigbee_init();
 /*
   receive_call_back:
 
-    This function receives the packet sent by the gateway and return an 
-    indicator for the data as the polled type of the packet.   
+    This function receives the packet sent by the gateway and return an
+    indicator for the data as the polled type of the packet.
 
   Parameters:
 
@@ -150,12 +148,12 @@ int receive_call_back();
 /*
   zigbee_send_file:
 
-    When called, this function sends a packet that containing the specified 
+    When called, this function sends a packet that containing the specified
     message to the gateway via xbee module.
 
   Parameters:
 
-    zig_message - the message to be sent via xbee module 
+    zig_message - the message to be sent via xbee module
 
   Return value:
 
