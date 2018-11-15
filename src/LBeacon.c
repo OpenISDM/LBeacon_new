@@ -802,10 +802,6 @@ void *manage_communication(void) {
 
             case TRACK_OBJECT_DATA:
 
-                /* Set is_polled_by_gateway flage to true in order to notice
-                the timeup_cleanup function to reset the countdown timer. */
-                is_polled_by_gateway = true;
-
                 /* Copy track_object data to a file to be transmited */
                 copy_progress =
                 (int)copy_object_data_to_file("tracked_br_txt.txt",
@@ -885,7 +881,7 @@ void *manage_communication(void) {
                 /* Add a work item to be executed by a work thread */
                 if(thpool_add_work(thpool,
                                    (void*)zigbee_send_file,
-                                   zig_message) != 0){
+                                   zig_message, 2) != 0){
 
                     /* Error handling */
                     /* Set ready_to_work to false to let other theeads know
@@ -909,7 +905,7 @@ void *manage_communication(void) {
 
                 break;
 
-            case E_CALL_BACK;
+            case E_CALL_BACK:
 
                   /* Error of call back function, set network_is_down to
                   true */

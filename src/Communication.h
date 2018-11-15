@@ -92,7 +92,7 @@ typedef enum PolledDataType {
 
 } PolledDataType;
 
-
+/*
 struct _errordesc_xbee {
     int code;
     char *message;

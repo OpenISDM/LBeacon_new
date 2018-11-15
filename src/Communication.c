@@ -98,11 +98,11 @@ ErrorCode_Xbee zigbee_init(){
                    error_indicator);
 
 #endif
-
-        perror(error_xbee[E_XBEE_VALIDATE].message);
+        /*
+        perror(errorxcode[E_XBEE_VALIDATE].message);
         zlog_info(category_health_report,
-                  error_xbee[E_XBEE_VALIDATE].message);
- 
+                  errorxcode[E_XBEE_VALIDATE].message);
+        */
         return E_XBEE_VALIDATE;
     }
 
@@ -115,11 +115,11 @@ int receive_call_back(){
 
     /* Check the connection of call back is enable */
     if(xbee_check_CallBack(&xbee_config, false)){
-
-      perror(error_xbee[E_CALL_BACK].message);
+      /*
+      perror(errorxcode[E_CALL_BACK].message);
       zlog_info(category_health_report,
-                error_xbee[E_CALL_BACK].message);
-
+                errorxcode[E_CALL_BACK].message);
+      */
       return E_CALL_BACK;
 
     };

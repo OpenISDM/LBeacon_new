@@ -151,7 +151,7 @@ Threadpool thpool_init(int num_threads);
  * @param  priority      priority of this work
  * @return 0 on successs, -1 otherwise.
  */
-int thpool_add_work(Threadpool threadpool, void (*function_p)(void*), 
+int thpool_add_work(Threadpool threadpool, void (*function_p)(void*),
 					void* arg_p, int priority);
 
 
