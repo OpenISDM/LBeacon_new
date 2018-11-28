@@ -51,8 +51,13 @@
 
 #include <stdlib.h>
 
+#ifndef MEMPOOL_H
+#define MEMPOOL_H
+
 #define MEMORY_POOL_SUCCESS 1
 #define MEMORY_POOL_ERROR 0
+/* The specified number of slots to be expanded in the memory pool */
+#define EXPAND_SLOT 1024
 #define MEMORY_POOL_MINIMUM_SIZE sizeof(void *)
 
 /* The structure of the memory pool */
@@ -137,3 +142,5 @@ void *mp_alloc(Memory_Pool *mp);
     Errorcode - error code or sucessful message 
 */
 int mp_free(Memory_Pool *mp, void *mem);
+
+#endif

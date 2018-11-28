@@ -150,7 +150,7 @@ Authors:
 /* Maximum length of time in milliseconds a bluetooth device
    stays in the scanned device list
 */
-#define TIMEOUT 30000
+#define TIMEOUT 3000
 
 /* Timeout in milliseconds of hci_send_req  */
 #define HCI_SEND_REQUEST_TIMEOUT 1000

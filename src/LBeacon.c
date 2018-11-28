@@ -55,6 +55,7 @@
 
 #define Debugging
 
+
 Config get_config(char *file_name) {
 
     /* Return value is a struct containing all config information */
@@ -262,6 +263,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
 #endif
 
         new_node = (struct ScannedDevice*) mp_alloc(&mempool);
+
 
         /* Initialize the list entries */
         init_entry(&new_node->sc_list_entry);
@@ -719,19 +721,19 @@ void *cleanup_scanned_list(void) {
             seconds, remove its struct node from the scanned list */
             if (get_system_time() - temp->initial_scanned_time > TIMEOUT) {
 
-
+       
                 remove_list_node(&temp->sc_list_entry);
 
                 /* If the node no longer is in the tracked_BR_object_lists,
                 free the space back to the memory pool. */
+              
 
                 if(&temp->tr_list_entry.next
                                         == &temp->tr_list_entry.prev){
 
-                    mp_free(&mempool, temp);
+                  mp_free(&mempool, temp);
 
                 }
-
 
             }
             else {
@@ -740,7 +742,6 @@ void *cleanup_scanned_list(void) {
         }
 
         pthread_mutex_unlock(&list_lock);
-
 
     }
 
@@ -1132,6 +1133,7 @@ static volatile int signal_received = 0;
 static void sigint_handler(int sig)
 {
     signal_received = sig;
+    g_done = true;
 }
 
 /* A static function for prase the name from the BLE device. */
@@ -1750,23 +1752,25 @@ int main(int argc, char **argv) {
 
      /* Initialize the zigbee at a very beginning. Because it takes longer
         time  */
+    /*
     if(zigbee_init() != XBEE_SUCCESSFULLY){
 
         /* Could not initialize the zigbee, handle error */
+    /*
         perror(errordesc[E_INIT_ZIGBEE].message);
         zlog_info(category_health_report,
                   errordesc[E_INIT_ZIGBEE].message);
 
         /* Set the flag of network_is_down to true. It can inform the timeout
         cleanup function to be executed */
-        network_is_down == true;
+        //network_is_down == true;
 
         /* Not a deadly error, should not shut down the system */
         //cleanup_exit();
 
-        return;
+        //return;
 
-    }
+    //}
 
     /* Initialize the lock for accessing the lists */
     pthread_mutex_init(&list_lock,NULL);

@@ -55,17 +55,21 @@
 int mp_init(Memory_Pool *mp, size_t size, size_t slots)
 {
   
-
+    
     //allocate memory
-    if((mp->memory = malloc(size * slots)) == NULL)
-        return MEMORY_POOL_ERROR;
-
+    if((mp->memory = malloc(size * slots)) == NULL){    
+      
+      return MEMORY_POOL_ERROR;
+    
+    }
+ 
     //initialize
     mp->head = NULL;
     mp->size = size;
 
-     //add every slot to the free list
+    //add every slot to the free list
     char *end = (char *)mp->memory + size * slots;
+    
     
     for(char *ite = mp->memory; ite < end; ite += size){
 
@@ -79,13 +83,44 @@ int mp_init(Memory_Pool *mp, size_t size, size_t slots)
             *mp->head = temp;
   
     }
-    
-
+  
     return MEMORY_POOL_SUCCESS;
 }
 
 
-
+int mp_expand(Memory_Pool *mp, size_t slots)
+{
+    void *new_mem;
+   
+    new_mem = malloc(mp->size * slots);
+    if(new_mem == NULL ){
+        
+        return MEMORY_POOL_ERROR;
+        
+    }
+    
+    //add every slot to the free list
+    char *end = (char *)new_mem + mp->size * slots;
+    
+    for(char *ite = new_mem; ite < end; ite += mp->size){
+        
+       
+        //store first address
+        void *temp = mp->head;
+       
+        //link the new node
+        mp->head = ite;
+       
+        //link to the list from new node
+        *mp->head = temp;
+       
+        
+    }
+    
+    return MEMORY_POOL_SUCCESS;
+    
+    
+}
 
 void mp_destroy(Memory_Pool *mp)
 {   
@@ -97,12 +132,19 @@ void mp_destroy(Memory_Pool *mp)
 
 
 
-
 void *mp_alloc(Memory_Pool *mp)
 {
-    if(mp->head == NULL)
+         
+    if( *mp->head == NULL){
+       
+      if(mp_expand(mp, EXPAND_SLOT) == MEMORY_POOL_ERROR){
+
         return NULL;
 
+      }
+           
+    }
+        
     //store first address, i.e., address of the start of first element
     void *temp = mp->head;
 
@@ -117,6 +159,7 @@ void *mp_alloc(Memory_Pool *mp)
 
 int mp_free(Memory_Pool *mp, void *mem)
 {
+  
     //check if mem is correct, i.e. is pointing to the struct of a slot
     //calculate the offset from mem to mp->memory
     int diffrenceinbyte = (mem - mp->memory) * sizeof(mem);
