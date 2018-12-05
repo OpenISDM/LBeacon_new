@@ -9,7 +9,7 @@ License:
 
 Project Name:
 
-    BeDIPS
+    BeDIS
 
 File Description:
 
@@ -26,7 +26,7 @@ Version:
 
 Abstract:
 
-    BeDIPS uses LBeacons to deliver 3D coordinates and textual
+    BeDIS uses LBeacons to deliver 3D coordinates and textual
     descriptions of their locations to users' devices. Basically, a
     LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
     coordinates and location description of every LBeacon are retrieved
@@ -40,7 +40,6 @@ Authors:
 
     Han Wang, hollywang@iis.sinica.edu.tw
     Jake Lee, jakelee@iis.sinica.edu.tw
-    Johnson Su, johnsonsu@iis.sinica.edu.tw
     Joey Zhou, joeyzhou@iis.sinica.edu.tw
     Kenneth Tang, kennethtang@iis.sinica.edu.tw
     James Huamg, jameshuang@iis.sinica.edu.tw

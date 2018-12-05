@@ -29,4 +29,4 @@ Communication.o: Communication.c Communication.h
 
 clean:
 	find . -type f | xargs touch 
-	@rm -rf *.o *.h.gch *.log *.log.0
+	@rm -rf *.o *.h.gch *.log *.log.0 LBeacon
