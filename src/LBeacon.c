@@ -40,7 +40,6 @@
 
       Han Wang, hollywang@iis.sinica.edu.tw
       Jake Lee, jakelee@iis.sinica.edu.tw
-      Johnson Su, johnsonsu@iis.sinica.edu.tw
       Joey Zhou, joeyzhou@iis.sinica.edu.tw
       Kenneth Tang, kennethtang@iis.sinica.edu.tw
       James Huamg, jameshuang@iis.sinica.edu.tw
@@ -910,14 +909,14 @@ void *manage_communication(void) {
 
                   /* Error of call back function, set network_is_down to
                   true */
-                  network_is_down == true;
+                  network_is_down = true;
 
                 break;
 
             default:
 
                 /* Error happened. set network_is_down to true */
-                network_is_down == true;
+                network_is_down = true;
 
                 break;
 
@@ -1259,7 +1258,7 @@ void *start_ble_scanning(void){
     sigaction(SIGINT, &sa, NULL);
 
     bool keep_scanning = true;
-    while(keep_scanning = true){
+    while(true == keep_scanning){
 
         while (read(socket, ble_buffer, sizeof(ble_buffer)) < 0) {
 
@@ -2162,7 +2161,7 @@ void *send_file(void *id) {
     int device_id;
 
 
-    while (send_message_cancelled = false) {
+    while (false == send_message_cancelled) {
 
         for (device_id = 0; device_id < maximum_number_of_devices;
             device_id++) {
