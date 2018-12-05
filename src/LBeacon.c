@@ -318,7 +318,7 @@ struct ScannedDevice *check_is_in_list(char address[],
 
 
     /* If there is no node in the list, reutrn NULL directly. */
-    if(&list->list_entry.next == &list->list_entry.prev){
+    if(list->list_entry.next == list->list_entry.prev){
 
         return NULL;
 
@@ -644,6 +644,7 @@ ErrorCode disable_advertising() {
 
 
 void *stop_broadcast(void *beacon_location) {
+    printf(">> stop_broadcast\n");
 
     int enable_advertising_success =
         enable_advertising(ADVERTISING_INTERVAL, beacon_location,
@@ -666,7 +667,7 @@ void *stop_broadcast(void *beacon_location) {
 
         perror("Hit ctrl-c to stop advertising");
 
-        while (g_done == false) {
+        while (false == g_done) {
             sleep(1);
         }
 
@@ -680,7 +681,7 @@ void *stop_broadcast(void *beacon_location) {
 
         return;
     }
-
+    printf("<< stop_broadcast\n");
 }
 
 
@@ -688,20 +689,20 @@ void *stop_broadcast(void *beacon_location) {
 
 
 void *cleanup_scanned_list(void) {
-
+    printf(">> cleanup_scanned_list\n");
 
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
 
-    while (ready_to_work == true) {
+    while (false == g_done && true == ready_to_work) {
 
 
         /*Check whether the list is empty */
-        while(&scanned_list_head.list_entry.next
-              == &scanned_list_head.list_entry.prev){
+        while(false == g_done && 
+		scanned_list_head.list_entry.next == 
+			scanned_list_head.list_entry.prev){
 
             sleep(TIMEOUT_WAITING);
-
         }
 
        pthread_mutex_lock(&list_lock);
@@ -712,24 +713,19 @@ void *cleanup_scanned_list(void) {
                            &scanned_list_head.list_entry){
 
 
-
             temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
-
 
             /* If the device has been in the scanned list for at least 30
             seconds, remove its struct node from the scanned list */
             if (get_system_time() - temp->initial_scanned_time > TIMEOUT) {
 
-       
                 remove_list_node(&temp->sc_list_entry);
 
                 /* If the node no longer is in the tracked_BR_object_lists,
                 free the space back to the memory pool. */
               
-
-                if(&temp->tr_list_entry.next
-                                        == &temp->tr_list_entry.prev){
-
+                if(temp->tr_list_entry.next
+                                        == temp->tr_list_entry.prev){
                   mp_free(&mempool, temp);
 
                 }
@@ -744,7 +740,7 @@ void *cleanup_scanned_list(void) {
 
     }
 
-
+    printf("<< cleanup_scanned_list\n");
     return;
 
 }
@@ -753,6 +749,7 @@ void *cleanup_scanned_list(void) {
 
 
 void *manage_communication(void) {
+    printf(">> manage_communication\n");
 
     Threadpool thpool;
     FILE *br_object_file, *ble_object_file;
@@ -774,7 +771,7 @@ void *manage_communication(void) {
 
     }
 
-    while(ready_to_work == true){
+    while(false == g_done && true == ready_to_work){
 
 
         /* Check call back from the gateway. If not polled by gateway, sleep
@@ -784,7 +781,7 @@ void *manage_communication(void) {
         polled_type = receive_call_back();
 
 
-        while(polled_type == NOT_YET_POLLED){
+        while(false == g_done && polled_type == NOT_YET_POLLED){
 
 #ifdef Debugging
 
@@ -933,7 +930,7 @@ void *manage_communication(void) {
 
     /* Free the thread pool */
     thpool_destroy(thpool);
-
+    printf("<< manage_communication\n");
     return;
 
 }
@@ -1115,7 +1112,7 @@ void free_list(List_Entry *list_entry, DeviceType device_type){
 
             /* If the node is no longer in scanned list, return the space
              back to the memory pool. */
-            if(&temp->sc_list_entry.next == &temp->sc_list_entry.prev){
+            if(temp->sc_list_entry.next == temp->sc_list_entry.prev){
 
                 mp_free(&mempool, temp);
 
@@ -1126,13 +1123,6 @@ void free_list(List_Entry *list_entry, DeviceType device_type){
     }
 
     return;
-}
-
-static volatile int signal_received = 0;
-static void sigint_handler(int sig)
-{
-    signal_received = sig;
-    g_done = true;
 }
 
 /* A static function for prase the name from the BLE device. */
@@ -1177,6 +1167,7 @@ failed:
 
 void *start_ble_scanning(void){
 
+    printf(">> start_ble_scanning\n");
     unsigned char ble_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the
                                                       callback event */
     unsigned char *ble_buffer_pointer; /*A pointer for the event buffer */
@@ -1187,7 +1178,6 @@ void *start_ble_scanning(void){
     socklen_t olen;
     evt_le_meta_event *meta;
     le_advertising_info *info;
-    struct sigaction sa;
     char addr[18];
 
     /* Open Bluetooth device */
@@ -1225,8 +1215,6 @@ void *start_ble_scanning(void){
 
     }
 
-    printf("LE Scan ...\n");
-
     olen = sizeof(original_filiter);
     if(0 > getsockopt(socket, SOL_HCI, HCI_FILTER, &original_filiter, &olen))
     {
@@ -1252,22 +1240,10 @@ void *start_ble_scanning(void){
 
     }
 
-    memset(&sa, 0, sizeof(sa));
-    sa.sa_flags = SA_NOCLDSTOP;
-    sa.sa_handler = sigint_handler;
-    sigaction(SIGINT, &sa, NULL);
-
     bool keep_scanning = true;
-    while(true == keep_scanning){
+    while(false == g_done && true == keep_scanning){
 
-        while (read(socket, ble_buffer, sizeof(ble_buffer)) < 0) {
-
-            if ((errno == EINTR && signal_received == SIGINT) ||
-                (errno == EAGAIN || errno == EINTR)) {
-
-                keep_scanning = false;
-
-            }
+        while (false == g_done && read(socket, ble_buffer, sizeof(ble_buffer)) < 0) {
 
         }
 
@@ -1295,12 +1271,14 @@ void *start_ble_scanning(void){
         }
 
     }
+    printf("<< start_ble_scanning\n");
 
 }
 
 
 void *start_br_scanning(void) {
 
+    printf(">> start_br_scanning\n");
 
     struct hci_filter filter; /*Filter for controling the events*/
     struct pollfd output; /*A callback event from the socket */
@@ -1319,7 +1297,7 @@ void *start_br_scanning(void) {
     int results; /*Return the result form the socket */
     int results_id; /*ID of the result */
 
-    while(ready_to_work == true){
+    while(false == g_done && true == ready_to_work){
 
         /* Open Bluetooth device */
         dongle_device_id = hci_get_route(NULL);
@@ -1411,7 +1389,7 @@ void *start_br_scanning(void) {
 
         bool keep_scanning = true;
 
-        while (keep_scanning == true) {
+        while (false == g_done && true == keep_scanning) {
 
             output.revents = 0;
             /* Poll the bluetooth device for an event */
@@ -1502,18 +1480,20 @@ void *start_br_scanning(void) {
 
     }//end while
 
+    printf("<< start_br_scanning\n");
 
     return;
 }
 
 void *timeout_cleanup(void){
 
+    printf(">> timeout_cleanup\n");
     /* Create a temporary node and set as the head */
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
     long long start_time = get_system_time();
 
-    while(ready_to_work == true){
+    while(false == g_done && true == ready_to_work){
 
         /* In the normal situation, this function would keep sleeping, not
         be executed. */
@@ -1521,7 +1501,7 @@ void *timeout_cleanup(void){
 
         /* If the network is down, set a timer to count down the specific time.
         When timer expires, clean up and remove all the node. */
-        while(network_is_down == true){
+        while(false == g_done && true == network_is_down){
 
           if(start_time - get_system_time() >= A_SHORT_TIME){
 
@@ -1542,15 +1522,9 @@ void *timeout_cleanup(void){
 
                       remove_list_node(&temp->sc_list_entry);
 
-                      /* Make sure that the node is removed from the
-                      tracked_BR_object_list. */
-                      if(temp->tr_list_entry.next != temp->tr_list_entry.prev){
-
-                          remove_list_node(&temp->tr_list_entry);
-
+                      if(temp->tr_list_entry.next == temp->tr_list_entry.prev){
+                      	  mp_free(&mempool, temp);
                       }
-
-                      mp_free(&mempool, temp);
 
                   }
 
@@ -1572,7 +1546,9 @@ void *timeout_cleanup(void){
 
                       remove_list_node(list_pointers);
 
-                      mp_free(&mempool, temp);
+                      if(temp->sc_list_entry.next == temp->sc_list_entry.prev){
+                      	  mp_free(&mempool, temp);
+                      }
 
                   }
 
@@ -1612,6 +1588,7 @@ void *timeout_cleanup(void){
 
     }
 
+    printf("<< cleanup_exit\n");
     return;
 
 }
@@ -1639,6 +1616,7 @@ ErrorCode startThread(pthread_t *threads ,
 
 void cleanup_exit(){
 
+    printf(">> cleanup_exit\n");
     /* Create a temporary node and set as the head */
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
@@ -1655,8 +1633,13 @@ void cleanup_exit(){
 
             temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
             remove_list_node(list_pointers);
+            
+            /* Make sure that the node is removed from the
+			tracked_BR_object_list. */
+            if(temp->tr_list_entry.next != temp->tr_list_entry.prev){
+		remove_list_node(&temp->tr_list_entry);
+            }
             mp_free(&mempool, temp);
-
         }
 
         list_for_each_safe(list_pointers,
@@ -1665,8 +1648,23 @@ void cleanup_exit(){
 
             temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
             remove_list_node(list_pointers);
+            /* Make sure that the node is removed from the
+			scanned_list. */
+            if(temp->tr_list_entry.next != temp->sc_list_entry.prev){
+		remove_list_node(&temp->sc_list_entry);
+            }
             mp_free(&mempool, temp);
 
+        }
+        
+	list_for_each_safe(list_pointers,
+                      save_list_pointers,
+                      &BLE_object_list_head.list_entry){
+
+            temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+            remove_list_node(list_pointers);
+            
+	    mp_free(&mempool, temp);
         }
 
         mp_destroy(&mempool);
@@ -1676,6 +1674,7 @@ void cleanup_exit(){
 
     /* Release the handler for Bluetooth */
     free(g_push_file_path);
+    printf("<< cleanup_exit\n");
 
     return;
 
@@ -1684,6 +1683,7 @@ void cleanup_exit(){
 
 int main(int argc, char **argv) {
 
+    printf(">> main\n");
     /* An iterator through the list of ScannedDevice structs */
     int device_id;
 
@@ -2046,6 +2046,7 @@ int main(int argc, char **argv) {
 
     cleanup_exit();
 
+    printf("<< main\n");
 
     return 0;
 }
@@ -2161,7 +2162,7 @@ void *send_file(void *id) {
     int device_id;
 
 
-    while (false == send_message_cancelled) {
+    while (false == g_done && false == send_message_cancelled) {
 
         for (device_id = 0; device_id < maximum_number_of_devices;
             device_id++) {
