@@ -301,8 +301,7 @@ struct ScannedDevice *check_is_in_list(char address[],
 
     /* Create a temporary list pointer and set as the head */
     struct List_Entry *list_pointers;
-    ScannedDevice *temp;
-
+    ScannedDevice *temp = NULL;
 
     /* If there is no node in the list, reutrn NULL directly. */
     if(list->list_entry.next == list->list_entry.prev){
@@ -315,7 +314,6 @@ struct ScannedDevice *check_is_in_list(char address[],
     
     /* Go through list */
     list_for_each(list_pointers, &list->list_entry) {
-
         /* According to the device type stored in the list, get the specific
         data */
         switch(list->device_type){
@@ -348,16 +346,12 @@ struct ScannedDevice *check_is_in_list(char address[],
 
             /* Update the final scan time */
             temp->final_scanned_time = get_system_time();
-            
-	    return temp;
-
+	    break;          
         }
-
     }
     pthread_mutex_unlock(&list_lock);
 
-    /* Input MAC address is new */
-    return NULL;
+    return temp;
 }
 
 
@@ -697,8 +691,6 @@ void *cleanup_scanned_list(void) {
     ScannedDevice *temp;
 
     while (false == g_done && true == ready_to_work) {
-
-
         /*Check whether the list is empty */
         while(false == g_done && 
 		scanned_list_head.list_entry.next == 
@@ -707,17 +699,15 @@ void *cleanup_scanned_list(void) {
             sleep(TIMEOUT_WAITING);
         }
 
-
         /* Go through list */
         pthread_mutex_lock(&list_lock);
-       
-        list_for_each_safe(list_pointers,
+        
+	list_for_each_safe(list_pointers,
                            save_list_pointers,
                            &scanned_list_head.list_entry){
 
 
             temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
-
             /* If the device has been in the scanned list for at least 30
             seconds, remove its struct node from the scanned list */
             if (get_system_time() - temp->initial_scanned_time > TIMEOUT) {
@@ -739,7 +729,7 @@ void *cleanup_scanned_list(void) {
             }
         }
 	pthread_mutex_unlock(&list_lock);
-    }
+    }//#end while
 
     #ifdef Debugging
         zlog_debug(category_debug,
@@ -1251,9 +1241,7 @@ void *start_ble_scanning(void){
 
     bool keep_scanning = true;
     while(false == g_done && true == keep_scanning){
-
         while (false == g_done && read(socket, ble_buffer, sizeof(ble_buffer)) < 0) {
-
         }
 
         ble_buffer_pointer = ble_buffer + (1 + HCI_EVENT_HDR_SIZE);
@@ -1272,11 +1260,8 @@ void *start_ble_scanning(void){
                             name, sizeof(name) - 1);
 
         if(strcmp(name, "")!= 0){
-
             printf("BLE: %s %s \n", addr, name);
             send_to_push_dongle(&info->bdaddr, true);
-
-
         }
 
     }
@@ -1312,7 +1297,6 @@ void *start_br_scanning(void) {
     int results_id; /*ID of the result */
 
     while(false == g_done && true == ready_to_work){
-
         /* Open Bluetooth device */
         dongle_device_id = hci_get_route(NULL);
         socket = hci_open_dev(dongle_device_id);
@@ -1375,9 +1359,7 @@ void *start_br_scanning(void) {
         inquiry_copy.length = 0x30;
 
 #ifdef Debugging
-
         zlog_debug(category_debug, "Starting inquiry with RSSI...");
-
 #endif
 
 
@@ -1404,7 +1386,6 @@ void *start_br_scanning(void) {
         bool keep_scanning = true;
 
         while (false == g_done && true == keep_scanning) {
-
             output.revents = 0;
             /* Poll the bluetooth device for an event */
             if (0 < poll(&output, 1, -1)) {
@@ -1485,9 +1466,7 @@ void *start_br_scanning(void) {
         } //end while
 
 #ifdef Debugging
-
         zlog_debug(category_debug, "Scanning done");
-
 #endif
 
         close(socket);
@@ -1539,7 +1518,6 @@ void *timeout_cleanup(void){
 
 		      temp = ListEntry(list_pointers, ScannedDevice,
                                        sc_list_entry);
-
                       remove_list_node(&temp->sc_list_entry);
 
                       if(temp->tr_list_entry.next == temp->tr_list_entry.prev){
@@ -1561,6 +1539,7 @@ void *timeout_cleanup(void){
                       temp = ListEntry(list_pointers, ScannedDevice,
                                        tr_list_entry);
                       
+                      remove_list_node(&temp->sc_list_entry);
 		      remove_list_node(list_pointers);
 
                       if(temp->sc_list_entry.next == temp->sc_list_entry.prev){
@@ -1649,7 +1628,6 @@ void cleanup_exit(){
 	list_for_each_safe(list_pointers,
                        save_list_pointers,
                        &scanned_list_head.list_entry){
-
             
 	    temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
             
@@ -1667,6 +1645,7 @@ void cleanup_exit(){
                       save_list_pointers,
                       &BR_object_list_head.list_entry){
 
+
             temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
             
 	    remove_list_node(list_pointers);
@@ -1681,6 +1660,7 @@ void cleanup_exit(){
 	list_for_each_safe(list_pointers,
                       save_list_pointers,
                       &BLE_object_list_head.list_entry){
+
 
 	    temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
             
