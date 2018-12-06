@@ -644,7 +644,10 @@ ErrorCode disable_advertising() {
 
 
 void *stop_broadcast(void *beacon_location) {
-    printf(">> stop_broadcast\n");
+    #ifdef Debugging
+        zlog_debug(category_debug,
+                    ">> stop_broadcast ");
+    #endif
 
     int enable_advertising_success =
         enable_advertising(ADVERTISING_INTERVAL, beacon_location,
@@ -681,7 +684,10 @@ void *stop_broadcast(void *beacon_location) {
 
         return;
     }
-    printf("<< stop_broadcast\n");
+    #ifdef Debugging
+        zlog_debug(category_debug,
+                    "<< stop_broadcast ");
+    #endif
 }
 
 
@@ -689,7 +695,10 @@ void *stop_broadcast(void *beacon_location) {
 
 
 void *cleanup_scanned_list(void) {
-    printf(">> cleanup_scanned_list\n");
+    #ifdef Debugging
+        zlog_debug(category_debug,
+                    ">> cleanup_scanned_list ");
+    #endif
 
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
@@ -705,7 +714,6 @@ void *cleanup_scanned_list(void) {
             sleep(TIMEOUT_WAITING);
         }
 
-       pthread_mutex_lock(&list_lock);
 
         /* Go through list */
         list_for_each_safe(list_pointers,
@@ -719,7 +727,11 @@ void *cleanup_scanned_list(void) {
             seconds, remove its struct node from the scanned list */
             if (get_system_time() - temp->initial_scanned_time > TIMEOUT) {
 
-                remove_list_node(&temp->sc_list_entry);
+       	        pthread_mutex_lock(&list_lock);
+                
+		remove_list_node(&temp->sc_list_entry);
+        
+		pthread_mutex_unlock(&list_lock);
 
                 /* If the node no longer is in the tracked_BR_object_lists,
                 free the space back to the memory pool. */
@@ -735,12 +747,12 @@ void *cleanup_scanned_list(void) {
                 continue;
             }
         }
-
-        pthread_mutex_unlock(&list_lock);
-
     }
 
-    printf("<< cleanup_scanned_list\n");
+    #ifdef Debugging
+        zlog_debug(category_debug,
+                    "<< cleanup_scanned_list ");
+    #endif
     return;
 
 }
@@ -749,7 +761,10 @@ void *cleanup_scanned_list(void) {
 
 
 void *manage_communication(void) {
-    printf(">> manage_communication\n");
+    #ifdef Debugging
+        zlog_debug(category_debug,
+                    ">> manage_communication ");
+    #endif
 
     Threadpool thpool;
     FILE *br_object_file, *ble_object_file;
@@ -930,7 +945,10 @@ void *manage_communication(void) {
 
     /* Free the thread pool */
     thpool_destroy(thpool);
-    printf("<< manage_communication\n");
+    #ifdef Debugging
+        zlog_debug(category_debug,
+                    "<< manage_communication ");
+    #endif
     return;
 
 }
@@ -1072,13 +1090,9 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
 
     }
 
-    pthread_mutex_lock(&list_lock);
-
     /* Remove nodes from the local list and release memory allocated to
        nodes that are also not in scanned_device_list */
     free_list(&local_object_list_head, device_type);
-
-    pthread_mutex_unlock(&list_lock);
 
     /* Close the file for storing data in the input list */
     fclose(track_file);
@@ -1099,10 +1113,13 @@ void free_list(List_Entry *list_entry, DeviceType device_type){
                        save_list_pointers,
                        list_entry){
 
-
         temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+        
+	pthread_mutex_lock(&list_lock);
 
         remove_list_node(list_pointers);
+    	
+	pthread_mutex_unlock(&list_lock);
 
         if(device_type == BLE){
 
@@ -1119,9 +1136,7 @@ void free_list(List_Entry *list_entry, DeviceType device_type){
             }
 
         }
-
     }
-
     return;
 }
 
@@ -1167,7 +1182,10 @@ failed:
 
 void *start_ble_scanning(void){
 
-    printf(">> start_ble_scanning\n");
+#ifdef Debugging
+        zlog_debug(category_debug, 
+		">> start_ble_scanning... ");
+#endif
     unsigned char ble_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the
                                                       callback event */
     unsigned char *ble_buffer_pointer; /*A pointer for the event buffer */
@@ -1271,14 +1289,19 @@ void *start_ble_scanning(void){
         }
 
     }
-    printf("<< start_ble_scanning\n");
+#ifdef Debugging
+        zlog_debug(category_debug, 
+		"<< start_ble_scanning... ");
+#endif
 
 }
 
 
 void *start_br_scanning(void) {
-
-    printf(">> start_br_scanning\n");
+#ifdef Debugging
+        zlog_debug(category_debug, 
+		">> start_br_scanning... ");
+#endif
 
     struct hci_filter filter; /*Filter for controling the events*/
     struct pollfd output; /*A callback event from the socket */
@@ -1480,14 +1503,20 @@ void *start_br_scanning(void) {
 
     }//end while
 
-    printf("<< start_br_scanning\n");
+#ifdef Debugging
+        zlog_debug(category_debug, 
+		"<< start_br_scanning... ");
+#endif
 
     return;
 }
 
 void *timeout_cleanup(void){
 
-    printf(">> timeout_cleanup\n");
+#ifdef Debugging
+        zlog_debug(category_debug, 
+		">> timeout_cleanup... ");
+#endif
     /* Create a temporary node and set as the head */
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
@@ -1509,33 +1538,31 @@ void *timeout_cleanup(void){
               if(scanned_list_head.list_entry.next
                  != scanned_list_head.list_entry.prev){
 
-                  pthread_mutex_lock(&list_lock);
-
                   /* Go throgth lists to release all memory allocated to the
                   nodes */
                   list_for_each_safe(list_pointers,
                                      save_list_pointers,
                                      &scanned_list_head.list_entry){
 
-                      temp = ListEntry(list_pointers, ScannedDevice,
+		      temp = ListEntry(list_pointers, ScannedDevice,
                                        sc_list_entry);
 
+                      pthread_mutex_lock(&list_lock);
+                      
                       remove_list_node(&temp->sc_list_entry);
 
+                      pthread_mutex_unlock(&list_lock);
+                      
                       if(temp->tr_list_entry.next == temp->tr_list_entry.prev){
                       	  mp_free(&mempool, temp);
                       }
-
                   }
 
-                  pthread_mutex_unlock(&list_lock);
 
               }
 
               if(BR_object_list_head.list_entry.next
                  != BR_object_list_head.list_entry.prev){
-
-                  pthread_mutex_lock(&list_lock);
 
                   list_for_each_safe(list_pointers,
                                      save_list_pointers,
@@ -1544,23 +1571,23 @@ void *timeout_cleanup(void){
                       temp = ListEntry(list_pointers, ScannedDevice,
                                        tr_list_entry);
 
-                      remove_list_node(list_pointers);
+                      pthread_mutex_lock(&list_lock);
+                      
+		      remove_list_node(list_pointers);
+                      
+		      pthread_mutex_unlock(&list_lock);
 
                       if(temp->sc_list_entry.next == temp->sc_list_entry.prev){
                       	  mp_free(&mempool, temp);
                       }
 
                   }
-
-                  pthread_mutex_unlock(&list_lock);
-
               }
 
 
               if(BLE_object_list_head.list_entry.next
                 != BLE_object_list_head.list_entry.prev){
 
-                  pthread_mutex_lock(&list_lock);
 
                   list_for_each_safe(list_pointers,
                                      save_list_pointers,
@@ -1569,14 +1596,15 @@ void *timeout_cleanup(void){
                       temp = ListEntry(list_pointers, ScannedDevice,
                                        tr_list_entry);
 
-                      remove_list_node(list_pointers);
+                      pthread_mutex_lock(&list_lock);
+                      
+		      remove_list_node(list_pointers);
+                      
+		      pthread_mutex_unlock(&list_lock);
 
                       mp_free(&mempool, temp);
 
                   }
-
-                  pthread_mutex_unlock(&list_lock);
-
               }
 
               start_time = get_system_time();
@@ -1588,7 +1616,10 @@ void *timeout_cleanup(void){
 
     }
 
-    printf("<< cleanup_exit\n");
+#ifdef Debugging
+        zlog_debug(category_debug, 
+		"<< timeout_cleanup... ");
+#endif
     return;
 
 }
@@ -1616,7 +1647,10 @@ ErrorCode startThread(pthread_t *threads ,
 
 void cleanup_exit(){
 
-    printf(">> cleanup_exit\n");
+#ifdef Debugging
+        zlog_debug(category_debug, 
+		">> cleanup_exit... ");
+#endif
     /* Create a temporary node and set as the head */
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
@@ -1631,38 +1665,55 @@ void cleanup_exit(){
                        save_list_pointers,
                        &scanned_list_head.list_entry){
 
-            temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
-            remove_list_node(list_pointers);
+            
+	    temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
+            
+	    pthread_mutex_lock(&list_lock);
+            
+	    remove_list_node(list_pointers);
             
             /* Make sure that the node is removed from the
 			tracked_BR_object_list. */
             if(temp->tr_list_entry.next != temp->tr_list_entry.prev){
 		remove_list_node(&temp->tr_list_entry);
             }
-            mp_free(&mempool, temp);
-        }
+         
+	    pthread_mutex_unlock(&list_lock);
+         
+	    mp_free(&mempool, temp);
+	}            
 
         list_for_each_safe(list_pointers,
                       save_list_pointers,
                       &BR_object_list_head.list_entry){
 
             temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
-            remove_list_node(list_pointers);
+            
+	    pthread_mutex_lock(&list_lock);
+            
+	    remove_list_node(list_pointers);
             /* Make sure that the node is removed from the
 			scanned_list. */
             if(temp->tr_list_entry.next != temp->sc_list_entry.prev){
 		remove_list_node(&temp->sc_list_entry);
             }
+            
+	    pthread_mutex_unlock(&list_lock);
+            
             mp_free(&mempool, temp);
-
         }
         
 	list_for_each_safe(list_pointers,
                       save_list_pointers,
                       &BLE_object_list_head.list_entry){
 
-            temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
-            remove_list_node(list_pointers);
+	    temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+            
+	    pthread_mutex_lock(&list_lock);
+            
+	    remove_list_node(list_pointers);
+            
+	    pthread_mutex_unlock(&list_lock);
             
 	    mp_free(&mempool, temp);
         }
@@ -1674,7 +1725,10 @@ void cleanup_exit(){
 
     /* Release the handler for Bluetooth */
     free(g_push_file_path);
-    printf("<< cleanup_exit\n");
+#ifdef Debugging
+        zlog_debug(category_debug, 
+		"<< cleanup_exit... ");
+#endif
 
     return;
 
@@ -1683,7 +1737,10 @@ void cleanup_exit(){
 
 int main(int argc, char **argv) {
 
-    printf(">> main\n");
+#ifdef Debugging
+        zlog_debug(category_debug, 
+		">> main... ");
+#endif
     /* An iterator through the list of ScannedDevice structs */
     int device_id;
 
@@ -2046,7 +2103,10 @@ int main(int argc, char **argv) {
 
     cleanup_exit();
 
-    printf("<< main\n");
+#ifdef Debugging
+        zlog_debug(category_debug, 
+		"<< main... ");
+#endif
 
     return 0;
 }
