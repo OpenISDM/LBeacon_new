@@ -303,8 +303,12 @@ struct ScannedDevice *check_is_in_list(char address[],
     struct List_Entry *list_pointers;
     ScannedDevice *temp = NULL;
 
+    
+    int number_in_list = get_list_length(&list->list_entry);
+   
     /* If there is no node in the list, reutrn NULL directly. */
-    if(list->list_entry.next == list->list_entry.prev){
+    if(list->list_entry.next == list->list_entry.prev &&
+	list->list_entry.next == &list->list_entry){
 
         return NULL;
 
@@ -677,10 +681,6 @@ void *stop_broadcast(void *beacon_location) {
     #endif
 }
 
-
-
-
-
 void *cleanup_scanned_list(void) {
     #ifdef Debugging
         zlog_debug(category_debug,
@@ -693,8 +693,10 @@ void *cleanup_scanned_list(void) {
     while (false == g_done && true == ready_to_work) {
         /*Check whether the list is empty */
         while(false == g_done && 
-		scanned_list_head.list_entry.next == 
-			scanned_list_head.list_entry.prev){
+	    	scanned_list_head.list_entry.next == 
+			scanned_list_head.list_entry.prev &&
+                scanned_list_head.list_entry.next ==
+			&scanned_list_head.list_entry){
 
             sleep(TIMEOUT_WAITING);
         }
@@ -717,8 +719,10 @@ void *cleanup_scanned_list(void) {
                 /* If the node no longer is in the tracked_BR_object_lists,
                 free the space back to the memory pool. */
               
-                if(temp->tr_list_entry.next
-                                        == temp->tr_list_entry.prev){
+                if(temp->tr_list_entry.next == 
+			temp->tr_list_entry.prev && 
+		   temp->tr_list_entry.next == 
+			&temp->tr_list_entry){
                   mp_free(&mempool, temp);
 
                 }
@@ -1108,7 +1112,8 @@ void free_list(List_Entry *list_entry, DeviceType device_type){
 
             /* If the node is no longer in scanned list, return the space
              back to the memory pool. */
-            if(temp->sc_list_entry.next == temp->sc_list_entry.prev){
+            if(temp->sc_list_entry.next == temp->sc_list_entry.prev &&
+		temp->sc_list_entry.next == &temp->sc_list_entry){
 
                 mp_free(&mempool, temp);
 
@@ -1520,7 +1525,8 @@ void *timeout_cleanup(void){
                                        sc_list_entry);
                       remove_list_node(&temp->sc_list_entry);
 
-                      if(temp->tr_list_entry.next == temp->tr_list_entry.prev){
+                      if(temp->tr_list_entry.next == temp->tr_list_entry.prev && 
+				temp->tr_list_entry.next == &temp->tr_list_entry){
                       	  mp_free(&mempool, temp);
                       }
                   }
@@ -1542,7 +1548,8 @@ void *timeout_cleanup(void){
                       remove_list_node(&temp->sc_list_entry);
 		      remove_list_node(list_pointers);
 
-                      if(temp->sc_list_entry.next == temp->sc_list_entry.prev){
+                      if(temp->sc_list_entry.next == temp->sc_list_entry.prev && 
+				temp->sc_list_entry.next == &temp->sc_list_entry){
                       	  mp_free(&mempool, temp);
                       }
                   }
