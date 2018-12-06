@@ -646,21 +646,6 @@ void *stop_broadcast(void *beacon_location) {
 
     if (enable_advertising_success == 0) {
 
-        struct sigaction sigint_handler;
-        sigint_handler.sa_handler = ctrlc_handler;
-        sigemptyset(&sigint_handler.sa_mask);
-        sigint_handler.sa_flags = 0;
-
-        if (sigaction(SIGINT, &sigint_handler, NULL) == -1) {
-
-            /* Error handling */
-            perror("sigaction error");
-            zlog_info(category_health_report, "sigaction error");
-            return;
-        }
-
-        perror("Hit ctrl-c to stop advertising");
-
         while (false == g_done) {
             sleep(1);
         }
@@ -1844,6 +1829,24 @@ int main(int argc, char **argv) {
 
     strcpy(g_config.uuid, hex_c);
 
+
+    struct sigaction sigint_handler;
+    sigint_handler.sa_handler = ctrlc_handler;
+    sigemptyset(&sigint_handler.sa_mask);
+    sigint_handler.sa_flags = 0;
+
+    if (sigaction(SIGINT, &sigint_handler, NULL) == -1) {
+
+    	/* Error handling */
+        perror("sigaction error");
+#ifdef Debugging
+        zlog_debug(category_debug, 
+		"sigaction error");
+#endif
+        return;
+    }
+
+        perror("Hit ctrl-c to stop advertising");
     /* Create the thread for advertising to bluetooth devices */
     pthread_t stop_broadcast_thread;
 
@@ -2062,6 +2065,8 @@ int main(int argc, char **argv) {
     }
 
     cleanup_exit();
+
+    pthread_mutex_destroy(&list_lock);
 
 #ifdef Debugging
         zlog_debug(category_debug, 
