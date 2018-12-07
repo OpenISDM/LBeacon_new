@@ -35,9 +35,10 @@
      Jake Lee, jakelee@iis.sinica.edu.tw
      Johnson Su, johnsonsu@iis.sinica.edu.tw
      Shirley Huang, shirley.huang.93@gmail.com
+     Han Hu, hhu14@illinois.edu
+     Jeffrey Lin, lin.jeff03@gmail.com
      Howard Hsu, haohsu0823@gmail.com
      Gary Xiao, garyh0205@hotmail.com
-     Holly Wang, hollywang@iis.sinica.edu.tw
  */
 
 

@@ -9,7 +9,7 @@
 
  Project Name:
 
-      BeDIS
+      BeDIPS
 
  File Description:
 
@@ -26,7 +26,7 @@
 
  Abstract:
 
-      BeDIS uses LBeacons to deliver 3D coordinates and textual
+      BeDIPS uses LBeacons to deliver 3D coordinates and textual
       descriptions of their locations to users' devices. Basically, a
       LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
       coordinates and location description of every LBeacon are retrieved
@@ -46,7 +46,7 @@
 #include "Communication.h"
 #define Debugging
 
-ErrorCode_Xbee zigbee_init(){
+ErrorCode zigbee_init(){
 
     /* The error indicator returns from the libxbee library */
     int error_indicator;
@@ -106,7 +106,7 @@ ErrorCode_Xbee zigbee_init(){
         return E_XBEE_VALIDATE;
     }
 
-    return XBEE_SUCCESSFULLY;
+    return WORK_SUCCESSFULLY;
 }
 
 
@@ -120,7 +120,7 @@ int receive_call_back(){
       zlog_info(category_health_report,
                 errorxcode[E_CALL_BACK].message);
       */
-      return E_CALL_BACK;
+      return E_ZIGBEE_CALL_BACK;
 
     };
 
@@ -171,6 +171,9 @@ void *zigbee_send_file(char *zig_message){
     xbee_connector(&xbee_config);
 
     usleep(XBEE_TIMEOUT);
+
+
+   return;
 }
 
 

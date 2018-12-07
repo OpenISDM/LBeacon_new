@@ -35,9 +35,10 @@
      Jake Lee, jakelee@iis.sinica.edu.tw
      Johnson Su, johnsonsu@iis.sinica.edu.tw
      Shirley Huang, shirley.huang.93@gmail.com
+     Han Hu, hhu14@illinois.edu
+     Jeffrey Lin, lin.jeff03@gmail.com
      Howard Hsu, haohsu0823@gmail.com
      Gary Xiao, garyh0205@hotmail.com
-     Holly Wang, hollywang@iis.sinica.edu.tw
  */
 
 
@@ -78,8 +79,9 @@ unsigned int twoc(int in, int t) {
 }
 
 
-void ctrlc_handler(int stop) { g_done = true; }
-
+void ctrlc_handler(int stop) {
+    g_done = true;
+}
 
 ErrorCode startThread(pthread_t *threads ,void *( *thfunct)(void *), void *arg){
 

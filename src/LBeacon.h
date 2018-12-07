@@ -85,7 +85,6 @@ Authors:
 #include "thpool.h"
 
 
-
 #ifndef LBEACON_H
 #define LBEACON_H
 /*
@@ -110,6 +109,12 @@ Authors:
 /* The category defined for the printf during debugging */
 #define LOG_CATEGORY_DEBUG "LBeacon_Debug"
 
+/* Maximum number of characters in each line of config file */
+#define CONFIG_BUFFER_SIZE 64
+
+/* Parameter that marks the start of the config file */
+#define DELIMITER "="
+
 /* BlueZ bluetooth extended inquiry response protocol: flags */
 #define EIR_FLAGS 0X01
 
@@ -129,23 +134,47 @@ Authors:
 /* Length in number of chars used for basic information */
 #define LENGTH_OF_INFO 128
 
-/* Number of milliseconds in an epoch */
+/* The maxinum length in bytes of the message to be sent over zigbee link */
+#define ZIG_MESSAGE_LENGTH 104
+
+/* Maximum length of message to be sent over WiFi in bytes */
+#define WIFI_MESSAGE_LENGTH 4096
+
+/* Number of bytes in the string format of epoch time */
 #define LENGTH_OF_TIME 10
 
-/* Maximum length of time in milliseconds a bluetooth device
-   stays in the scanned device list
-*/
-#define TIMEOUT 3000
 
-/* Timeout in milliseconds of hci_send_req  */
-#define HCI_SEND_REQUEST_TIMEOUT 1000
+
+/* Time interval in milliseconds of a bluetooth device stays in the
+   scanned device list. This time interval is for
+   cleanup_scanned_list function
+*/
+#define INTERVAL_HANDLE_SCANNED_LIST_IN_MS 30000
+
+/* Timeout in milliseconds of hci_send_req funtion */
+#define HCI_SEND_REQUEST_TIMEOUT_IN_MS 1000
 
 /* Time interval in milliseconds between advertising by a LBeacon */
-#define ADVERTISING_INTERVAL 300
+#define INTERVAL_ADVERTISING_IN_MS 1000
+
+/* Time interval in microseconds for busy-wait checking in threads */
+#define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_US 1000000
+
+/* Time interval in seconds for timeout_cleanup function to cleanup
+all lists. Currently, it is a periodical tasks, and we will change
+this cleanup tasks to be only triggered by network connection failure
+or memory allocations reach threshold situations.
+*/
+#define INTERVAL_FOR_CLEANUP_LISTS_IN_SEC 1800
+
+/* Time interval in microseconds for timeout_cleanup function to wait
+for abnormal network situatins */
+#define INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_MS 5000
+
 
 /* Nominal transmission range limit. Only devices in this RSSI range are
    to be discovered and data sent. */
-#define RSSI_RANGE -80
+#define RSSI_RANGE -70
 
 /* RSSI value of TX power for calibration and broadcast  */
 #define RSSI_VALUE -50
@@ -163,11 +192,17 @@ Authors:
    one time over zigbee link */
 #define MAX_NUM_OBJECTS 2
 
+/* The number of slots in the memory pool */
+#define SLOTS_IN_MEM_POOL 1024
+
+
+
 /* The macro of comparing two integer for minimum */
 #define min(a,b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
+
 
 
 /*
@@ -198,6 +233,7 @@ union {
     unsigned char b[sizeof(float)];
 
 } coordinate_Z;
+
 
 
 /*
@@ -377,7 +413,6 @@ ThreadStatus g_idle_handler[MAX_NUM_OBJECTS];
 */
 ObjectListHead scanned_list_head;
 
-
 /* Head of tracking_BR_object_list that holds the scanned device structs of
    Bluetooth devices discovered in recent scans. The MAC address elements of
    some structs in the list may be identical but their associated timestamps
@@ -385,7 +420,6 @@ ObjectListHead scanned_list_head;
    sent via the gateway to the server to be processed there.
 */
 ObjectListHead BR_object_list_head;
-
 
 /* Head of tracking_BLE_object_list that holds the scanned device structs
    of BLE devices discovered in recent scans. The MAC address elements of
@@ -398,9 +432,21 @@ ObjectListHead BLE_object_list_head;
 
 /* Global flags for communication among threads */
 
+/* A global flag that is initially set to false by the main thread. It is
+set to true when users press Ctrl+C hotkey combinations. All LBeacon thread
+should monitor and observe this flag change and finish their jobs
+accordingly.*/
+bool g_done;
+
+/* A global flag that is initially set to true by the main thread. It is set
+   to false by any thread when the thread encounters a fatal error,
+   indicating that it is about to exit. */
+bool ready_to_work;
+
 /* A global flag that is initially set to false by the main thread. When there
 is any error of the network connection */
 bool network_is_down;
+
 
 /* The memory pool for the allocation of all nodes in scanned device list and
    tracked object lists. */
@@ -409,10 +455,94 @@ Memory_Pool mempool;
 /* The lock that controls access to lists */
 pthread_mutex_t  list_lock;
 
+
+
+/*
+  ERROR CODE
+*/
+
+typedef enum ErrorCode {
+
+    WORK_SUCCESSFULLY = 0,
+    E_MALLOC = 1,
+    E_OPEN_FILE = 2,
+    E_OPEN_DEVICE = 3,
+    E_OPEN_SOCKET = 4,
+    E_SEND_OBEXFTP_CLIENT = 5,
+    E_SEND_CONNECT_DEVICE = 6,
+    E_SEND_PUSH_FILE = 7,
+    E_SEND_DISCONNECT_CLIENT = 8,
+    E_SCAN_SET_HCI_FILTER = 9,
+    E_SCAN_SET_INQUIRY_MODE = 10,
+    E_SCAN_START_INQUIRY = 11,
+    E_SEND_REQUEST_TIMEOUT = 12,
+    E_ADVERTISE_STATUS = 13,
+    E_ADVERTISE_MODE = 14,
+    E_SET_BLE_PARAMETER = 15,
+    E_BLE_ENABLE = 16,
+    E_GET_BLE_SOCKET =17,
+    E_START_THREAD = 18,
+    E_JOIN_THREAD = 19,
+    E_INIT_THREAD_POOL = 20,
+    E_INIT_ZIGBEE = 21,
+    E_ZIGBEE_CONNECT = 22,
+    E_LOG_INIT = 23,
+    E_LOG_GET_CATEGORY = 24,
+    E_EMPTY_FILE = 25,
+    E_INPUT_PARAMETER = 26,
+    E_ADD_WORK_THREAD = 27,
+    E_REG_SIG_HANDLER = 28,
+    MAX_ERROR_CODE = 29
+
+} ErrorCode;
+
+typedef enum ErrorCode error_t;
+
+struct _errordesc {
+    int code;
+    char *message;
+} errordesc[] = {
+
+    {WORK_SUCCESSFULLY, "The code works successfullly"},
+    {E_MALLOC, "Error allocating memory"},
+    {E_OPEN_FILE, "Error opening file"},
+    {E_OPEN_DEVICE, "Error opening the dvice"},
+    {E_OPEN_SOCKET, "Error opening socket"},
+    {E_SEND_OBEXFTP_CLIENT, "Error opening obexftp client"},
+    {E_SEND_CONNECT_DEVICE, "Error connecting to obexftp device"},
+    {E_SEND_PUSH_FILE, "Error pushing file to device"},
+    {E_SEND_DISCONNECT_CLIENT, "Disconnecting the client"},
+    {E_SCAN_SET_HCI_FILTER, "Error setting HCI filter"},
+    {E_SCAN_SET_INQUIRY_MODE, "Error settnig inquiry mode"},
+    {E_SCAN_START_INQUIRY, "Error starting inquiry"},
+    {E_SEND_REQUEST_TIMEOUT, "Sending request timeout"},
+    {E_ADVERTISE_STATUS, "LE set advertise returned status"},
+    {E_ADVERTISE_MODE, "Error setting advertise mode"},
+    {E_SET_BLE_PARAMETER, "Error setting parameters of BLE scanning "},
+    {E_BLE_ENABLE, "Error enabling BLE scanning"},
+    {E_GET_BLE_SOCKET, "Error getting BLE socket options"},
+    {E_START_THREAD, "Error creating thread"},
+    {E_JOIN_THREAD, "Error joining thread"},
+    {E_INIT_THREAD_POOL, "Error initializing thread pool"},
+    {E_INIT_ZIGBEE, "Error initializing the zigbee"},
+    {E_ZIGBEE_CONNECT, "Error zigbee connection"},
+    {E_LOG_INIT, "Error initializing log file"},
+    {E_LOG_GET_CATEGORY, "Error getting log category"},
+    {E_EMPTY_FILE, "Empty file"},
+    {E_INPUT_PARAMETER , "Error of invalid input parameter"},
+    {E_ADD_WORK_THREAD, "Error adding work to the work thread"},
+    {E_REG_SIG_HANDLER, "Error registering signal handler"},
+    {MAX_ERROR_CODE, "The element is invalid"}
+
+};
+
+
+
 /*
   EXTERNAL GLOBAL VARIABLES
 */
 extern int errno;
+
 
 
 /*
@@ -427,15 +557,18 @@ extern int errno;
       global variable.
 
   Parameters:
-
+      config - Config struct including file path, coordinates, etc.
       file_name - the name of the config file that stores all the beacon data
 
   Return value:
 
-      config - Config struct including file path, coordinates, etc.
+      ErrorCode - indicate the result of execution, the expected return code is
+	WORK_SUCCESSFULLY
 */
 
-Config get_config(char *file_name);
+ErrorCode get_config(Config *config, char *file_name);
+
+
 
 
 /*
@@ -455,6 +588,7 @@ Config get_config(char *file_name);
 
       None
 */
+
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi);
 
@@ -471,14 +605,15 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 
   Parameters:
 
-      None
+      param - not used. This parameter is defined to meet the definition of
+              pthread_create() function
 
   Return value:
 
       None
 */
 
-void *start_ble_scanning(void);
+void *start_ble_scanning(void *param);
 
 
 /*
@@ -495,13 +630,15 @@ void *start_ble_scanning(void);
 
   Parameters:
 
-      None
+      param - not used. This parameter is defined to meet the definition of
+              pthread_create() function
 
   Return value:
 
       None
 */
-void *start_br_scanning();
+void *start_br_scanning(void *param);
+
 
 
 /*
@@ -531,7 +668,11 @@ void *start_br_scanning();
 
       None
 */
+
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble);
+
+
+
 
 /*
   check_is_in_list:
@@ -553,8 +694,11 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble);
                the input address.
                or NULL
 */
+
 struct ScannedDevice *check_is_in_list(char address[],
                                        ObjectListHead *list);
+
+
 
 
 /*
@@ -576,6 +720,7 @@ struct ScannedDevice *check_is_in_list(char address[],
                   fails or WORK SUCCESSFULLY otherwise
 
 */
+
 ErrorCode enable_advertising(int advertising_interval,
                              char *advertising_uuid,
                              int rssi_value);
@@ -595,24 +740,8 @@ ErrorCode enable_advertising(int advertising_interval,
       ErrorCode - The error code for the corresponding error if the function
                   fails or WORK SUCCESSFULLY otherwise
 */
+
 ErrorCode disable_advertising();
-
-
-/*
-  stop_broadcast:
-
-      This function allows advertising to be stopped with ctrl-c if a
-      precious call to enable_advertising was a success.
-
-  Parameters:
-
-      beacon_location - advertising uuid
-
-  Return value:
-
-      None
-*/
-void *stop_broadcast(void *beacon_location);
 
 
 /*
@@ -627,13 +756,15 @@ void *stop_broadcast(void *beacon_location);
 
   Parameters:
 
-      None
+      param - not used. This parameter is defined to meet the definition of
+              pthread_create() function
 
   Return value:
 
       None
 */
-void *cleanup_scanned_list(void);
+
+void *cleanup_scanned_list(void *param);
 
 
 /*
@@ -645,14 +776,15 @@ void *cleanup_scanned_list(void);
 
   Parameters:
 
-      None
+      param - not used. This parameter is defined to meet the definition of
+              pthread_create() function
 
   Return value:
 
       None
 */
-void *timeout_cleanup(void);
 
+void *timeout_cleanup(void *param);
 
 
 /*
@@ -667,13 +799,15 @@ void *timeout_cleanup(void);
 
   Parameters:
 
-       None
+      param - not used. This parameter is defined to meet the definition of
+              pthread_create() function
 
   Return value:
 
       None
 */
-void *manage_communication(void);
+
+void *manage_communication(void *param);
 
 
 /*
@@ -700,6 +834,7 @@ void *manage_communication(void);
 ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list);
 
 
+
 /*
   free_list:
 
@@ -716,7 +851,12 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list);
 
       None
 */
+
 void free_list(List_Entry *list_entry, DeviceType device_type);
+
+
+
+
 
 
 /*
@@ -732,12 +872,17 @@ void free_list(List_Entry *list_entry, DeviceType device_type);
 
       None
 */
+
 void cleanup_exit();
+
+
+
 
 
 /*
   EXTERNAL FUNCTIONS
 */
+
 
 
 /*
@@ -774,6 +919,25 @@ extern DIR *opendir(const char *dirname);
 */
 extern obexftp_client_t * obexftp_open(int transport, obex_ctrans_t *ctrans,
     obexftp_info_cb_t infocb, void *infocb_data);
+
+
+/*
+  memset:
+
+      This function is called to fill a block of memory.
+
+  Parameters:
+
+      ptr - the pointer points to the memory area
+      value - the constant byte to replace the memory area
+      number - number of bytes in the memory area starting from ptr to be
+               filled
+
+  Return value:
+
+      dst - a pointer to the memory area
+*/
+extern void * memset(void * ptr, int value, size_t number);
 
 
 /*
@@ -883,6 +1047,80 @@ extern int  hci_send_cmd(int dd, uint16_t ogf, uint16_t ocf, uint8_t plen,
 
 
 /*
+  pthread_attr_init:
+
+      This function is called to initialize thread attributes object pointed
+      to by attr with default attribute values
+
+  Parameters:
+
+      attr - pointer to the thread attributes object to be initialized
+
+  Return value:
+
+      0 for success. error number for error.
+*/
+extern int pthread_attr_init(pthread_attr_t *attr);
+
+
+/*
+  pthread_attr_destroy:
+
+      This function is called to destroy the thread attributes object
+      pointed to by attr
+
+  Parameters:
+
+      attr - the thread attributes object to be destroyed
+
+  Return value:
+
+      0 for success. error number for error.
+*/
+extern int pthread_attr_destroy(pthread_attr_t *attr);
+
+
+/*
+  pthread_detach:
+
+      This function is called to make the thread identified by thread as
+      detached. When a detached thread returns, its resources are
+      automatically released back to the system.
+
+  Parameters:
+
+      thread - a thread to be detached
+
+  Return value:
+
+      0 for success. error number for error.
+*/
+extern int pthread_detach(pthread_t thread);
+
+
+/*
+  pthread_create:
+
+      This function is called to start a new thread in the calling process.
+      The new thrad starts execution by invoking start_routine.
+
+  Parameters:
+
+      thread - a pointer to the new thread
+      attr - set thread properties
+      start_routine - routine to be executed by the new thread
+      arg - the parameters of the start_routine.
+
+  Return value:
+
+      0 for success. error number for error and the contents of *thread are
+      undefined.
+*/
+extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+    void *(*start_routine) (void *), void *arg);
+
+
+/*
   zigbee_send_file:
 
       When called, this function sends a packet that containing the specified
@@ -921,8 +1159,9 @@ extern void *zigbee_send_file(char *zig_message);
 
     eturn_value - message file path
 */
-char *choose_file(char *message_to_send);
 
+
+char *choose_file(char *message_to_send);
 
 /*
   send_file:
@@ -940,8 +1179,8 @@ char *choose_file(char *message_to_send);
 
     None
 */
-void *send_file(void *id);
 
+void *send_file(void *id);
 
 #endif // Bluetooth_classic
 

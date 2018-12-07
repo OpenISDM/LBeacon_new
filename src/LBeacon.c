@@ -63,9 +63,9 @@ ErrorCode get_config(Config *config, char *file_name) {
     if (file == NULL) {
 
         /* Error handling */
-        perror(errordesc[E_OPEN_FILE].message);
-        zlog_info(category_health_report,
-                  errordesc[E_OPEN_FILE].message);
+    //    perror(errordesc[E_OPEN_FILE].message);
+    //    zlog_info(category_health_report,
+    //              errordesc[E_OPEN_FILE].message);
         cleanup_exit();
         return E_OPEN_FILE;
     }
@@ -167,9 +167,6 @@ ErrorCode get_config(Config *config, char *file_name) {
     return WORK_SUCCESSFULLY;
 }
 
-void ctrlc_handler(int stop) {
-    g_done = true;
-}
 
 
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
@@ -223,7 +220,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
 
     if (NULL == temp_node) {
 
-	/* The address is new. */
+    /* The address is new. */
 
         /* Allocate memory from memory pool for a new node, initialize the
         node, and insert the new node to the scanned list and
@@ -296,7 +293,7 @@ struct ScannedDevice *check_is_in_list(char address[],
 
     /* If there is no node in the list, reutrn NULL directly. */
     if(list->list_entry.next == list->list_entry.prev &&
-	list->list_entry.next == &list->list_entry){
+    list->list_entry.next == &list->list_entry){
 
         return NULL;
 
@@ -338,7 +335,7 @@ struct ScannedDevice *check_is_in_list(char address[],
 
             /* Update the final scan time */
             temp->final_scanned_time = get_system_time();
-	    break;
+        break;
         }
     }
     pthread_mutex_unlock(&list_lock);
@@ -358,9 +355,9 @@ ErrorCode enable_advertising(int advertising_interval,
     if ((device_handle = hci_open_dev(dongle_device_id)) < 0) {
 
         /* Error handling */
-        perror(errordesc[E_OPEN_DEVICE].message);
-        zlog_info(category_health_report,
-                  errordesc[E_OPEN_DEVICE].message);
+    //    perror(errordesc[E_OPEN_DEVICE].message);
+    //    zlog_info(category_health_report,
+    //              errordesc[E_OPEN_DEVICE].message);
 
         return E_OPEN_DEVICE;
     }
@@ -552,9 +549,9 @@ ErrorCode disable_advertising() {
     int device_handle = 0;
     if ((device_handle = hci_open_dev(dongle_device_id)) < 0) {
         /* Error handling */
-        perror(errordesc[E_OPEN_FILE].message);
-        zlog_info(category_health_report,
-                  errordesc[E_OPEN_FILE].message);
+    //    perror(errordesc[E_OPEN_FILE].message);
+    //    zlog_info(category_health_report,
+     //             errordesc[E_OPEN_FILE].message);
 
         return E_OPEN_FILE;
     }
@@ -631,10 +628,10 @@ void *cleanup_scanned_list(void* param) {
     while (false == g_done && true == ready_to_work) {
         /*Check whether the list is empty */
         while(false == g_done &&
-	    	scanned_list_head.list_entry.next ==
-			scanned_list_head.list_entry.prev &&
+            scanned_list_head.list_entry.next ==
+            scanned_list_head.list_entry.prev &&
                 scanned_list_head.list_entry.next ==
-			&scanned_list_head.list_entry){
+            &scanned_list_head.list_entry){
 
             usleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_US);
         }
@@ -642,7 +639,7 @@ void *cleanup_scanned_list(void* param) {
         /* Go through list */
         pthread_mutex_lock(&list_lock);
 
-	list_for_each_safe(list_pointers,
+    list_for_each_safe(list_pointers,
                            save_list_pointers,
                            &scanned_list_head.list_entry){
 
@@ -651,17 +648,17 @@ void *cleanup_scanned_list(void* param) {
             /* If the device has been in the scanned list for at least 30
             seconds, remove its struct node from the scanned list */
             if (get_system_time() - temp->initial_scanned_time >
-			INTERVAL_HANDLE_SCANNED_LIST_IN_MS){
+            INTERVAL_HANDLE_SCANNED_LIST_IN_MS){
 
-		remove_list_node(&temp->sc_list_entry);
+        remove_list_node(&temp->sc_list_entry);
 
                 /* If the node no longer is in the tracked_BR_object_lists,
                 free the space back to the memory pool. */
 
                 if(temp->tr_list_entry.next ==
-			temp->tr_list_entry.prev &&
-		   temp->tr_list_entry.next ==
-			&temp->tr_list_entry){
+            temp->tr_list_entry.prev &&
+           temp->tr_list_entry.next ==
+            &temp->tr_list_entry){
                   mp_free(&mempool, temp);
 
                 }
@@ -669,7 +666,7 @@ void *cleanup_scanned_list(void* param) {
             }
         }
 
-	pthread_mutex_unlock(&list_lock);
+    pthread_mutex_unlock(&list_lock);
 
     }//#end while
 
@@ -700,9 +697,9 @@ void *manage_communication(void* param){
     if(NULL == thpool){
 
         /* Could not create thread pool, handle error */
-        perror(errordesc[E_INIT_THREAD_POOL].message);
-        zlog_info(category_health_report,
-                  errordesc[E_INIT_THREAD_POOL].message);
+    //    perror(errordesc[E_INIT_THREAD_POOL].message);
+    //    zlog_info(category_health_report,
+    //              errordesc[E_INIT_THREAD_POOL].message);
         return;
     }
 
@@ -746,9 +743,9 @@ void *manage_communication(void* param){
                     if (br_object_file == NULL) {
 
                         /* Error handling */
-                        perror(errordesc[E_OPEN_FILE].message);
-                        zlog_info(category_health_report,
-                                  errordesc[E_OPEN_FILE].message);
+                //        perror(errordesc[E_OPEN_FILE].message);
+                //        zlog_info(category_health_report,
+                //                  errordesc[E_OPEN_FILE].message);
                         return;
                         }
 
@@ -774,9 +771,9 @@ void *manage_communication(void* param){
                     if (ble_object_file == NULL) {
 
                         /* Error handling */
-                        perror(errordesc[E_OPEN_FILE].message);
-                        zlog_info(category_health_report,
-                                  errordesc[E_OPEN_FILE].message);
+                    //    perror(errordesc[E_OPEN_FILE].message);
+                    //    zlog_info(category_health_report,
+                    //              errordesc[E_OPEN_FILE].message);
                         return;
                     }
 
@@ -814,9 +811,9 @@ void *manage_communication(void* param){
                     /* Set ready_to_work to false to let other theeads know
                        of the error */
                     ready_to_work = false;
-                    perror(errordesc[E_ADD_WORK_THREAD].message);
-                    zlog_info(category_health_report,
-                              errordesc[E_ADD_WORK_THREAD].message);
+                //    perror(errordesc[E_ADD_WORK_THREAD].message);
+                //    zlog_info(category_health_report,
+                //              errordesc[E_ADD_WORK_THREAD].message);
                     return;
 
                 }
@@ -831,7 +828,7 @@ void *manage_communication(void* param){
 
                 break;
 
-            case E_CALL_BACK:
+            case E_ZIGBEE_CALL_BACK:
 
                   /* Error of call back function, set network_is_down to
                   true */
@@ -871,9 +868,9 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
     if(&list != &BR_object_list_head ||
        &list != &BLE_object_list_head){
 
-        perror(errordesc[E_INPUT_PARAMETER].message);
-        zlog_info(category_health_report,
-                  errordesc[E_INPUT_PARAMETER].message);
+    //    perror(errordesc[E_INPUT_PARAMETER].message);
+    //    zlog_info(category_health_report,
+    //              errordesc[E_INPUT_PARAMETER].message);
 
         return E_INPUT_PARAMETER;
 
@@ -909,9 +906,9 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
     }
     if(track_file == NULL){
 
-        perror(errordesc[E_OPEN_FILE].message);
-        zlog_info(category_health_report,
-                  errordesc[E_OPEN_FILE].message);
+    //    perror(errordesc[E_OPEN_FILE].message);
+    //    zlog_info(category_health_report,
+    //              errordesc[E_OPEN_FILE].message);
         return E_OPEN_FILE;
 
     }
@@ -1039,7 +1036,7 @@ void free_list(List_Entry *list_entry, DeviceType device_type){
             /* If the node is no longer in scanned list, return the space
              back to the memory pool. */
             if(temp->sc_list_entry.next == temp->sc_list_entry.prev &&
-		temp->sc_list_entry.next == &temp->sc_list_entry){
+        temp->sc_list_entry.next == &temp->sc_list_entry){
 
                 mp_free(&mempool, temp);
 
@@ -1236,7 +1233,7 @@ void *start_ble_scanning(void){
 void *start_br_scanning(void* param) {
 #ifdef Debugging
         zlog_debug(category_debug,
-		">> start_br_scanning... ");
+        ">> start_br_scanning... ");
 #endif
 
     struct hci_filter filter; /*Filter for controling the events*/
@@ -1265,9 +1262,9 @@ void *start_br_scanning(void* param) {
         if (0 > dongle_device_id || 0 > socket) {
 
             /* Error handling */
-            perror(errordesc[E_OPEN_SOCKET].message);
-            zlog_info(category_health_report,
-                      errordesc[E_OPEN_SOCKET].message);
+        //    perror(errordesc[E_OPEN_SOCKET].message);
+        //    zlog_info(category_health_report,
+        //              errordesc[E_OPEN_SOCKET].message);
             return;
 
         }
@@ -1285,9 +1282,9 @@ void *start_br_scanning(void* param) {
                         sizeof(filter))) {
 
             /* Error handling */
-            perror(errordesc[E_SCAN_SET_HCI_FILTER].message);
-            zlog_info(category_health_report,
-                      errordesc[E_SCAN_SET_HCI_FILTER].message);
+        //    perror(errordesc[E_SCAN_SET_HCI_FILTER].message);
+        //    zlog_info(category_health_report,
+        //              errordesc[E_SCAN_SET_HCI_FILTER].message);
             hci_close_dev(socket);
             return;
 
@@ -1299,9 +1296,9 @@ void *start_br_scanning(void* param) {
             WRITE_INQUIRY_MODE_RP_SIZE, &inquiry_copy)) {
 
             /* Error handling */
-            perror(errordesc[E_SCAN_SET_INQUIRY_MODE].message);
-            zlog_info(category_health_report,
-                      errordesc[E_SCAN_SET_INQUIRY_MODE].message);
+        //    perror(errordesc[E_SCAN_SET_INQUIRY_MODE].message);
+        //    zlog_info(category_health_report,
+        //              errordesc[E_SCAN_SET_INQUIRY_MODE].message);
             hci_close_dev(socket);
             return;
 
@@ -1328,9 +1325,9 @@ void *start_br_scanning(void* param) {
             &inquiry_copy)) {
 
             /* Error handling */
-            perror(errordesc[E_SCAN_START_INQUIRY].message);
-            zlog_info(category_health_report,
-                      errordesc[E_SCAN_START_INQUIRY].message);
+        //    perror(errordesc[E_SCAN_START_INQUIRY].message);
+        //    zlog_info(category_health_report,
+        //              errordesc[E_SCAN_START_INQUIRY].message);
             hci_close_dev(socket);
             return;
 
@@ -1433,7 +1430,7 @@ void *start_br_scanning(void* param) {
 
 #ifdef Debugging
         zlog_debug(category_debug,
-		"<< start_br_scanning... ");
+        "<< start_br_scanning... ");
 #endif
 
 }
@@ -1442,7 +1439,7 @@ void *timeout_cleanup(void* param){
 
 #ifdef Debugging
         zlog_debug(category_debug,
-		">> timeout_cleanup... ");
+        ">> timeout_cleanup... ");
 #endif
     /* Create a temporary node and set as the head */
     struct List_Entry *list_pointers, *save_list_pointers;
@@ -1469,17 +1466,17 @@ void *timeout_cleanup(void* param){
                   nodes */
                   pthread_mutex_lock(&list_lock);
 
-		  list_for_each_safe(list_pointers,
+          list_for_each_safe(list_pointers,
                                      save_list_pointers,
                                      &scanned_list_head.list_entry){
 
-		      temp = ListEntry(list_pointers, ScannedDevice,
+              temp = ListEntry(list_pointers, ScannedDevice,
                                        sc_list_entry);
                       remove_list_node(&temp->sc_list_entry);
 
                       if(temp->tr_list_entry.next == temp->tr_list_entry.prev &&
-				temp->tr_list_entry.next == &temp->tr_list_entry){
-                      	  mp_free(&mempool, temp);
+                temp->tr_list_entry.next == &temp->tr_list_entry){
+                          mp_free(&mempool, temp);
                       }
                   }
                   pthread_mutex_unlock(&list_lock);
@@ -1490,7 +1487,7 @@ void *timeout_cleanup(void* param){
 
                   pthread_mutex_lock(&list_lock);
 
-		  list_for_each_safe(list_pointers,
+          list_for_each_safe(list_pointers,
                                      save_list_pointers,
                                      &BR_object_list_head.list_entry){
 
@@ -1498,14 +1495,14 @@ void *timeout_cleanup(void* param){
                                        tr_list_entry);
 
                       remove_list_node(&temp->sc_list_entry);
-		      remove_list_node(list_pointers);
+              remove_list_node(list_pointers);
 
                       if(temp->sc_list_entry.next == temp->sc_list_entry.prev &&
-				temp->sc_list_entry.next == &temp->sc_list_entry){
-                      	  mp_free(&mempool, temp);
+                temp->sc_list_entry.next == &temp->sc_list_entry){
+                          mp_free(&mempool, temp);
                       }
                   }
-		  pthread_mutex_unlock(&list_lock);
+          pthread_mutex_unlock(&list_lock);
               }
 
 
@@ -1514,18 +1511,18 @@ void *timeout_cleanup(void* param){
 
                   pthread_mutex_lock(&list_lock);
 
-		  list_for_each_safe(list_pointers,
+          list_for_each_safe(list_pointers,
                                      save_list_pointers,
                                      &BLE_object_list_head.list_entry){
 
                       temp = ListEntry(list_pointers, ScannedDevice,
                                        tr_list_entry);
 
-		      remove_list_node(list_pointers);
+              remove_list_node(list_pointers);
 
                       mp_free(&mempool, temp);
                   }
-		  pthread_mutex_unlock(&list_lock);
+          pthread_mutex_unlock(&list_lock);
               }
 
               start_time = get_system_time();
@@ -1539,14 +1536,14 @@ void *timeout_cleanup(void* param){
 
 #ifdef Debugging
         zlog_debug(category_debug,
-		"<< timeout_cleanup... ");
+        "<< timeout_cleanup... ");
 #endif
 }
 
 void cleanup_exit(){
 #ifdef Debugging
         zlog_debug(category_debug,
-		">> cleanup_exit... ");
+        ">> cleanup_exit... ");
 #endif
     /* Create a temporary node and set as the head */
     struct List_Entry *list_pointers, *save_list_pointers;
@@ -1558,23 +1555,23 @@ void cleanup_exit(){
     if(&mempool != NULL){
 
         /* Go throgth two lists to release all memory allocated to the nodes */
-	pthread_mutex_lock(&list_lock);
+    pthread_mutex_lock(&list_lock);
 
-	list_for_each_safe(list_pointers,
+    list_for_each_safe(list_pointers,
                        save_list_pointers,
                        &scanned_list_head.list_entry){
 
-	    temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
+        temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
 
-	    remove_list_node(list_pointers);
+        remove_list_node(list_pointers);
 
             /* Make sure that the node is removed from the
-			tracked_BR_object_list. */
+            tracked_BR_object_list. */
             if(temp->tr_list_entry.next != temp->tr_list_entry.prev){
-		remove_list_node(&temp->tr_list_entry);
+        remove_list_node(&temp->tr_list_entry);
             }
-	    mp_free(&mempool, temp);
-	}
+        mp_free(&mempool, temp);
+    }
 
         list_for_each_safe(list_pointers,
                       save_list_pointers,
@@ -1583,30 +1580,30 @@ void cleanup_exit(){
 
             temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
 
-	    remove_list_node(list_pointers);
+        remove_list_node(list_pointers);
             /* Make sure that the node is removed from the
-			scanned_list. */
+            scanned_list. */
             if(temp->tr_list_entry.next != temp->sc_list_entry.prev){
-		remove_list_node(&temp->sc_list_entry);
+        remove_list_node(&temp->sc_list_entry);
             }
             mp_free(&mempool, temp);
         }
 
-	list_for_each_safe(list_pointers,
+    list_for_each_safe(list_pointers,
                       save_list_pointers,
                       &BLE_object_list_head.list_entry){
 
 
-	    temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+        temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
 
-	    remove_list_node(list_pointers);
+        remove_list_node(list_pointers);
 
-	    mp_free(&mempool, temp);
+        mp_free(&mempool, temp);
         }
 
-	pthread_mutex_unlock(&list_lock);
+    pthread_mutex_unlock(&list_lock);
 
-	mp_destroy(&mempool);
+    mp_destroy(&mempool);
 
 
     }
@@ -1617,7 +1614,7 @@ void cleanup_exit(){
     free(g_push_file_path);
 #ifdef Debugging
         zlog_debug(category_debug,
-		"<< cleanup_exit... ");
+        "<< cleanup_exit... ");
 #endif
 
 }
@@ -1638,7 +1635,7 @@ int main(int argc, char **argv) {
    /* Initialize the application log */
     if (zlog_init("../config/zlog.conf") != 0) {
 
-        perror(errordesc[E_LOG_INIT].message);
+     //   perror(errordesc[E_LOG_INIT].message);
     }
 
     category_health_report = zlog_get_category(LOG_CATEGORY_HEALTH_REPORT);
@@ -1646,7 +1643,7 @@ int main(int argc, char **argv) {
     if (!category_health_report) {
 
         zlog_fini();
-        perror(errordesc[E_LOG_GET_CATEGORY].message);
+    //    perror(errordesc[E_LOG_GET_CATEGORY].message);
         return E_LOG_GET_CATEGORY;
     }
 
@@ -1656,7 +1653,7 @@ int main(int argc, char **argv) {
     if (!category_debug) {
 
         zlog_fini();
-        perror(errordesc[E_LOG_GET_CATEGORY].message);
+     //   perror(errordesc[E_LOG_GET_CATEGORY].message);
         return E_LOG_GET_CATEGORY;
     }
 
@@ -1678,8 +1675,8 @@ int main(int argc, char **argv) {
             != MEMORY_POOL_SUCCESS){
 
         /* Error handling */
-        perror(errordesc[E_MALLOC].message);
-        zlog_info(category_health_report, errordesc[E_MALLOC].message);
+      //  perror(errordesc[E_MALLOC].message);
+     //   zlog_info(category_health_report, errordesc[E_MALLOC].message);
         cleanup_exit();
         return E_MALLOC;
 
@@ -1714,8 +1711,8 @@ int main(int argc, char **argv) {
     return_value = get_config(&g_config, CONFIG_FILE_NAME);
     if(WORK_SUCCESSFULLY != return_value){
          /* Error handling */
-        perror(errordesc[E_OPEN_FILE].message);
-        zlog_info(category_health_report, errordesc[E_OPEN_FILE].message);
+    //    perror(errordesc[E_OPEN_FILE].message);
+    //    zlog_info(category_health_report, errordesc[E_OPEN_FILE].message);
         cleanup_exit();
         return E_OPEN_FILE;
     }
@@ -1727,8 +1724,8 @@ int main(int argc, char **argv) {
     if (g_push_file_path == NULL) {
 
          /* Error handling */
-        perror(errordesc[E_MALLOC].message);
-        zlog_info(category_health_report, errordesc[E_MALLOC].message);
+    //    perror(errordesc[E_MALLOC].message);
+    //    zlog_info(category_health_report, errordesc[E_MALLOC].message);
         cleanup_exit();
         return E_MALLOC;
 
@@ -1761,11 +1758,11 @@ int main(int argc, char **argv) {
 
     if (sigaction(SIGINT, &sigint_handler, NULL) == -1) {
 
-    	/* Error handling */
+        /* Error handling */
         perror("sigaction error");
 #ifdef Debugging
         zlog_debug(category_debug,
-		"sigaction error");
+        "sigaction error");
 #endif
         return E_REG_SIG_HANDLER;
     }
@@ -1778,9 +1775,9 @@ int main(int argc, char **argv) {
 
     if(return_value != WORK_SUCCESSFULLY){
 
-        perror(errordesc[E_START_THREAD].message);
-        zlog_info(category_health_report,
-                  errordesc[E_START_THREAD].message);
+    //    perror(errordesc[E_START_THREAD].message);
+    //    zlog_info(category_health_report,
+    //              errordesc[E_START_THREAD].message);
         cleanup_exit();
         return E_START_THREAD;
     }
@@ -1794,9 +1791,9 @@ int main(int argc, char **argv) {
 
     if(return_value != WORK_SUCCESSFULLY){
 
-        perror(errordesc[E_START_THREAD].message);
-        zlog_info(category_health_report,
-                  errordesc[E_START_THREAD].message);
+    //    perror(errordesc[E_START_THREAD].message);
+    //    zlog_info(category_health_report,
+    //              errordesc[E_START_THREAD].message);
         cleanup_exit();
         return E_START_THREAD;
     }
@@ -1811,9 +1808,9 @@ int main(int argc, char **argv) {
 
     if(return_value != WORK_SUCCESSFULLY){
 
-        perror(errordesc[E_START_THREAD].message);
-        zlog_info(category_health_report,
-                  errordesc[E_START_THREAD].message);
+    //    perror(errordesc[E_START_THREAD].message);
+    //    zlog_info(category_health_report,
+    //              errordesc[E_START_THREAD].message);
         cleanup_exit();
         return E_START_THREAD;
     }
@@ -1826,9 +1823,9 @@ int main(int argc, char **argv) {
 
     if(return_value != WORK_SUCCESSFULLY){
 
-        perror(errordesc[E_START_THREAD].message);
-        zlog_info(category_health_report,
-                  errordesc[E_START_THREAD].message);
+    //    perror(errordesc[E_START_THREAD].message);
+    //    zlog_info(category_health_report,
+    //              errordesc[E_START_THREAD].message);
         cleanup_exit();
         return E_START_THREAD;
     }
@@ -1842,9 +1839,9 @@ int main(int argc, char **argv) {
 
     if(return_value != WORK_SUCCESSFULLY){
 
-        perror(errordesc[E_START_THREAD].message);
-        zlog_info(category_health_report,
-                  errordesc[E_START_THREAD].message);
+    //    perror(errordesc[E_START_THREAD].message);
+     //   zlog_info(category_health_report,
+     //             errordesc[E_START_THREAD].message);
         cleanup_exit();
         return E_START_THREAD;
     }
@@ -1909,9 +1906,9 @@ int main(int argc, char **argv) {
 
         if(return_value != WORK_SUCCESSFULLY){
 
-            perror(errordesc[E_START_THREAD].message);
-            zlog_info(category_health_report,
-                      errordesc[E_START_THREAD].message);
+        //    perror(errordesc[E_START_THREAD].message);
+         //   zlog_info(category_health_report,
+         //             errordesc[E_START_THREAD].message);
             cleanup_exit();
             return 1;
         }
@@ -1955,7 +1952,7 @@ int main(int argc, char **argv) {
     */
     int enable_advertising_success =
         enable_advertising(INTERVAL_ADVERTISING_IN_MS,
-			   g_config.uuid,
+               g_config.uuid,
                            RSSI_VALUE);
 
     if (0 == enable_advertising_success) {
@@ -2121,7 +2118,7 @@ void *send_file(void *id) {
                 if (0 > dongle_device_id || 0 > socket) {
 
                     /* Error handling */
-                    perror(errordesc[E_SEND_OPEN_SOCKET].message);
+                //    perror(errordesc[E_SEND_OPEN_SOCKET].message);
                     strncpy(
                             g_idle_handler[device_id].scanned_mac_address,
                             "0",
@@ -2163,7 +2160,7 @@ void *send_file(void *id) {
                 if (client == NULL) {
 
                     /* Error handling */
-                    perror(errordesc[E_SEND_OBEXFTP_CLIENT].message);
+                 //   perror(errordesc[E_SEND_OBEXFTP_CLIENT].message);
                     strncpy(
                             g_idle_handler[device_id].scanned_mac_address,
                             "0",
@@ -2185,7 +2182,7 @@ void *send_file(void *id) {
                 if (0 > return_value) {
 
                     /* Error handling */
-                    perror(errordesc[E_SEND_CONNECT_DEVICE].message);
+                //    perror(errordesc[E_SEND_CONNECT_DEVICE].message);
                     obexftp_close(client);
                     client = NULL;
                     strncpy(
@@ -2206,7 +2203,7 @@ void *send_file(void *id) {
                 if (0 > return_value) {
 
                     /* TODO: Error handling */
-                    perror(errordesc[E_SEND_PUSH_FILE].message);
+                 //   perror(errordesc[E_SEND_PUSH_FILE].message);
                 }
 
                 /* Disconnect connection */
@@ -2214,7 +2211,7 @@ void *send_file(void *id) {
                 if (0 > return_value) {
 
                     /* TODO: Error handling  */
-                    perror(errordesc[E_SEND_DISCONNECT_CLIENT].message);
+                 //   perror(errordesc[E_SEND_DISCONNECT_CLIENT].message);
                     pthread_exit(NULL);
                     return;
 
