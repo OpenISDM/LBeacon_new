@@ -42,9 +42,6 @@
 
 #include "Utilities.h"
 
-/* Initialize flag that is used to check if CTRL-C is pressed */
-bool g_done = false;
-
 
 unsigned int *uuid_str_to_data(char *uuid) {
     char conversion[] = "0123456789ABCDEF";
@@ -77,4 +74,3 @@ unsigned int twoc(int in, int t) {
 }
 
 
-void ctrlc_handler(int stop) { g_done = true; }

@@ -435,6 +435,12 @@ ObjectListHead BLE_object_list_head;
 
 /* Global flags for communication among threads */
 
+/* A global flag that is initially set to false by the main thread. It is 
+set to true when users press Ctrl+C hotkey combinations. All LBeacon thread
+should monitor and observe this flag change and finish their jobs 
+accordingly.*/
+bool g_done;
+
 /* A global flag that is initially set to true by the main thread. It is set
    to false by any thread when the thread encounters a fatal error,
    indicating that it is about to exit. */
@@ -560,6 +566,22 @@ extern int errno;
 
 Config get_config(char *file_name);
 
+/*
+  ctrlc_handler:
+
+     This function is handler function for SIGINT signal. It will set global
+     flag and let all working threads aware of this status change.
+
+  Parameters:
+   
+     stop
+ 
+  Return value:
+  
+     None	
+*/
+
+void ctrlc_handler(int stop);
 
 /*
   get_system_time:

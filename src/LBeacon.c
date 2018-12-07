@@ -158,7 +158,9 @@ Config get_config(char *file_name) {
     return config;
 }
 
-
+void ctrlc_handler(int stop) {
+    g_done = true;
+}
 
 
 long long get_system_time() {
@@ -1700,6 +1702,7 @@ int main(int argc, char **argv) {
     int return_value;
 
     /*Initialize the global flag */
+    g_done = false;
     ready_to_work = true;
     network_is_down = false;
 
