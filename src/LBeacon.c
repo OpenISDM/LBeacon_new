@@ -1,4 +1,4 @@
-abc/*
+/*
  Copyright (c) 2016 Academia Sinica, Institute of Information Science
 
  License:
