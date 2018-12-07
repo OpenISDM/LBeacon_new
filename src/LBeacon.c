@@ -168,22 +168,6 @@ ErrorCode get_config(Config *config, char *file_name) {
 }
 
 
-
-long long get_system_time() {
-    /* A struct that stores the time */
-    struct timeb t;
-
-    /* Return value as a long long type */
-    long long system_time;
-
-    /* Convert time from Epoch to time in milliseconds of a long long type */
-    ftime(&t);
-    system_time = 1000 * t.time + t.millitm;
-
-    return system_time;
-}
-
-
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi) {
 
@@ -1202,7 +1186,7 @@ void *start_ble_scanning(void *param){
                 while ( reports_count-- ) {
 
                     info = (le_advertising_info *)offset;
-                    
+
                     ba2str(&(info->bdaddr), addr);
                     int rssi = (signed char)info->data[info->length];
 
@@ -1553,26 +1537,6 @@ void *timeout_cleanup(void* param){
         zlog_debug(category_debug,
         "<< timeout_cleanup... ");
 #endif
-}
-
-
-
-ErrorCode startThread(pthread_t *threads ,
-                      void * (*threadfunct)(void *),
-                      void *arg){
-
-    pthread_attr_t attr;
-
-    if ( pthread_attr_init(&attr) != 0
-      || pthread_create(threads, &attr, threadfunct, arg) != 0
-      || pthread_attr_destroy(&attr) != 0
-      ) {
-
-    return E_START_THREAD;
-  }
-
-  return WORK_SUCCESSFULLY;
-
 }
 
 
