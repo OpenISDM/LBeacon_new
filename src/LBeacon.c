@@ -169,6 +169,21 @@ ErrorCode get_config(Config *config, char *file_name) {
 
 
 
+long long get_system_time() {
+    /* A struct that stores the time */
+    struct timeb t;
+
+    /* Return value as a long long type */
+    long long system_time;
+
+    /* Convert time from Epoch to time in milliseconds of a long long type */
+    ftime(&t);
+    system_time = 1000 * t.time + t.millitm;
+
+    return system_time;
+}
+
+
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi) {
 
@@ -1065,7 +1080,7 @@ const struct hci_request ble_hci_request(uint16_t ocf, int clen,
     return rq;
 }
 
-void *start_ble_scanning(void){
+void *start_ble_scanning(void *param){
 
     uint8_t ble_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the
                                             callback event */
@@ -1172,7 +1187,7 @@ void *start_ble_scanning(void){
     }
 
     bool keep_scanning = true;
-    while(keep_scanning = true){
+    while(false == g_done && true == keep_scanning){
 
         if(read(socket, ble_buffer, sizeof(ble_buffer))
                                                 >= HCI_EVENT_HDR_SIZE) {
@@ -1187,7 +1202,7 @@ void *start_ble_scanning(void){
                 while ( reports_count-- ) {
 
                     info = (le_advertising_info *)offset;
-
+                    
                     ba2str(&(info->bdaddr), addr);
                     int rssi = (signed char)info->data[info->length];
 
@@ -1539,6 +1554,27 @@ void *timeout_cleanup(void* param){
         "<< timeout_cleanup... ");
 #endif
 }
+
+
+
+ErrorCode startThread(pthread_t *threads ,
+                      void * (*threadfunct)(void *),
+                      void *arg){
+
+    pthread_attr_t attr;
+
+    if ( pthread_attr_init(&attr) != 0
+      || pthread_create(threads, &attr, threadfunct, arg) != 0
+      || pthread_attr_destroy(&attr) != 0
+      ) {
+
+    return E_START_THREAD;
+  }
+
+  return WORK_SUCCESSFULLY;
+
+}
+
 
 void cleanup_exit(){
 #ifdef Debugging
@@ -1967,13 +2003,6 @@ int main(int argc, char **argv) {
     }
 
     perror("Hit ctrl-c to stop advertising");
-
-
-#ifdef Debugging
-
-    zlog_debug(category_debug, "All the threads are created.");
-
-#endif
 
     return_value = pthread_join(cleanup_scanned_list_thread, NULL);
 

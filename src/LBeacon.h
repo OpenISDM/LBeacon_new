@@ -155,10 +155,10 @@ Authors:
 #define HCI_SEND_REQUEST_TIMEOUT_IN_MS 1000
 
 /* Time interval in milliseconds between advertising by a LBeacon */
-#define INTERVAL_ADVERTISING_IN_MS 1000
+#define INTERVAL_ADVERTISING_IN_MS 3000
 
 /* Time interval in microseconds for busy-wait checking in threads */
-#define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_US 1000000
+#define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_US 60000000
 
 /* Time interval in seconds for timeout_cleanup function to cleanup
 all lists. Currently, it is a periodical tasks, and we will change
@@ -169,7 +169,7 @@ or memory allocations reach threshold situations.
 
 /* Time interval in microseconds for timeout_cleanup function to wait
 for abnormal network situatins */
-#define INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_MS 5000
+#define INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_MS 10000
 
 
 /* Nominal transmission range limit. Only devices in this RSSI range are
