@@ -198,14 +198,13 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     strcat(address, "\0");
 
     /* Print bluetooth device's RSSI value */
-    printf("%17s", address);
+    printf("BR: %17s", address);
     if (has_rssi) {
-        printf(" RSSI:%d", rssi);
+        printf(" RSSI:%d\n", rssi);
     }
     else {
-        printf(" RSSI:n/a");
+        printf(" RSSI:n/a\n");
     }
-    printf("\n");
     fflush(NULL);
 }
 
@@ -1146,15 +1145,22 @@ void *start_ble_scanning(void* param){
         perror(errordesc[E_SET_BLE_PARAMETER].message);
         zlog_info(category_health_report,
                    errordesc[E_SET_BLE_PARAMETER].message);
+	return;
     }
 
-
-    if( 0> hci_le_set_scan_enable(socket, 0x01, 1, 1000)){
+    /* function usage of hci_le_set_scan_enable()
+	socket
+	1:  1 - turn on, 0 - turn off
+	0:  0 - filtering disabled, 1 - filter out duplicated
+        1000: timeout in milliseconds
+    */
+    if( 0> hci_le_set_scan_enable(socket, 1, 1, 1000)){
 
         /* Error handling */
         perror(errordesc[E_BLE_ENABLE].message);
         zlog_info(category_health_report,
                    errordesc[E_BLE_ENABLE].message);
+	return;
     }
 
     olen = sizeof(original_filiter);
@@ -1165,6 +1171,7 @@ void *start_ble_scanning(void* param){
         perror(errordesc[E_GET_BLE_SOCKET].message);
         zlog_info(category_health_report,
                    errordesc[E_GET_BLE_SOCKET].message);
+	return;
     }
 
     hci_filter_clear(&new_filter);
@@ -1178,6 +1185,7 @@ void *start_ble_scanning(void* param){
         perror(errordesc[E_SCAN_SET_HCI_FILTER].message);
         zlog_info(category_health_report,
                    errordesc[E_SCAN_SET_HCI_FILTER].message);
+	return;
     }
 
     bool keep_scanning = true;
@@ -1206,6 +1214,13 @@ void *start_ble_scanning(void* param){
             send_to_push_dongle(&info->bdaddr, true);
         }
 
+    }
+    if( 0> hci_le_set_scan_enable(socket, 0, 0, 1000)){
+
+        /* Error handling */
+        perror(errordesc[E_BLE_ENABLE].message);
+        zlog_info(category_health_report,
+                   errordesc[E_BLE_ENABLE].message);
     }
 #ifdef Debugging
         zlog_debug(category_debug, 
@@ -1358,9 +1373,7 @@ void *start_br_scanning(void* param) {
                         info = (void *)event_buffer_pointer +
                                (sizeof(*info) * results_id) + 1;
 
-                        print_RSSI_value(&info->bdaddr, 0, 0);
-
-
+                        print_RSSI_value(&info->bdaddr, false, 0);
                     }
 
                 } break;
@@ -1377,11 +1390,10 @@ void *start_br_scanning(void* param) {
 
                         if (info_rssi->rssi > RSSI_RANGE) {
 
-                            print_RSSI_value(&info_rssi->bdaddr, 1,
+                            print_RSSI_value(&info_rssi->bdaddr, true,
                             info_rssi->rssi);
 
                             send_to_push_dongle(&info_rssi->bdaddr, false);
-
                         }
 
                     }
@@ -1630,10 +1642,6 @@ void cleanup_exit(){
 
 
 int main(int argc, char **argv) {
-#ifdef Debugging
-        zlog_debug(category_debug, 
-		">> main... ");
-#endif
     /* An iterator through the list of ScannedDevice structs */
     int device_id;
 
@@ -2001,12 +2009,7 @@ int main(int argc, char **argv) {
 
     cleanup_exit();
 
-#ifdef Debugging
-        zlog_debug(category_debug, 
-		"<< main... ");
-#endif
-
-    return 0;
+    return WORK_SUCCESSFULLY;
 }
 
 
