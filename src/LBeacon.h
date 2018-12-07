@@ -145,8 +145,8 @@ Authors:
 
 
 
-/* Time interval in milliseconds of a bluetooth device stays in the 
-   scanned device list. This time interval is for 
+/* Time interval in milliseconds of a bluetooth device stays in the
+   scanned device list. This time interval is for
    cleanup_scanned_list function
 */
 #define INTERVAL_HANDLE_SCANNED_LIST_IN_MS 30000
@@ -162,19 +162,19 @@ Authors:
 
 /* Time interval in seconds for timeout_cleanup function to cleanup
 all lists. Currently, it is a periodical tasks, and we will change
-this cleanup tasks to be only triggered by network connection failure 
-or memory allocations reach threshold situations. 
+this cleanup tasks to be only triggered by network connection failure
+or memory allocations reach threshold situations.
 */
 #define INTERVAL_FOR_CLEANUP_LISTS_IN_SEC 1800
 
-/* Time interval in microseconds for timeout_cleanup function to wait 
+/* Time interval in microseconds for timeout_cleanup function to wait
 for abnormal network situatins */
 #define INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_MS 5000
 
 
 /* Nominal transmission range limit. Only devices in this RSSI range are
    to be discovered and data sent. */
-#define RSSI_RANGE -100
+#define RSSI_RANGE -70
 
 /* RSSI value of TX power for calibration and broadcast  */
 #define RSSI_VALUE -50
@@ -432,9 +432,9 @@ ObjectListHead BLE_object_list_head;
 
 /* Global flags for communication among threads */
 
-/* A global flag that is initially set to false by the main thread. It is 
+/* A global flag that is initially set to false by the main thread. It is
 set to true when users press Ctrl+C hotkey combinations. All LBeacon thread
-should monitor and observe this flag change and finish their jobs 
+should monitor and observe this flag change and finish their jobs
 accordingly.*/
 bool g_done;
 
@@ -561,9 +561,9 @@ extern int errno;
       file_name - the name of the config file that stores all the beacon data
 
   Return value:
- 
+
       ErrorCode - indicate the result of execution, the expected return code is
-	WORK_SUCCESSFULLY     
+	WORK_SUCCESSFULLY
 */
 
 ErrorCode get_config(Config *config, char *file_name);
@@ -575,12 +575,12 @@ ErrorCode get_config(Config *config, char *file_name);
      flag and let all working threads aware of this status change.
 
   Parameters:
-   
+
      stop
- 
+
   Return value:
-  
-     None	
+
+     None
 */
 
 void ctrlc_handler(int stop);

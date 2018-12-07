@@ -150,7 +150,7 @@ ErrorCode get_config(Config *config, char *file_name) {
     memcpy(config->uuid, config_message, strlen(config_message));
     config->uuid_length = strlen(config_message);
 */
-  
+
     coordinate_X.f = (float)atof(config->coordinate_X);
     coordinate_Y.f = (float)atof(config->coordinate_Y);
     coordinate_Z.f = (float)atof(config->coordinate_Z);
@@ -237,7 +237,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
     }
 
     if (NULL == temp_node) {
-        
+
 	/* The address is new. */
 
         /* Allocate memory from memory pool for a new node, initialize the
@@ -306,9 +306,9 @@ struct ScannedDevice *check_is_in_list(char address[],
     struct List_Entry *list_pointers;
     ScannedDevice *temp = NULL;
 
-    
+
     int number_in_list = get_list_length(&list->list_entry);
-   
+
     /* If there is no node in the list, reutrn NULL directly. */
     if(list->list_entry.next == list->list_entry.prev &&
 	list->list_entry.next == &list->list_entry){
@@ -318,7 +318,7 @@ struct ScannedDevice *check_is_in_list(char address[],
     }
 
     pthread_mutex_lock(&list_lock);
-    
+
     /* Go through list */
     list_for_each(list_pointers, &list->list_entry) {
         /* According to the device type stored in the list, get the specific
@@ -353,7 +353,7 @@ struct ScannedDevice *check_is_in_list(char address[],
 
             /* Update the final scan time */
             temp->final_scanned_time = get_system_time();
-	    break;          
+	    break;
         }
     }
     pthread_mutex_unlock(&list_lock);
@@ -645,8 +645,8 @@ void *cleanup_scanned_list(void* param) {
 
     while (false == g_done && true == ready_to_work) {
         /*Check whether the list is empty */
-        while(false == g_done && 
-	    	scanned_list_head.list_entry.next == 
+        while(false == g_done &&
+	    	scanned_list_head.list_entry.next ==
 			scanned_list_head.list_entry.prev &&
                 scanned_list_head.list_entry.next ==
 			&scanned_list_head.list_entry){
@@ -656,7 +656,7 @@ void *cleanup_scanned_list(void* param) {
 
         /* Go through list */
         pthread_mutex_lock(&list_lock);
-        
+
 	list_for_each_safe(list_pointers,
                            save_list_pointers,
                            &scanned_list_head.list_entry){
@@ -665,17 +665,17 @@ void *cleanup_scanned_list(void* param) {
             temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
             /* If the device has been in the scanned list for at least 30
             seconds, remove its struct node from the scanned list */
-            if (get_system_time() - temp->initial_scanned_time > 
+            if (get_system_time() - temp->initial_scanned_time >
 			INTERVAL_HANDLE_SCANNED_LIST_IN_MS){
 
 		remove_list_node(&temp->sc_list_entry);
-        
+
                 /* If the node no longer is in the tracked_BR_object_lists,
                 free the space back to the memory pool. */
-              
-                if(temp->tr_list_entry.next == 
-			temp->tr_list_entry.prev && 
-		   temp->tr_list_entry.next == 
+
+                if(temp->tr_list_entry.next ==
+			temp->tr_list_entry.prev &&
+		   temp->tr_list_entry.next ==
 			&temp->tr_list_entry){
                   mp_free(&mempool, temp);
 
@@ -1036,15 +1036,15 @@ void free_list(List_Entry *list_entry, DeviceType device_type){
     ScannedDevice *temp;
 
     pthread_mutex_lock(&list_lock);
-    
+
     list_for_each_safe(list_pointers,
                        save_list_pointers,
                        list_entry){
 
         temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
-        
+
         remove_list_node(list_pointers);
-    	
+
         if(device_type == BLE){
 
             mp_free(&mempool, temp);
@@ -1063,115 +1063,115 @@ void free_list(List_Entry *list_entry, DeviceType device_type){
         }
     }
     pthread_mutex_unlock(&list_lock);
-    
+
     return;
 }
 
-/* A static function for prase the name from the BLE device. */
-static void eir_parse_name(uint8_t *eir, size_t eir_len,
-                        char *buf, size_t buf_len)
+/* A static struct function that returns specific bluetooth BLE request. */
+const struct hci_request ble_hci_request(uint16_t ocf, int clen,
+                                                void * status, void * cparam)
 {
-    size_t offset;
+    struct hci_request rq;
+    memset(&rq, 0, sizeof(rq));
+    rq.ogf = OGF_LE_CTL;
+    rq.ocf = ocf;
+    rq.cparam = cparam;
+    rq.clen = clen;
+    rq.rparam = status;
+    rq.rlen = 1;
 
-    offset = 0;
-    while (offset < eir_len) {
-        uint8_t field_len = eir[0];
-        size_t name_len;
-
-        /* Check for the end of EIR */
-        if (field_len == 0)
-            break;
-
-        if (offset + field_len > eir_len)
-            goto failed;
-
-        switch (eir[1]) {
-
-            case EIR_NAME_SHORT:
-            case EIR_NAME_COMPLETE:
-
-                name_len = field_len - 1;
-
-                if (name_len > buf_len)
-                    goto failed;
-
-                memcpy(buf, &eir[2], name_len);
-                return;
-            }
-
-        offset += field_len + 1;
-        eir += field_len + 1;
-    }
-
-failed:
-    snprintf(buf, buf_len, NULL);
+    return rq;
 }
 
-void *start_ble_scanning(void* param){
+void *start_ble_scanning(void){
 
-#ifdef Debugging
-        zlog_debug(category_debug, 
-		">> start_ble_scanning... ");
-#endif
-    unsigned char ble_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the
-                                                      callback event */
-    unsigned char *ble_buffer_pointer; /*A pointer for the event buffer */
+    uint8_t ble_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the
+                                            callback event */
     int socket = 0; /*Number of the socket */
     int dongle_device_id = 0; /*dongle id */
-    struct hci_filter new_filter, original_filiter; /*Filter for controling
-                                                      the events*/
-    socklen_t olen;
+    int ret, opt, status, len;
+    struct hci_filter new_filter; /*Filter for controling the events*/
     evt_le_meta_event *meta;
     le_advertising_info *info;
     char addr[18];
 
-    /* Open Bluetooth device */
+    /* Get the dongle id */
     dongle_device_id = hci_get_route(NULL);
+
+    /* Open Bluetooth device */
     socket = hci_open_dev(dongle_device_id);
 
     if (0 > dongle_device_id || 0 > socket) {
 
          /* Error handling */
-         perror(errordesc[E_OPEN_SOCKET].message);
-         zlog_info(category_health_report,
-                   errordesc[E_OPEN_SOCKET].message);
+     //    perror(errordesc[E_OPEN_SOCKET].message);
+     //    zlog_info(category_health_report,
+     //              errordesc[E_OPEN_SOCKET].message);
+         cleanup_exit();
          return;
+
     }
 
-    if( 0> hci_le_set_scan_parameters(socket, 0x01, htobs(0x0010),
-                                      htobs(0x0010), 0x00, 0x00, 1000)){
+    /* Set BLE scan para,eters */
+    le_set_scan_parameters_cp scan_params_cp;
+    memset(&scan_params_cp, 0, sizeof(scan_params_cp));
+    scan_params_cp.type             = 0x00;
+    scan_params_cp.interval         = htobs(0x0010);
+    scan_params_cp.window           = htobs(0x0010);
+    scan_params_cp.own_bdaddr_type  = 0x00; // Public Device Address
+    scan_params_cp.filter           = 0x00; // Accept all.
 
-        /* Error handling */
-        perror(errordesc[E_SET_BLE_PARAMETER].message);
-        zlog_info(category_health_report,
-                   errordesc[E_SET_BLE_PARAMETER].message);
-	return;
+
+    struct hci_request scan_params_rq =
+        ble_hci_request(OCF_LE_SET_SCAN_PARAMETERS,
+                        LE_SET_SCAN_PARAMETERS_CP_SIZE,
+                        &status, &scan_params_cp);
+
+    ret = hci_send_req(socket, &scan_params_rq, 1000);
+    if ( ret < 0 ) {
+
+        hci_close_dev(socket);
+        perror("Failed to set scan parameters data.");
+
+        return;
     }
 
-    /* function usage of hci_le_set_scan_enable()
-	socket
-	1:  1 - turn on, 0 - turn off
-	0:  0 - filtering disabled, 1 - filter out duplicated
-        1000: timeout in milliseconds
-    */
-    if( 0> hci_le_set_scan_enable(socket, 1, 1, 1000)){
+    printf("LE Scan ...\n");
 
-        /* Error handling */
-        perror(errordesc[E_BLE_ENABLE].message);
-        zlog_info(category_health_report,
-                   errordesc[E_BLE_ENABLE].message);
-	return;
+    le_set_event_mask_cp event_mask_cp;
+    memset(&event_mask_cp, 0, sizeof(le_set_event_mask_cp));
+
+    for (int i = 0 ; i < 8 ; i++ ) event_mask_cp.mask[i] = 0xFF;
+
+    struct hci_request set_mask_rq =
+        ble_hci_request(OCF_LE_SET_EVENT_MASK, LE_SET_EVENT_MASK_CP_SIZE,
+                        &status, &event_mask_cp);
+
+    ret = hci_send_req(socket, &set_mask_rq, 1000);
+
+    if ( ret < 0 ) {
+
+        hci_close_dev(socket);
+        perror("Failed to set event mask.");
+        return;
     }
 
-    olen = sizeof(original_filiter);
-    if(0 > getsockopt(socket, SOL_HCI, HCI_FILTER, &original_filiter, &olen))
-    {
+    le_set_scan_enable_cp scan_cp;
+    memset(&scan_cp, 0, sizeof(scan_cp));
+    scan_cp.enable      = 0x01; // Enable flag.
+    scan_cp.filter_dup  = 0x00; // Filtering disabled.
 
-       /* Error handling */
-        perror(errordesc[E_GET_BLE_SOCKET].message);
-        zlog_info(category_health_report,
-                   errordesc[E_GET_BLE_SOCKET].message);
-	return;
+    struct hci_request enable_adv_rq =
+        ble_hci_request(OCF_LE_SET_SCAN_ENABLE, LE_SET_SCAN_ENABLE_CP_SIZE,
+                        &status, &scan_cp);
+
+    ret = hci_send_req(socket, &enable_adv_rq, 1000);
+    if ( ret < 0 ) {
+
+        hci_close_dev(socket);
+        perror("Failed to enable scan.");
+
+        return;
     }
 
     hci_filter_clear(&new_filter);
@@ -1182,57 +1182,75 @@ void *start_ble_scanning(void* param){
             sizeof(new_filter)) ) {
 
         /* Error handling */
-        perror(errordesc[E_SCAN_SET_HCI_FILTER].message);
-        zlog_info(category_health_report,
-                   errordesc[E_SCAN_SET_HCI_FILTER].message);
-	return;
+        hci_close_dev(socket);
+    //    perror(errordesc[E_SCAN_SET_HCI_FILTER].message);
+    //    zlog_info(category_health_report,
+    //               errordesc[E_SCAN_SET_HCI_FILTER].message);
+
     }
 
     bool keep_scanning = true;
-    while(false == g_done && true == keep_scanning){
- 
-        while (read(socket, ble_buffer, sizeof(ble_buffer)) < 0) {
+    while(keep_scanning = true){
+
+        if(read(socket, ble_buffer, sizeof(ble_buffer))
+                                                >= HCI_EVENT_HDR_SIZE) {
+
+            meta = (evt_le_meta_event*)(ble_buffer + HCI_EVENT_HDR_SIZE + 1);
+
+            if(meta->subevent == EVT_LE_ADVERTISING_REPORT){
+
+                uint8_t reports_count = meta->data[0];
+                void * offset = meta->data + 1;
+
+                while ( reports_count-- ) {
+
+                    info = (le_advertising_info *)offset;
+                    
+                    ba2str(&(info->bdaddr), addr);
+                    int rssi = (signed char)info->data[info->length];
+
+                    /* If the rssi vaule is within the threshold */
+                    if(rssi > RSSI_RANGE){
+
+                        printf("BLE: %s - RSSI %d\n", addr, rssi);
+                        send_to_push_dongle(&info->bdaddr, true);
+
+                    }
+
+                    offset = info->data + info->length + 2;
+                }
+
+            }
+
+        }else{
+            perror("Cannot read from socket\n");
+            break;
         }
 
-        ble_buffer_pointer = ble_buffer + (1 + HCI_EVENT_HDR_SIZE);
-        meta = (void *) ble_buffer_pointer;
+    } // end while
 
-        if (meta->subevent != 0x02){
+    /* Close the process of scanning BLE device, and close the socket. */
+    memset(&scan_cp, 0, sizeof(scan_cp));
+    scan_cp.enable = 0x00;  // Disable flag.
 
-            keep_scanning = false;
-        }
+    struct hci_request disable_adv_rq =
+    ble_hci_request(OCF_LE_SET_SCAN_ENABLE, LE_SET_SCAN_ENABLE_CP_SIZE,
+        &status, &scan_cp);
 
-        info = (le_advertising_info *) (meta->data + 1);
-
-        char name[30];
-        ba2str(&info->bdaddr, addr);
-        eir_parse_name(info->data, info->length,
-                            name, sizeof(name) - 1);
-
-        if(strcmp(name, "")!= 0){
-            printf("BLE: %s %s \n", addr, name);
-            send_to_push_dongle(&info->bdaddr, true);
-        }
-
+    ret = hci_send_req(socket, &disable_adv_rq, 1000);
+    if ( ret < 0 ) {
+        hci_close_dev(socket);
+        perror("Failed to disable scan.");
+        return 0;
     }
-    if( 0> hci_le_set_scan_enable(socket, 0, 0, 1000)){
 
-        /* Error handling */
-        perror(errordesc[E_BLE_ENABLE].message);
-        zlog_info(category_health_report,
-                   errordesc[E_BLE_ENABLE].message);
-    }
-#ifdef Debugging
-        zlog_debug(category_debug, 
-		"<< start_ble_scanning... ");
-#endif
+    hci_close_dev(socket);
 
 }
 
-
 void *start_br_scanning(void* param) {
 #ifdef Debugging
-        zlog_debug(category_debug, 
+        zlog_debug(category_debug,
 		">> start_br_scanning... ");
 #endif
 
@@ -1429,7 +1447,7 @@ void *start_br_scanning(void* param) {
     }//end while
 
 #ifdef Debugging
-        zlog_debug(category_debug, 
+        zlog_debug(category_debug,
 		"<< start_br_scanning... ");
 #endif
 
@@ -1438,7 +1456,7 @@ void *start_br_scanning(void* param) {
 void *timeout_cleanup(void* param){
 
 #ifdef Debugging
-        zlog_debug(category_debug, 
+        zlog_debug(category_debug,
 		">> timeout_cleanup... ");
 #endif
     /* Create a temporary node and set as the head */
@@ -1465,7 +1483,7 @@ void *timeout_cleanup(void* param){
                   /* Go throgth lists to release all memory allocated to the
                   nodes */
                   pthread_mutex_lock(&list_lock);
-                  
+
 		  list_for_each_safe(list_pointers,
                                      save_list_pointers,
                                      &scanned_list_head.list_entry){
@@ -1474,7 +1492,7 @@ void *timeout_cleanup(void* param){
                                        sc_list_entry);
                       remove_list_node(&temp->sc_list_entry);
 
-                      if(temp->tr_list_entry.next == temp->tr_list_entry.prev && 
+                      if(temp->tr_list_entry.next == temp->tr_list_entry.prev &&
 				temp->tr_list_entry.next == &temp->tr_list_entry){
                       	  mp_free(&mempool, temp);
                       }
@@ -1486,18 +1504,18 @@ void *timeout_cleanup(void* param){
                  != BR_object_list_head.list_entry.prev){
 
                   pthread_mutex_lock(&list_lock);
-                      
+
 		  list_for_each_safe(list_pointers,
                                      save_list_pointers,
                                      &BR_object_list_head.list_entry){
 
                       temp = ListEntry(list_pointers, ScannedDevice,
                                        tr_list_entry);
-                      
+
                       remove_list_node(&temp->sc_list_entry);
 		      remove_list_node(list_pointers);
 
-                      if(temp->sc_list_entry.next == temp->sc_list_entry.prev && 
+                      if(temp->sc_list_entry.next == temp->sc_list_entry.prev &&
 				temp->sc_list_entry.next == &temp->sc_list_entry){
                       	  mp_free(&mempool, temp);
                       }
@@ -1510,16 +1528,16 @@ void *timeout_cleanup(void* param){
                 != BLE_object_list_head.list_entry.prev){
 
                   pthread_mutex_lock(&list_lock);
-                  
+
 		  list_for_each_safe(list_pointers,
                                      save_list_pointers,
                                      &BLE_object_list_head.list_entry){
 
                       temp = ListEntry(list_pointers, ScannedDevice,
                                        tr_list_entry);
-                      
+
 		      remove_list_node(list_pointers);
-                      
+
                       mp_free(&mempool, temp);
                   }
 		  pthread_mutex_unlock(&list_lock);
@@ -1535,7 +1553,7 @@ void *timeout_cleanup(void* param){
     }
 
 #ifdef Debugging
-        zlog_debug(category_debug, 
+        zlog_debug(category_debug,
 		"<< timeout_cleanup... ");
 #endif
 }
@@ -1563,7 +1581,7 @@ ErrorCode startThread(pthread_t *threads ,
 
 void cleanup_exit(){
 #ifdef Debugging
-        zlog_debug(category_debug, 
+        zlog_debug(category_debug,
 		">> cleanup_exit... ");
 #endif
     /* Create a temporary node and set as the head */
@@ -1577,30 +1595,30 @@ void cleanup_exit(){
 
         /* Go throgth two lists to release all memory allocated to the nodes */
 	pthread_mutex_lock(&list_lock);
-        
+
 	list_for_each_safe(list_pointers,
                        save_list_pointers,
                        &scanned_list_head.list_entry){
-            
+
 	    temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
-            
+
 	    remove_list_node(list_pointers);
-            
+
             /* Make sure that the node is removed from the
 			tracked_BR_object_list. */
             if(temp->tr_list_entry.next != temp->tr_list_entry.prev){
 		remove_list_node(&temp->tr_list_entry);
             }
 	    mp_free(&mempool, temp);
-	}            
-	
+	}
+
         list_for_each_safe(list_pointers,
                       save_list_pointers,
                       &BR_object_list_head.list_entry){
 
 
             temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
-            
+
 	    remove_list_node(list_pointers);
             /* Make sure that the node is removed from the
 			scanned_list. */
@@ -1609,32 +1627,32 @@ void cleanup_exit(){
             }
             mp_free(&mempool, temp);
         }
-        
+
 	list_for_each_safe(list_pointers,
                       save_list_pointers,
                       &BLE_object_list_head.list_entry){
 
 
 	    temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
-            
+
 	    remove_list_node(list_pointers);
-            
+
 	    mp_free(&mempool, temp);
         }
-	
+
 	pthread_mutex_unlock(&list_lock);
-        
+
 	mp_destroy(&mempool);
 
 
     }
 
     pthread_mutex_destroy(&list_lock);
-    
+
     /* Release the handler for Bluetooth */
     free(g_push_file_path);
 #ifdef Debugging
-        zlog_debug(category_debug, 
+        zlog_debug(category_debug,
 		"<< cleanup_exit... ");
 #endif
 
@@ -1782,7 +1800,7 @@ int main(int argc, char **argv) {
     	/* Error handling */
         perror("sigaction error");
 #ifdef Debugging
-        zlog_debug(category_debug, 
+        zlog_debug(category_debug,
 		"sigaction error");
 #endif
         return E_REG_SIG_HANDLER;
@@ -1968,7 +1986,7 @@ int main(int argc, char **argv) {
 
 #endif
 
-    /* Start bluetooth advertising and wait while all threads are 
+    /* Start bluetooth advertising and wait while all threads are
        executing
     */
     int enable_advertising_success =
