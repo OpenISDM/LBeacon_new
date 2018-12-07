@@ -1,27 +1,27 @@
 /*
   Copyright (c) 2016 Academia Sinica, Institute of Information Science
- 
+
   License:
- 
+
       GPL 3.0 : The content of this file is subject to the terms and
        conditions defined in file 'COPYING.txt', which is part of this source
        code package.
- 
+
   Project Name:
- 
+
        BeDIS
- 
+
   File Description:
- 
+
        This file contains various utilities functions included in BlueZ, the
        official Linux Bluetooth protocol stack.
- 
+
   File Name:
- 
+
        Utilities.c
- 
+
   Abstract:
- 
+
        BeDIS uses LBeacons to deliver 3D coordinates and textual
        descriptions of their locations to users' devices. Basically, a LBeacon
        is an inexpensive, Bluetooth Smart Ready device. The 3D coordinates and
@@ -30,9 +30,9 @@
        during deployment and maintenance times. Once initialized, each LBeacon
        broadcasts its coordinates and location description to Bluetooth
        enabled user devices within its coverage area.
- 
+
   Authors:
- 
+
        Jake Lee, jakelee@iis.sinica.edu.tw
        Shirley Huang, shirley.huang.93@gmail.com
        Han Hu, hhu14@illinois.edu
@@ -74,3 +74,37 @@ unsigned int twoc(int in, int t) {
 }
 
 
+void ctrlc_handler(int stop) {
+    g_done = true;
+}
+
+ErrorCode startThread(pthread_t *threads ,void *( *thfunct)(void *), void *arg){
+
+    pthread_attr_t attr;
+
+    if ( pthread_attr_init( &attr) != 0
+      || pthread_create(threads, &attr, thfunct, arg) != 0){
+
+          printf("Start Thread Error.\n");
+          return E_START_THREAD;
+    }
+
+    printf("Start Thread Success.\n");
+    return WORK_SUCCESSFULLY;
+
+}
+
+
+long long get_system_time() {
+    /* A struct that stores the time */
+    struct timeb t;
+
+    /* Return value as a long long type */
+    long long system_time;
+
+    /* Convert time from Epoch to time in milliseconds of a long long type */
+    ftime(&t);
+    system_time = 1000 * t.time + t.millitm;
+
+    return system_time;
+}

@@ -9,7 +9,7 @@
 
  Project Name:
 
-      BeDIS
+      BeDIPS
 
  File Description:
 
@@ -26,7 +26,7 @@
 
  Abstract:
 
-      BeDIS uses LBeacons to deliver 3D coordinates and textual
+      BeDIPS uses LBeacons to deliver 3D coordinates and textual
       descriptions of their locations to users' devices. Basically, a LBeacon
       is an inexpensive, Bluetooth Smart Ready device. The 3D coordinates and
       location description of every LBeacon are retrieved from BeDIS
@@ -49,6 +49,9 @@
 #include <errno.h>
 #include "zlog.h"
 #include "xbee_API.h"
+#ifndef BEDIS_H
+#include "BeDIS.h"
+#endif
 
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
@@ -71,16 +74,6 @@ zlog_category_t *category_health_report, *category_debug;
 sxbee_config xbee_config;
 
 
-/* The enumeration of the error code */
-typedef enum ErrorCode_XBee {
-
-    XBEE_SUCCESSFULLY = 0,
-    E_XBEE_VALIDATE = 1,
-    E_CALL_BACK = 2,
-    E_CONNECT = 3,
-    E_SHUT_DOWN = 4
-
-} ErrorCode_Xbee;
 
 /* The enumeration of the polled data */
 typedef enum PolledDataType {
@@ -92,19 +85,6 @@ typedef enum PolledDataType {
 
 } PolledDataType;
 
-/*
-struct _errordesc_xbee {
-    int code;
-    char *message;
-} errorxcode[] = {
-
-    {XBEE_SUCCESSFULLY, "The xbee works successfullly"},
-    {E_XBEE_VALIDATE, "Error validating xbee"},
-    {E_CALL_BACK, "Error enabling call back function for xbee"},
-    {E_CONNECT, "Error buildiing xbee connection"},
-    {E_SHUT_DOWN, "Error shutting down xbee"}
-
-};
 
 /*
   zigbee_init:
@@ -123,7 +103,7 @@ struct _errordesc_xbee {
     ErrorCode: The error code for the corresponding error or successful
 
 */
-ErrorCode_Xbee zigbee_init();
+ErrorCode zigbee_init();
 
 
 /*

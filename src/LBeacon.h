@@ -568,40 +568,6 @@ extern int errno;
 
 ErrorCode get_config(Config *config, char *file_name);
 
-/*
-  ctrlc_handler:
-
-     This function is handler function for SIGINT signal. It will set global
-     flag and let all working threads aware of this status change.
-
-  Parameters:
-
-     stop
-
-  Return value:
-
-     None
-*/
-
-void ctrlc_handler(int stop);
-
-/*
-  get_system_time:
-
-      This helper function fetches the current time according to the system
-      clock in terms of the number of milliseconds since January 1, 1970.
-
-  Parameters:
-
-      None
-
-  Return value:
-
-      system_time - system time in milliseconds
-*/
-
-long long get_system_time();
-
 
 
 
@@ -891,26 +857,6 @@ void free_list(List_Entry *list_entry, DeviceType device_type);
 
 
 
-
-/*
-  startThread:
-
-      This function initializes a specified thread.
-
-  Parameters:
-
-      thread - name of a thread
-      threadfunct - the function to be executed by the thread
-      arg - the argument for thread function
-
-  Return value:
-
-      ErrorCode: The error code for the corresponding error if the function
-                 fails or WORK SUCCESSFULLY otherwise
-*/
-
-ErrorCode startThread(pthread_t *threads, void * (*threadfunct)(void *),
-                                        void *arg);
 
 
 /*

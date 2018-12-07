@@ -1,27 +1,27 @@
 /*
    Copyright (c) 2016 Academia Sinica, Institute of Information Science
- 
+
    License:
- 
+
        GPL 3.0 : The content of this file is subject to the terms and
-       conditions defined in file 'COPYING.txt', which is part of this 
+       conditions defined in file 'COPYING.txt', which is part of this
        source code package.
- 
+
    Project Name:
- 
+
         BeDIS
- 
+
    File Description:
- 
+
         This is the header file containing the function declarations and
         variables used in the Utilities.c file.
- 
+
    File Name:
- 
+
         Utilities.h
- 
+
    Abstract:
- 
+
         BeDIS uses LBeacons to deliver 3D coordinates and textual
         descriptions of their locations to users' devices. Basically, a
         LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
@@ -31,9 +31,9 @@
         initialized, each LBeacon broadcasts its coordinates and location
         description to Bluetooth enabled user devices within its coverage
         area.
- 
+
    Authors:
- 
+
         Jake Lee, jakelee@iis.sinica.edu.tw
         Shirley Huang, shirley.huang.93@gmail.com
         Han Hu, hhu14@illinois.edu

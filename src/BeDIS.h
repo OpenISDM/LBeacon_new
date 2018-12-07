@@ -128,7 +128,9 @@ typedef enum _ErrorCode{
     E_START_BHM_ROUTINE_THREAD = 33,
     E_START_TRACKING_THREAD = 34,
     E_ZIGBEE_CALL_BACK = 35,
-    E_ZIGBEE_SHUT_DOWN = 36
+    E_ZIGBEE_SHUT_DOWN = 36,
+    E_REG_SIG_HANDLER = 37,
+    E_JOIN_THREAD = 38,
 
 } ErrorCode;
 
@@ -178,7 +180,9 @@ s_er_d errordesc[]; = {
     {E_START_BHM_ROUTINE_THREAD, "Start BHM THread Fail."},
     {E_START_TRACKING_THREAD, "Start Tracking Thread Fail."},
     {E_ZIGBEE_CALL_BACK, "Error enabling call back function for xbee"},
-    {E_ZIGBEE_SHUT_DOWN,  "Error shutting down xbee."}
+    {E_ZIGBEE_SHUT_DOWN,  "Error shutting down xbee."},
+    {E_REG_SIG_HANDLER, "Error registering signal handler"},
+    {E_JOIN_THREAD, "Error joining thread"}
 
 };
 */

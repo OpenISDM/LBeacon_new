@@ -5,7 +5,7 @@ OBJS = Utilities.o LinkedList.o Mempool.o thpool.o Communication.o xbee_Serial.o
 LIB = -L /usr/local/lib
 
 #---------------------------------------------------------------------------
-all: LBeacon
+all: clean LBeacon
 LBeacon: $(OBJS)
 	$(CC) $(OBJS) $(CFLAGS) -o LBeacon $(LIB) -lrt -lpthread -lmulticobex -lbfb -lbluetooth -lobexftp -lopenobex -lxbee -lwiringPi -lzlog
 LBeacon.o: LBeacon.c LBeacon.h
@@ -28,5 +28,5 @@ Communication.o: Communication.c Communication.h
 	$(CC) Communication.c Communication.h -c
 
 clean:
-	find . -type f | xargs touch 
+	find . -type f | xargs touch
 	@rm -rf *.o *.h.gch *.log *.log.0 LBeacon
