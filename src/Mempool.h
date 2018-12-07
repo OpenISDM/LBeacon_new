@@ -16,7 +16,7 @@
       This file contains the declarations and definition of variables
       used in the Mempool.c file.
 
-      Note: This code is referred from a post by 2013Asker on 20140504 
+      Note:This code is referred from a post by 2013Asker on 20140504 
       on the stackexchange website here:
       https://codereview.stackexchange.com/questions/48919/simple-memory-
       pool-using-no-extra-memory

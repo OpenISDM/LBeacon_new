@@ -1,6 +1,6 @@
 # LBeacon
 #---------------------------------------------------------------------------
-CC = gcc -std=gnu99
+CC = gcc -std=gnu99 
 OBJS = Utilities.o LinkedList.o Mempool.o thpool.o Communication.o xbee_Serial.o xbee_API.o pkt_Queue.o LBeacon.o
 LIB = -L /usr/local/lib
 
