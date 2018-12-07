@@ -30,8 +30,8 @@ struct thpool_* thpool_init(int num_threads){
 	}
 
     /* Initialize the memory pool */
-    if(mp_init(&th_mempool, SIZE_FOR_MEM_POOL, SLOTS_FOR_MEM_POOL)
-       == NULL){
+    if(MEMORY_POOL_SUCCESS != 
+	mp_init(&th_mempool, SIZE_FOR_MEM_POOL, SLOTS_FOR_MEM_POOL)){
 
         return NULL;
     }

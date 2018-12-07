@@ -143,12 +143,24 @@ ErrorCode get_config(Config *config, char *file_name) {
            strlen(config_message));
     config->rssi_coverage_length = strlen(config_message);
 
+/*
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     memcpy(config->uuid, config_message, strlen(config_message));
     config->uuid_length = strlen(config_message);
+*/
+  
+    coordinate_X.f = (float)atof(config->coordinate_X);
+    coordinate_Y.f = (float)atof(config->coordinate_Y);
+    coordinate_Z.f = (float)atof(config->coordinate_Z);
 
+    /* Store coordinates of the beacon */
+    sprintf(config->uuid,
+            "OPENISDMN402%02x%02x%02x%02xD0F5%02x%02x%02x%02x48D2B060",
+            coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
+            coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
+            coordinate_Y.b[2], coordinate_Y.b[3]);
 
     fclose(file);
 
@@ -283,9 +295,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
         pthread_mutex_unlock(&list_lock);
 
     }
-
     return;
-
 }
 
 
@@ -1627,9 +1637,6 @@ int main(int argc, char **argv) {
     /* An iterator through the list of ScannedDevice structs */
     int device_id;
 
-    /* Buffer that contains the hexadecimal location of the beacon */
-    char hex_c[CONFIG_BUFFER_SIZE];
-
     /* Return value of pthread_create used to check for errors */
     int return_value;
 
@@ -1714,13 +1721,13 @@ int main(int argc, char **argv) {
     pthread_mutex_init(&list_lock,NULL);
 
     /* Load config struct */
-    ErrorCode ret = get_config(&g_config, CONFIG_FILE_NAME);
-    if(WORK_SUCCESSFULLY != ret){
+    return_value = get_config(&g_config, CONFIG_FILE_NAME);
+    if(WORK_SUCCESSFULLY != return_value){
          /* Error handling */
-        perror(errordesc[ret].message);
-        zlog_info(category_health_report, errordesc[ret].message);
+        perror(errordesc[E_OPEN_FILE].message);
+        zlog_info(category_health_report, errordesc[E_OPEN_FILE].message);
         cleanup_exit();
-        return ret;
+        return E_OPEN_FILE;
     }
 
     g_push_file_path =
@@ -1742,15 +1749,8 @@ int main(int argc, char **argv) {
     memcpy(g_push_file_path + g_config.file_path_length - 1,
            g_config.file_name, g_config.file_name_length - 1);
 
-
-    coordinate_X.f = (float)atof(g_config.coordinate_X);
-    coordinate_Y.f = (float)atof(g_config.coordinate_Y);
-    coordinate_Z.f = (float)atof(g_config.coordinate_Z);
-
-
     /* the  maximum number of devices of an array */
     int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
-
 
 
     /* Initialize each ThreadStatus struct in the g_idle_handler array */
@@ -1762,17 +1762,6 @@ int main(int argc, char **argv) {
         g_idle_handler[device_id].is_waiting_to_send = false;
 
     }
-
-
-    /* Store coordinates of the beacon */
-    sprintf(hex_c,
-            "OPENISDMN402%02x%02x%02x%02xD0F5%02x%02x%02x%02x48D2B060",
-            coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
-            coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
-            coordinate_Y.b[2], coordinate_Y.b[3]);
-
-
-    strcpy(g_config.uuid, hex_c);
 
     /* Register handler function for SIGINT signal */
     struct sigaction sigint_handler;
