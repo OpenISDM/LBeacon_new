@@ -55,10 +55,9 @@
 #define Debugging
 
 
-Config get_config(char *file_name) {
+ErrorCode get_config(Config *config, char *file_name) {
 
     /* Return value is a struct containing all config information */
-    Config config;
 
     FILE *file = fopen(file_name, "r");
     if (file == NULL) {
@@ -68,94 +67,92 @@ Config get_config(char *file_name) {
         zlog_info(category_health_report,
                   errordesc[E_OPEN_FILE].message);
         cleanup_exit();
-        return;
-
+        return E_OPEN_FILE;
     }
-    else {
+
     /* Create spaces for storing the string of the current line being read */
     char config_setting[CONFIG_BUFFER_SIZE];
-    char *config_message[CONFIG_FILE_LENGTH];
+    char *config_message = NULL;
 
      /* Keep reading each line and store into the config struct */
     fgets(config_setting, sizeof(config_setting), file);
-    config_message[0] = strstr((char *)config_setting, DELIMITER);
-    config_message[0] = config_message[0] + strlen(DELIMITER);
-    memcpy(config.coordinate_X, config_message[0],
-           strlen(config_message[0]));
-    config.coordinate_X_length = strlen(config_message[0]);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    memcpy(config->coordinate_X, config_message,
+           strlen(config_message));
+    config->coordinate_X_length = strlen(config_message);
 
     fgets(config_setting, sizeof(config_setting), file);
-    config_message[1] = strstr((char *)config_setting, DELIMITER);
-    config_message[1] = config_message[1] + strlen(DELIMITER);
-    memcpy(config.coordinate_Y, config_message[1],
-           strlen(config_message[1]));
-    config.coordinate_Y_length = strlen(config_message[1]);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    memcpy(config->coordinate_Y, config_message,
+           strlen(config_message));
+    config->coordinate_Y_length = strlen(config_message);
 
     fgets(config_setting, sizeof(config_setting), file);
-    config_message[2] = strstr((char *)config_setting, DELIMITER);
-    config_message[2] = config_message[2] + strlen(DELIMITER);
-    memcpy(config.coordinate_Z, config_message[2],
-           strlen(config_message[2]));
-    config.coordinate_Z_length = strlen(config_message[2]);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    memcpy(config->coordinate_Z, config_message,
+           strlen(config_message));
+    config->coordinate_Z_length = strlen(config_message);
 
     fgets(config_setting, sizeof(config_setting), file);
-    config_message[3] = strstr((char *)config_setting, DELIMITER);
-    config_message[3] = config_message[3] + strlen(DELIMITER);
-    memcpy(config.file_name, config_message[3], strlen(config_message[3]));
-    config.file_name_length = strlen(config_message[3]);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    memcpy(config->file_name, config_message, strlen(config_message));
+    config->file_name_length = strlen(config_message);
 
     fgets(config_setting, sizeof(config_setting), file);
-    config_message[4] = strstr((char *)config_setting, DELIMITER);
-    config_message[4] = config_message[4] + strlen(DELIMITER);
-    memcpy(config.file_path, config_message[4], strlen(config_message[4]));
-    config.file_path_length = strlen(config_message[4]);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    memcpy(config->file_path, config_message, strlen(config_message));
+    config->file_path_length = strlen(config_message);
 
     fgets(config_setting, sizeof(config_setting), file);
-    config_message[5] = strstr((char *)config_setting, DELIMITER);
-    config_message[5] = config_message[5] + strlen(DELIMITER);
-    memcpy(config.maximum_number_of_devices, config_message[5],
-           strlen(config_message[5]));
-    config.maximum_number_of_devices_length = strlen(config_message[5]);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    memcpy(config->maximum_number_of_devices, config_message,
+           strlen(config_message));
+    config->maximum_number_of_devices_length = strlen(config_message);
 
     fgets(config_setting, sizeof(config_setting), file);
-    config_message[6] = strstr((char *)config_setting, DELIMITER);
-    config_message[6] = config_message[6] + strlen(DELIMITER);
-    memcpy(config.number_of_groups, config_message[6],
-           strlen(config_message[6]));
-    config.number_of_groups_length = strlen(config_message[6]);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    memcpy(config->number_of_groups, config_message,
+           strlen(config_message));
+    config->number_of_groups_length = strlen(config_message);
 
     fgets(config_setting, sizeof(config_setting), file);
-    config_message[7] = strstr((char *)config_setting, DELIMITER);
-    config_message[7] = config_message[7] + strlen(DELIMITER);
-    memcpy(config.number_of_messages, config_message[7],
-           strlen(config_message[7]));
-    config.number_of_messages_length = strlen(config_message[7]);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    memcpy(config->number_of_messages, config_message,
+           strlen(config_message));
+    config->number_of_messages_length = strlen(config_message);
 
     fgets(config_setting, sizeof(config_setting), file);
-    config_message[8] = strstr((char *)config_setting, DELIMITER);
-    config_message[8] = config_message[8] + strlen(DELIMITER);
-    memcpy(config.number_of_push_dongles, config_message[8],
-           strlen(config_message[8]));
-    config.number_of_push_dongles_length = strlen(config_message[8]);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    memcpy(config->number_of_push_dongles, config_message,
+           strlen(config_message));
+    config->number_of_push_dongles_length = strlen(config_message);
 
     fgets(config_setting, sizeof(config_setting), file);
-    config_message[9] = strstr((char *)config_setting, DELIMITER);
-    config_message[9] = config_message[9] + strlen(DELIMITER);
-    memcpy(config.rssi_coverage, config_message[9],
-           strlen(config_message[9]));
-    config.rssi_coverage_length = strlen(config_message[9]);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    memcpy(config->rssi_coverage, config_message,
+           strlen(config_message));
+    config->rssi_coverage_length = strlen(config_message);
 
     fgets(config_setting, sizeof(config_setting), file);
-    config_message[10] = strstr((char *)config_setting, DELIMITER);
-    config_message[10] = config_message[10] + strlen(DELIMITER);
-    memcpy(config.uuid, config_message[10], strlen(config_message[10]));
-    config.uuid_length = strlen(config_message[10]);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    memcpy(config->uuid, config_message, strlen(config_message));
+    config->uuid_length = strlen(config_message);
 
 
     fclose(file);
-    }
 
-    return config;
+    return WORK_SUCCESSFULLY;
 }
 
 void ctrlc_handler(int stop) {
@@ -178,8 +175,6 @@ long long get_system_time() {
 }
 
 
-
-
 void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     int rssi) {
 
@@ -200,9 +195,6 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
     }
     printf("\n");
     fflush(NULL);
-
-    return;
-
 }
 
 
@@ -633,7 +625,7 @@ ErrorCode disable_advertising() {
 
 }
 
-void *cleanup_scanned_list(void) {
+void *cleanup_scanned_list(void* param) {
     #ifdef Debugging
         zlog_debug(category_debug,
                     ">> cleanup_scanned_list ");
@@ -664,7 +656,8 @@ void *cleanup_scanned_list(void) {
             temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
             /* If the device has been in the scanned list for at least 30
             seconds, remove its struct node from the scanned list */
-            if (get_system_time() - temp->initial_scanned_time > INTERVAL_HANDLE_SCANED_LIST_IN_MS){
+            if (get_system_time() - temp->initial_scanned_time > 
+			INTERVAL_HANDLE_SCANNED_LIST_IN_MS){
 
 		remove_list_node(&temp->sc_list_entry);
         
@@ -680,25 +673,23 @@ void *cleanup_scanned_list(void) {
                 }
 
             }
-            else {
-                continue;
-            }
         }
+
 	pthread_mutex_unlock(&list_lock);
+
     }//#end while
 
     #ifdef Debugging
         zlog_debug(category_debug,
                     "<< cleanup_scanned_list ");
     #endif
-    return;
-
-}
+}// cleanup_scanned_list
 
 
 
 
-void *manage_communication(void) {
+void *manage_communication(void* param){
+
     #ifdef Debugging
         zlog_debug(category_debug,
                     ">> manage_communication ");
@@ -706,22 +697,19 @@ void *manage_communication(void) {
 
     Threadpool thpool;
     FILE *br_object_file, *ble_object_file;
-    char *zig_message[ZIG_MESSAGE_LENGTH];
+    char zig_message[ZIG_MESSAGE_LENGTH];
     int polled_type, copy_progress;
 
     /* Initialize the thread pool and work threads waiting for the
     new work/job to be assigned. */
     thpool = thpool_init(NUM_WORK_THREADS);
-    if(thpool == NULL){
+    if(NULL == thpool){
 
         /* Could not create thread pool, handle error */
         perror(errordesc[E_INIT_THREAD_POOL].message);
         zlog_info(category_health_report,
                   errordesc[E_INIT_THREAD_POOL].message);
-        cleanup_exit();
-
         return;
-
     }
 
     while(false == g_done && true == ready_to_work){
@@ -732,7 +720,6 @@ void *manage_communication(void) {
         poll type. */
 
         polled_type = receive_call_back();
-
 
         while(false == g_done && polled_type == NOT_YET_POLLED){
 
@@ -768,7 +755,6 @@ void *manage_communication(void) {
                         perror(errordesc[E_OPEN_FILE].message);
                         zlog_info(category_health_report,
                                   errordesc[E_OPEN_FILE].message);
-                        cleanup_exit();
                         return;
                         }
 
@@ -797,7 +783,6 @@ void *manage_communication(void) {
                         perror(errordesc[E_OPEN_FILE].message);
                         zlog_info(category_health_report,
                                   errordesc[E_OPEN_FILE].message);
-                        cleanup_exit();
                         return;
                     }
 
@@ -815,7 +800,6 @@ void *manage_communication(void) {
 
                 }
 
-
 #ifdef Debugging
 
                 zlog_debug(category_debug,
@@ -825,7 +809,6 @@ void *manage_communication(void) {
 
                 zlog_info(category_health_report,
                           "Sent Message: %s", zig_message);
-
 
 
                 /* Add a work item to be executed by a work thread */
@@ -840,7 +823,6 @@ void *manage_communication(void) {
                     perror(errordesc[E_ADD_WORK_THREAD].message);
                     zlog_info(category_health_report,
                               errordesc[E_ADD_WORK_THREAD].message);
-                    cleanup_exit();
                     return;
 
                 }
@@ -887,8 +869,6 @@ void *manage_communication(void) {
         zlog_debug(category_debug,
                     "<< manage_communication ");
     #endif
-    return;
-
 }
 
 ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
@@ -1118,7 +1098,7 @@ failed:
     snprintf(buf, buf_len, NULL);
 }
 
-void *start_ble_scanning(void){
+void *start_ble_scanning(void* param){
 
 #ifdef Debugging
         zlog_debug(category_debug, 
@@ -1137,6 +1117,7 @@ void *start_ble_scanning(void){
     char addr[18];
 
     /* Open Bluetooth device */
+    dongle_device_id = hci_get_route(NULL);
     socket = hci_open_dev(dongle_device_id);
 
     if (0 > dongle_device_id || 0 > socket) {
@@ -1145,9 +1126,7 @@ void *start_ble_scanning(void){
          perror(errordesc[E_OPEN_SOCKET].message);
          zlog_info(category_health_report,
                    errordesc[E_OPEN_SOCKET].message);
-         cleanup_exit();
          return;
-
     }
 
     if( 0> hci_le_set_scan_parameters(socket, 0x01, htobs(0x0010),
@@ -1157,8 +1136,6 @@ void *start_ble_scanning(void){
         perror(errordesc[E_SET_BLE_PARAMETER].message);
         zlog_info(category_health_report,
                    errordesc[E_SET_BLE_PARAMETER].message);
-
-
     }
 
 
@@ -1168,7 +1145,6 @@ void *start_ble_scanning(void){
         perror(errordesc[E_BLE_ENABLE].message);
         zlog_info(category_health_report,
                    errordesc[E_BLE_ENABLE].message);
-
     }
 
     olen = sizeof(original_filiter);
@@ -1179,7 +1155,6 @@ void *start_ble_scanning(void){
         perror(errordesc[E_GET_BLE_SOCKET].message);
         zlog_info(category_health_report,
                    errordesc[E_GET_BLE_SOCKET].message);
-
     }
 
     hci_filter_clear(&new_filter);
@@ -1193,12 +1168,12 @@ void *start_ble_scanning(void){
         perror(errordesc[E_SCAN_SET_HCI_FILTER].message);
         zlog_info(category_health_report,
                    errordesc[E_SCAN_SET_HCI_FILTER].message);
-
     }
 
     bool keep_scanning = true;
     while(false == g_done && true == keep_scanning){
-        while (false == g_done && read(socket, ble_buffer, sizeof(ble_buffer)) < 0) {
+ 
+        while (read(socket, ble_buffer, sizeof(ble_buffer)) < 0) {
         }
 
         ble_buffer_pointer = ble_buffer + (1 + HCI_EVENT_HDR_SIZE);
@@ -1230,7 +1205,7 @@ void *start_ble_scanning(void){
 }
 
 
-void *start_br_scanning(void) {
+void *start_br_scanning(void* param) {
 #ifdef Debugging
         zlog_debug(category_debug, 
 		">> start_br_scanning... ");
@@ -1254,6 +1229,7 @@ void *start_br_scanning(void) {
     int results_id; /*ID of the result */
 
     while(false == g_done && true == ready_to_work){
+        {
         /* Open Bluetooth device */
         dongle_device_id = hci_get_route(NULL);
         socket = hci_open_dev(dongle_device_id);
@@ -1264,9 +1240,9 @@ void *start_br_scanning(void) {
             perror(errordesc[E_OPEN_SOCKET].message);
             zlog_info(category_health_report,
                       errordesc[E_OPEN_SOCKET].message);
-            cleanup_exit();
             return;
 
+        }
         }
 
         /* Setup filter */
@@ -1435,10 +1411,9 @@ void *start_br_scanning(void) {
 		"<< start_br_scanning... ");
 #endif
 
-    return;
 }
 
-void *timeout_cleanup(void){
+void *timeout_cleanup(void* param){
 
 #ifdef Debugging
         zlog_debug(category_debug, 
@@ -1541,14 +1516,12 @@ void *timeout_cleanup(void){
         zlog_debug(category_debug, 
 		"<< timeout_cleanup... ");
 #endif
-    return;
-
 }
 
 
 
 ErrorCode startThread(pthread_t *threads ,
-                      void * (*threadfunct)(void*),
+                      void * (*threadfunct)(void *),
                       void *arg){
 
     pthread_attr_t attr;
@@ -1567,9 +1540,6 @@ ErrorCode startThread(pthread_t *threads ,
 
 
 void cleanup_exit(){
-
-    long long start = get_system_time();
-    printf("%d\n", start);
 #ifdef Debugging
         zlog_debug(category_debug, 
 		">> cleanup_exit... ");
@@ -1646,15 +1616,10 @@ void cleanup_exit(){
 		"<< cleanup_exit... ");
 #endif
 
-    return;
-
 }
 
 
 int main(int argc, char **argv) {
-    long long start = get_system_time();
-    printf("%d\n", start);
-    
 #ifdef Debugging
         zlog_debug(category_debug, 
 		">> main... ");
@@ -1681,7 +1646,6 @@ int main(int argc, char **argv) {
 
     category_health_report = zlog_get_category(LOG_CATEGORY_HEALTH_REPORT);
 
-
     if (!category_health_report) {
 
         zlog_fini();
@@ -1704,7 +1668,6 @@ int main(int argc, char **argv) {
 #endif
 
 
-
     /*Initialize the global lists */
     init_entry(&scanned_list_head.list_entry);
     scanned_list_head.device_type = BR_EDR;
@@ -1715,7 +1678,7 @@ int main(int argc, char **argv) {
 
     /* Initialize the memory pool */
     if(mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_IN_MEM_POOL)
-            == NULL){
+            != MEMORY_POOL_SUCCESS){
 
         /* Error handling */
         perror(errordesc[E_MALLOC].message);
@@ -1751,7 +1714,15 @@ int main(int argc, char **argv) {
     pthread_mutex_init(&list_lock,NULL);
 
     /* Load config struct */
-    g_config = get_config(CONFIG_FILE_NAME);
+    ErrorCode ret = get_config(&g_config, CONFIG_FILE_NAME);
+    if(WORK_SUCCESSFULLY != ret){
+         /* Error handling */
+        perror(errordesc[ret].message);
+        zlog_info(category_health_report, errordesc[ret].message);
+        cleanup_exit();
+        return ret;
+    }
+
     g_push_file_path =
         malloc(g_config.file_path_length + g_config.file_name_length);
 
@@ -1817,7 +1788,7 @@ int main(int argc, char **argv) {
         zlog_debug(category_debug, 
 		"sigaction error");
 #endif
-        return;
+        return E_REG_SIG_HANDLER;
     }
 
     /* Create the thread for track BR_EDR device */
@@ -2035,7 +2006,7 @@ int main(int argc, char **argv) {
         perror(strerror(errno));
         zlog_info(category_health_report, strerror(errno));
         cleanup_exit();
-        return;
+        return E_JOIN_THREAD;
 
     }
 

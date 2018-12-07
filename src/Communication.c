@@ -171,9 +171,6 @@ void *zigbee_send_file(char *zig_message){
     xbee_connector(&xbee_config);
 
     usleep(XBEE_TIMEOUT);
-
-
-   return;
 }
 
 
