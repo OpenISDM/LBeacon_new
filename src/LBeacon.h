@@ -143,27 +143,37 @@ Authors:
 /* Maximum length of message to be sent over WiFi in bytes */
 #define WIFI_MESSAGE_LENGTH 4096
 
-/* Number of milliseconds in an epoch */
+/* Number of bytes in the string format of epoch time */
 #define LENGTH_OF_TIME 10
 
-/* Maximum length of time in milliseconds a bluetooth device
-   stays in the scanned device list
-*/
-#define TIMEOUT 3000
 
-/* Timeout in milliseconds of hci_send_req  */
-#define HCI_SEND_REQUEST_TIMEOUT 1000
+
+/* Time interval in milliseconds of a bluetooth device stays in the 
+   scanned device list. This time interval is for 
+   cleanup_scanned_list function
+*/
+#define INTERVAL_HANDLE_SCANED_LIST_IN_MS 30000
+
+/* Timeout in milliseconds of hci_send_req funtion */
+#define HCI_SEND_REQUEST_TIMEOUT_IN_MS 1000
 
 /* Time interval in milliseconds between advertising by a LBeacon */
-#define ADVERTISING_INTERVAL 300
+#define INTERVAL_ADVERTISING_IN_MS 1000
 
-/* The timeout in milliseconds for waiting in threads */
-#define TIMEOUT_WAITING 300
+/* Time interval in microseconds for busy-wait checking in threads */
+#define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_US 1000000
 
-/* Timeout interval in seconds */
-#define A_LONG_TIME 30000
-#define A_SHORT_TIME 5000
-#define A_VERY_SHORT_TIME 300
+/* Time interval in seconds for timeout_cleanup function to cleanup
+all lists. Currently, it is a periodical tasks, and we will change
+this cleanup tasks to be only triggered by network connection failure 
+or memory allocations reach threshold situations. 
+*/
+#define INTERVAL_FOR_CLEANUP_LISTS_IN_SEC 1800
+
+/* Time interval in microseconds for timeout_cleanup function to wait 
+for abnormal network situatins */
+#define INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_MS 5000
+
 
 /* Nominal transmission range limit. Only devices in this RSSI range are
    to be discovered and data sent. */

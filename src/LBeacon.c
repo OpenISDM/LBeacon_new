@@ -395,7 +395,7 @@ ErrorCode enable_advertising(int advertising_interval,
     request.rlen = 1;
 
      int return_value = hci_send_req(device_handle, &request,
-                                    HCI_SEND_REQUEST_TIMEOUT);
+                                    HCI_SEND_REQUEST_TIMEOUT_IN_MS);
 
     if (return_value < 0) {
 
@@ -430,7 +430,7 @@ ErrorCode enable_advertising(int advertising_interval,
     request.rlen = 1;
 
      return_value = hci_send_req(device_handle, &request,
-                                HCI_SEND_REQUEST_TIMEOUT);
+                                HCI_SEND_REQUEST_TIMEOUT_IN_MS);
 
     if (return_value < 0) {
 
@@ -517,7 +517,7 @@ ErrorCode enable_advertising(int advertising_interval,
     request.rlen = 1;
 
     return_value = hci_send_req(device_handle, &request,
-                                HCI_SEND_REQUEST_TIMEOUT);
+                                HCI_SEND_REQUEST_TIMEOUT_IN_MS);
 
     hci_close_dev(device_handle);
 
@@ -586,7 +586,7 @@ ErrorCode disable_advertising() {
     request.rlen = 1;
 
     int return_value = hci_send_req(device_handle, &request,
-                                    HCI_SEND_REQUEST_TIMEOUT);
+                                    HCI_SEND_REQUEST_TIMEOUT_IN_MS);
 
     hci_close_dev(device_handle);
 
@@ -641,13 +641,13 @@ void *stop_broadcast(void *beacon_location) {
     #endif
 
     int enable_advertising_success =
-        enable_advertising(ADVERTISING_INTERVAL, beacon_location,
+        enable_advertising(INTERVAL_ADVERTISING_IN_MS, beacon_location,
                            RSSI_VALUE);
 
     if (enable_advertising_success == 0) {
 
         while (false == g_done) {
-            sleep(1);
+            usleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_US);
         }
 
         /* When signal is received, disable message advertising */
@@ -683,7 +683,7 @@ void *cleanup_scanned_list(void) {
                 scanned_list_head.list_entry.next ==
 			&scanned_list_head.list_entry){
 
-            sleep(TIMEOUT_WAITING);
+            usleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_US);
         }
 
         /* Go through list */
@@ -697,7 +697,7 @@ void *cleanup_scanned_list(void) {
             temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
             /* If the device has been in the scanned list for at least 30
             seconds, remove its struct node from the scanned list */
-            if (get_system_time() - temp->initial_scanned_time > TIMEOUT) {
+            if (get_system_time() - temp->initial_scanned_time > INTERVAL_HANDLE_SCANED_LIST_IN_MS){
 
 		remove_list_node(&temp->sc_list_entry);
         
@@ -774,7 +774,7 @@ void *manage_communication(void) {
             zlog_debug(category_debug, "Not yet Polled, go to sleep");
 #endif
 
-            sleep(TIMEOUT_WAITING);
+            usleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_US);
 
             polled_type = receive_call_back();
 
@@ -1486,13 +1486,13 @@ void *timeout_cleanup(void){
 
         /* In the normal situation, this function would keep sleeping, not
         be executed. */
-        sleep(A_LONG_TIME);
+        sleep(INTERVAL_FOR_CLEANUP_LISTS_IN_SEC);
 
         /* If the network is down, set a timer to count down the specific time.
         When timer expires, clean up and remove all the node. */
         while(false == g_done && true == network_is_down){
 
-          if(start_time - get_system_time() >= A_SHORT_TIME){
+          if(get_system_time() - start_time >= INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_MS){
 
               /*Check whether the list is empty */
               if(scanned_list_head.list_entry.next
@@ -1601,6 +1601,8 @@ ErrorCode startThread(pthread_t *threads ,
 
 void cleanup_exit(){
 
+    long long start = get_system_time();
+    printf("%d\n", start);
 #ifdef Debugging
         zlog_debug(category_debug, 
 		">> cleanup_exit... ");
@@ -1681,7 +1683,9 @@ void cleanup_exit(){
 
 
 int main(int argc, char **argv) {
-
+    long long start = get_system_time();
+    printf("%d\n", start);
+    
 #ifdef Debugging
         zlog_debug(category_debug, 
 		">> main... ");
