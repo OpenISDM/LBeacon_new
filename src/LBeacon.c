@@ -633,41 +633,6 @@ ErrorCode disable_advertising() {
 
 }
 
-
-
-
-void *stop_broadcast(void *beacon_location) {
-    #ifdef Debugging
-        zlog_debug(category_debug,
-                    ">> stop_broadcast ");
-    #endif
-
-    int enable_advertising_success =
-        enable_advertising(INTERVAL_ADVERTISING_IN_MS, beacon_location,
-                           RSSI_VALUE);
-
-    if (enable_advertising_success == 0) {
-
-        while (false == g_done) {
-            usleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_US);
-        }
-
-        /* When signal is received, disable message advertising */
-        perror("Shutting down");
-        disable_advertising();
-
-    }
-
-    if(ready_to_work == false){
-
-        return;
-    }
-    #ifdef Debugging
-        zlog_debug(category_debug,
-                    "<< stop_broadcast ");
-    #endif
-}
-
 void *cleanup_scanned_list(void) {
     #ifdef Debugging
         zlog_debug(category_debug,
@@ -1672,6 +1637,8 @@ void cleanup_exit(){
 
     }
 
+    pthread_mutex_destroy(&list_lock);
+    
     /* Release the handler for Bluetooth */
     free(g_push_file_path);
 #ifdef Debugging
@@ -1836,7 +1803,7 @@ int main(int argc, char **argv) {
 
     strcpy(g_config.uuid, hex_c);
 
-
+    /* Register handler function for SIGINT signal */
     struct sigaction sigint_handler;
     sigint_handler.sa_handler = ctrlc_handler;
     sigemptyset(&sigint_handler.sa_mask);
@@ -1852,23 +1819,6 @@ int main(int argc, char **argv) {
 #endif
         return;
     }
-
-        perror("Hit ctrl-c to stop advertising");
-    /* Create the thread for advertising to bluetooth devices */
-    pthread_t stop_broadcast_thread;
-
-    return_value = startThread(&stop_broadcast_thread,
-                               stop_broadcast, hex_c);
-
-    if(return_value != WORK_SUCCESSFULLY){
-
-        perror(errordesc[E_START_THREAD].message);
-        zlog_info(category_health_report,
-                  errordesc[E_START_THREAD].message);
-        cleanup_exit();
-        return E_START_THREAD;
-    }
-
 
     /* Create the thread for track BR_EDR device */
     pthread_t br_scanning_thread;
@@ -2025,7 +1975,7 @@ int main(int argc, char **argv) {
 
 
      /* ready_to_work = false , shut down.
-     * wait for send_file_thread to exit. */
+        wait for send_file_thread to exit. */
 
     for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
 
@@ -2050,6 +2000,34 @@ int main(int argc, char **argv) {
 
 #endif
 
+    /* Start bluetooth advertising and wait while all threads are 
+       executing
+    */
+    int enable_advertising_success =
+        enable_advertising(INTERVAL_ADVERTISING_IN_MS,
+			   g_config.uuid,
+                           RSSI_VALUE);
+
+    if (0 == enable_advertising_success) {
+
+        while (false == g_done) {
+            usleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_US);
+        }
+
+        /* When signal is received, disable message advertising */
+        perror("Shutting down");
+        disable_advertising();
+    }
+
+    perror("Hit ctrl-c to stop advertising");
+
+
+#ifdef Debugging
+
+    zlog_debug(category_debug, "All the threads are created.");
+
+#endif
+
     return_value = pthread_join(cleanup_scanned_list_thread, NULL);
 
     if (return_value != 0) {
@@ -2061,19 +2039,7 @@ int main(int argc, char **argv) {
 
     }
 
-    return_value = pthread_join(stop_broadcast_thread, NULL);
-
-    if (return_value != 0) {
-        perror(strerror(errno));
-        zlog_info(category_health_report, strerror(errno));
-        cleanup_exit();
-        return;
-
-    }
-
     cleanup_exit();
-
-    pthread_mutex_destroy(&list_lock);
 
 #ifdef Debugging
         zlog_debug(category_debug, 
@@ -2082,7 +2048,6 @@ int main(int argc, char **argv) {
 
     return 0;
 }
-
 
 
 /* Follow are functions for communication via BR/EDR path to Bluetooth

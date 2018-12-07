@@ -775,24 +775,6 @@ ErrorCode disable_advertising();
 
 
 /*
-  stop_broadcast:
-
-      This function allows advertising to be stopped with ctrl-c if a
-      precious call to enable_advertising was a success.
-
-  Parameters:
-
-      beacon_location - advertising uuid
-
-  Return value:
-
-      None
-*/
-
-void *stop_broadcast(void *beacon_location);
-
-
-/*
   cleanup_scanned_list:
 
       This function checks each ScannedDevice node in the scanned list to
