@@ -144,7 +144,6 @@ Authors:
 #define LENGTH_OF_TIME 10
 
 
-
 /* Time interval in milliseconds of a bluetooth device stays in the
    scanned device list. This time interval is for
    cleanup_scanned_list function
@@ -454,87 +453,6 @@ Memory_Pool mempool;
 
 /* The lock that controls access to lists */
 pthread_mutex_t  list_lock;
-
-
-
-/*
-  ERROR CODE
-*/
-
-typedef enum ErrorCode {
-
-    WORK_SUCCESSFULLY = 0,
-    E_MALLOC = 1,
-    E_OPEN_FILE = 2,
-    E_OPEN_DEVICE = 3,
-    E_OPEN_SOCKET = 4,
-    E_SEND_OBEXFTP_CLIENT = 5,
-    E_SEND_CONNECT_DEVICE = 6,
-    E_SEND_PUSH_FILE = 7,
-    E_SEND_DISCONNECT_CLIENT = 8,
-    E_SCAN_SET_HCI_FILTER = 9,
-    E_SCAN_SET_INQUIRY_MODE = 10,
-    E_SCAN_START_INQUIRY = 11,
-    E_SEND_REQUEST_TIMEOUT = 12,
-    E_ADVERTISE_STATUS = 13,
-    E_ADVERTISE_MODE = 14,
-    E_SET_BLE_PARAMETER = 15,
-    E_BLE_ENABLE = 16,
-    E_GET_BLE_SOCKET =17,
-    E_START_THREAD = 18,
-    E_JOIN_THREAD = 19,
-    E_INIT_THREAD_POOL = 20,
-    E_INIT_ZIGBEE = 21,
-    E_ZIGBEE_CONNECT = 22,
-    E_LOG_INIT = 23,
-    E_LOG_GET_CATEGORY = 24,
-    E_EMPTY_FILE = 25,
-    E_INPUT_PARAMETER = 26,
-    E_ADD_WORK_THREAD = 27,
-    E_REG_SIG_HANDLER = 28,
-    MAX_ERROR_CODE = 29
-
-} ErrorCode;
-
-typedef enum ErrorCode error_t;
-
-struct _errordesc {
-    int code;
-    char *message;
-} errordesc[] = {
-
-    {WORK_SUCCESSFULLY, "The code works successfullly"},
-    {E_MALLOC, "Error allocating memory"},
-    {E_OPEN_FILE, "Error opening file"},
-    {E_OPEN_DEVICE, "Error opening the dvice"},
-    {E_OPEN_SOCKET, "Error opening socket"},
-    {E_SEND_OBEXFTP_CLIENT, "Error opening obexftp client"},
-    {E_SEND_CONNECT_DEVICE, "Error connecting to obexftp device"},
-    {E_SEND_PUSH_FILE, "Error pushing file to device"},
-    {E_SEND_DISCONNECT_CLIENT, "Disconnecting the client"},
-    {E_SCAN_SET_HCI_FILTER, "Error setting HCI filter"},
-    {E_SCAN_SET_INQUIRY_MODE, "Error settnig inquiry mode"},
-    {E_SCAN_START_INQUIRY, "Error starting inquiry"},
-    {E_SEND_REQUEST_TIMEOUT, "Sending request timeout"},
-    {E_ADVERTISE_STATUS, "LE set advertise returned status"},
-    {E_ADVERTISE_MODE, "Error setting advertise mode"},
-    {E_SET_BLE_PARAMETER, "Error setting parameters of BLE scanning "},
-    {E_BLE_ENABLE, "Error enabling BLE scanning"},
-    {E_GET_BLE_SOCKET, "Error getting BLE socket options"},
-    {E_START_THREAD, "Error creating thread"},
-    {E_JOIN_THREAD, "Error joining thread"},
-    {E_INIT_THREAD_POOL, "Error initializing thread pool"},
-    {E_INIT_ZIGBEE, "Error initializing the zigbee"},
-    {E_ZIGBEE_CONNECT, "Error zigbee connection"},
-    {E_LOG_INIT, "Error initializing log file"},
-    {E_LOG_GET_CATEGORY, "Error getting log category"},
-    {E_EMPTY_FILE, "Empty file"},
-    {E_INPUT_PARAMETER , "Error of invalid input parameter"},
-    {E_ADD_WORK_THREAD, "Error adding work to the work thread"},
-    {E_REG_SIG_HANDLER, "Error registering signal handler"},
-    {MAX_ERROR_CODE, "The element is invalid"}
-
-};
 
 
 
