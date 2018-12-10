@@ -1109,6 +1109,23 @@ char *choose_file(char *message_to_send);
 
 void *send_file(void *id);
 
+
+/*
+  start_classic_pushing:
+
+    This function creates threads per devices to push the data or file to
+    the scanned classic Bluetooth devices via BR/EDR path.
+
+    [N.B. The code in this function was orignally put in the main function]
+
+  Parameters:
+
+    None
+
+  Return value:
+
+    None
+*/
 void start_classic_pushing(void);
 
 #endif // Bluetooth_classic
