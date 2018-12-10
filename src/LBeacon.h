@@ -143,7 +143,7 @@ Authors:
 #define WIFI_MESSAGE_LENGTH 4096
 
 /* Number of bytes in the string format of epoch time */
-#define LENGTH_OF_TIME 10
+#define LENGTH_OF_EPOCH_TIME 10
 
 
 /* Time interval in milliseconds of a bluetooth device stays in the
@@ -158,8 +158,12 @@ Authors:
 /* Time interval in milliseconds between advertising by a LBeacon */
 #define INTERVAL_ADVERTISING_IN_MS 3000
 
-/* Time interval in microseconds for busy-wait checking in threads */
-#define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_US 60000000
+/* Time interval in seconds for cleanup_scanned_list busy-wait 
+checking in threads */
+#define INTERVAL_FOR_BUSY_WAITING_CHECK_CLEANUP_SCANNED_LIST_IN_SEC 30
+
+/* Time interval in seconds for busy-wait checking in threads */
+#define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC 3
 
 /* Time interval in seconds for timeout_cleanup function to cleanup
 all lists. Currently, it is a periodical tasks, and we will change

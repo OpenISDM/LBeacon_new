@@ -640,7 +640,7 @@ void *cleanup_scanned_list(void* param) {
                 scanned_list_head.list_entry.next ==
             &scanned_list_head.list_entry){
 
-            usleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_US);
+            sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_CLEANUP_SCANNED_LIST_IN_SEC);
         }
 
         /* Go through list */
@@ -725,7 +725,7 @@ void *manage_communication(void* param){
             zlog_debug(category_debug, "Not yet Polled, go to sleep");
 #endif
 
-            usleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_US);
+            sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
 
             polled_type = receive_call_back();
 
@@ -906,8 +906,8 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
     ScannedDevice *temp;
     int number_in_list;
     int number_to_send;
-    char timestamp_initial_str[LENGTH_OF_TIME];
-    char timestamp_final_str[LENGTH_OF_TIME];
+    char timestamp_initial_str[LENGTH_OF_EPOCH_TIME];
+    char timestamp_final_str[LENGTH_OF_EPOCH_TIME];
     char basic_info[LENGTH_OF_INFO];
 
     DeviceType device_type = list.device_type;
@@ -1991,7 +1991,7 @@ int main(int argc, char **argv) {
     if (0 == enable_advertising_success) {
 
         while (false == g_done) {
-            usleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_US);
+            sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
         }
 
         /* When signal is received, disable message advertising */
