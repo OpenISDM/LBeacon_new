@@ -88,13 +88,9 @@ is possibily transient failed.*/
 //The port on which to listen for incoming data
 #define UDP_LISTEN_PORT 8888
 
-/* The timeout for waiting in number of millisconds */
-#define TIMEOUT_WAIT 3000
-
 /* Timeout interval in seconds */
-#define A_LONG_TIME 30000
-#define A_SHORT_TIME 5000
-#define A_VERY_SHORT_TIME 300
+#define A_LONG_TIME 36000
+#define A_SHORT_TIME 6000
 
 typedef enum _ErrorCode{
 
