@@ -158,7 +158,7 @@ Authors:
 /* Time interval in milliseconds between advertising by a LBeacon */
 #define INTERVAL_ADVERTISING_IN_MS 3000
 
-/* Time interval in seconds for handle_scanned_list busy-wait 
+/* Time interval in seconds for handle_scanned_list busy-wait
 checking in threads */
 #define INTERVAL_FOR_BUSY_WAITING_CHECK_CLEANUP_SCANNED_LIST_IN_SEC 30
 
@@ -487,7 +487,7 @@ extern int errno;
   Return value:
 
       ErrorCode - indicate the result of execution, the expected return code is
-	WORK_SUCCESSFULLY
+  WORK_SUCCESSFULLY
 */
 
 ErrorCode get_config(Config *config, char *file_name);
@@ -1068,6 +1068,8 @@ extern void *zigbee_send_file(char *zig_message);
 
 #ifdef Bluetooth_classic
 
+
+
 /*
   choose_file:
 
@@ -1106,6 +1108,8 @@ char *choose_file(char *message_to_send);
 */
 
 void *send_file(void *id);
+
+void start_classic_pushing(void);
 
 #endif // Bluetooth_classic
 

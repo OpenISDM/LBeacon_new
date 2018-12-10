@@ -64,9 +64,9 @@ ErrorCode get_config(Config *config, char *file_name) {
     FILE *file = NULL;
 
     while(retry_time--){
-	file=fopen(file_name, "r");
-	if(NULL != file)
-	    break;
+    file=fopen(file_name, "r");
+    if(NULL != file)
+        break;
     }
     if (NULL == file) {
 
@@ -743,15 +743,15 @@ void *manage_communication(void* param){
                 if(WORK_SUCCESSFULLY == copy_progress){
 
                     /* Open the file that is going to be sent to the gateway */
-		    FILE *br_object_file = NULL;
-	            int retry_time = FILE_OPEN_RETRY;
-		    while(retry_time--)
-	            {
-                    	br_object_file = fopen(TRACKED_BR_TXT_FILE_NAME, "r");
-		        if(NULL!=br_object_file)
-			   break;
+            FILE *br_object_file = NULL;
+                int retry_time = FILE_OPEN_RETRY;
+            while(retry_time--)
+                {
+                        br_object_file = fopen(TRACKED_BR_TXT_FILE_NAME, "r");
+                if(NULL!=br_object_file)
+               break;
                     }
-		    if (NULL == br_object_file) {
+            if (NULL == br_object_file) {
 
                         /* Error handling */
                 //        perror(errordesc[E_OPEN_FILE].message);
@@ -777,13 +777,13 @@ void *manage_communication(void* param){
                 if(WORK_SUCCESSFULLY == copy_progress){
 
                     /* Open the file that is going to be sent to the gateway */
-		    FILE *ble_object_file = NULL;
-	            int retry_time = FILE_OPEN_RETRY;
-		    while(retry_time--){
-                    	ble_object_file = fopen(TRACKED_BLE_TXT_FILE_NAME, "r");
-			if(NULL!=ble_object_file)
-			    break;
-		    }
+            FILE *ble_object_file = NULL;
+                int retry_time = FILE_OPEN_RETRY;
+            while(retry_time--){
+                        ble_object_file = fopen(TRACKED_BLE_TXT_FILE_NAME, "r");
+            if(NULL!=ble_object_file)
+                break;
+            }
                     if (NULL == ble_object_file) {
 
                         /* Error handling */
@@ -914,17 +914,17 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
     /* Create a new file to store data in the tracked_BLE_object_list */
     int retry_time = FILE_OPEN_RETRY;
     while(retry_time--){
-    	track_file = fopen(file_name, "w");
-	if(NULL != track_file)
-	    break;
+        track_file = fopen(file_name, "w");
+    if(NULL != track_file)
+        break;
     }
     if(NULL == track_file){
         retry_time = FILE_OPEN_RETRY;
         while(retry_time--){
             track_file = fopen(file_name, "wt");
             if(NULL != track_file)
-		break;
-	}
+        break;
+    }
     }
     if(NULL == track_file){
 
@@ -1105,9 +1105,9 @@ void *start_ble_scanning(void *param){
     /* Open Bluetooth device */
     int retry_time = SOCKET_OPEN_RETRY;
     while(retry_time--){
-    	socket = hci_open_dev(dongle_device_id);
-	if(0 <= socket)
-	    break;
+        socket = hci_open_dev(dongle_device_id);
+    if(0 <= socket)
+        break;
     }
     if (0 > dongle_device_id || 0 > socket) {
 
@@ -1285,8 +1285,8 @@ void *start_br_scanning(void* param) {
         while(retry_time--){
             socket = hci_open_dev(dongle_device_id);
             if(0 <= socket)
-		break;
-	}
+        break;
+    }
         if (0 > dongle_device_id || 0 > socket) {
 
             /* Error handling */
@@ -1584,10 +1584,10 @@ void cleanup_exit(ErrorCode err_code){
 
     if(&mempool != NULL){
 
-        /* Go throgth all three lists to release all memory allocated 
+        /* Go throgth all three lists to release all memory allocated
            to the nodes */
 
-    	pthread_mutex_lock(&list_lock);
+        pthread_mutex_lock(&list_lock);
 
         list_for_each_safe(list_pointers,
                        save_list_pointers,
@@ -1602,7 +1602,7 @@ void cleanup_exit(ErrorCode err_code){
             if(temp->tr_list_entry.next != temp->tr_list_entry.prev){
                  remove_list_node(&temp->tr_list_entry);
             }
-            
+
             mp_free(&mempool, temp);
         }
 
@@ -1614,13 +1614,13 @@ void cleanup_exit(ErrorCode err_code){
             temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
 
             remove_list_node(list_pointers);
-            
+
             /* Make sure that the node is removed from the
             scanned_list. */
             if(temp->tr_list_entry.next != temp->sc_list_entry.prev){
                  remove_list_node(&temp->sc_list_entry);
             }
-            
+
             mp_free(&mempool, temp);
         }
 
@@ -1660,23 +1660,23 @@ int main(int argc, char **argv) {
     int return_value = WORK_SUCCESSFULLY;
     return_value = get_config(&g_config, CONFIG_FILE_NAME);
     if(WORK_SUCCESSFULLY != return_value){
-    
+
     //    perror(errordesc[E_OPEN_FILE].message);
     //    zlog_info(category_health_report, errordesc[E_OPEN_FILE].message);
         return E_OPEN_FILE;
     }
 
-     
+
     /*Initialize the global flag */
     g_done = false;
     ready_to_work = true;
     network_is_down = false;
 
-    
+
     /* Initialize the lock for accessing the lists */
     pthread_mutex_init(&list_lock,NULL);
-    
-	
+
+
     /* Initialize the memory pool */
     if(mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_IN_MEM_POOL)
             != MEMORY_POOL_SUCCESS){
@@ -1689,26 +1689,26 @@ int main(int argc, char **argv) {
 
     /* Initialize the application log */
     if (zlog_init("../config/zlog.conf") == 0) {
-    
+
         category_health_report = zlog_get_category(LOG_CATEGORY_HEALTH_REPORT);
 
         if (!category_health_report) {
 
             zlog_fini();
-    	//    perror(errordesc[E_LOG_GET_CATEGORY].message);
+        //    perror(errordesc[E_LOG_GET_CATEGORY].message);
             cleanup_exit(E_LOG_GET_CATEGORY);
-    	}
+        }
 
 #ifdef Debugging
-   	category_debug = zlog_get_category(LOG_CATEGORY_DEBUG);
+    category_debug = zlog_get_category(LOG_CATEGORY_DEBUG);
 
-    	if (!category_debug) {
+        if (!category_debug) {
 
             zlog_fini();
             //   perror(errordesc[E_LOG_GET_CATEGORY].message);
-	    cleanup_exit(E_LOG_GET_CATEGORY);
-    	}
-#endif 
+        cleanup_exit(E_LOG_GET_CATEGORY);
+        }
+#endif
     }
 
 
@@ -1728,7 +1728,7 @@ int main(int argc, char **argv) {
     sigint_handler.sa_flags = 0;
 
     if (-1 == sigaction(SIGINT, &sigint_handler, NULL)) {
-	// log error here
+    // log error here
     }
 
 
@@ -1821,6 +1821,7 @@ int main(int argc, char **argv) {
 
     if (0 == enable_advertising_success) {
 
+        perror("Hit ctrl-c to stop advertising");
         while (false == g_done) {
             sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
         }
@@ -1830,74 +1831,25 @@ int main(int argc, char **argv) {
         disable_advertising();
     }
 
-    perror("Hit ctrl-c to stop advertising");
-
 
     cleanup_exit(WORK_SUCCESSFULLY);
     return WORK_SUCCESSFULLY;
-    
+
+
+}
 
 
 
 
-
- /* Initialize the zigbee at a very beginning. Because it takes longer
-        time  */
-    /*
-    if(zigbee_init() != XBEE_SUCCESSFULLY){
-
-        /* Could not initialize the zigbee, handle error */
-    /*
-        perror(errordesc[E_INIT_ZIGBEE].message);
-        zlog_info(category_health_report,
-                  errordesc[E_INIT_ZIGBEE].message);
-
-        /* Set the flag of network_is_down to true. It can inform the timeout
-        cleanup function to be executed */
-        //network_is_down == true;
-
-        /* Not a deadly error, should not shut down the system */
-        //cleanup_exit();
-
-        //return;
-
-    //}
-
-    g_push_file_path =
-        malloc(g_config.file_path_length + g_config.file_name_length);
-
-    if (NULL == g_push_file_path) {
-
-         /* Error handling */
-    //    perror(errordesc[E_MALLOC].message);
-    //    zlog_info(category_health_report, errordesc[E_MALLOC].message);
-        cleanup_exit(E_MALLOC);
-    }
-
-    memcpy(g_push_file_path, g_config.file_path,
-           g_config.file_path_length - 1);
-    memcpy(g_push_file_path + g_config.file_path_length - 1,
-           g_config.file_name, g_config.file_name_length - 1);
-
-    /* the  maximum number of devices of an array */
-    int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
-
-    /* Initialize each ThreadStatus struct in the g_idle_handler array */
-    int device_id = 0;
-    for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
-
-         strncpy(g_idle_handler[device_id].scanned_mac_address, "0",
-         LENGTH_OF_MAC_ADDRESS);
-        g_idle_handler[device_id].idle = true;
-        g_idle_handler[device_id].is_waiting_to_send = false;
-
-    }
-
-
-
-/* The code for communication over Bluetooth BR/EDR protocol path using
-   additional device  */
+/* Follow are functions for communication via BR/EDR path to Bluetooth
+   classic devices */
 #ifdef Bluetooth_classic
+
+
+void start_classic_pushing(void){
+
+    /* An iterator through the list of ScannedDevice structs */
+    int device_id;
 
     int number_of_push_dongles = atoi(g_config.number_of_push_dongles);
     int maximum_number_of_devices_per_dongle =
@@ -1912,6 +1864,42 @@ int main(int argc, char **argv) {
     int dongle_device_id = 0; /*Device ID of dongle */
 
 
+
+    g_push_file_path =
+        malloc(g_config.file_path_length + g_config.file_name_length);
+
+
+    if (g_push_file_path == NULL) {
+
+         /* Error handling */
+    //    perror(errordesc[E_MALLOC].message);
+    //    zlog_info(category_health_report, errordesc[E_MALLOC].message);
+        cleanup_exit();
+        return E_MALLOC;
+
+    }
+
+    memcpy(g_push_file_path, g_config.file_path,
+           g_config.file_path_length - 1);
+    memcpy(g_push_file_path + g_config.file_path_length - 1,
+           g_config.file_name, g_config.file_name_length - 1);
+
+    /* the  maximum number of devices of an array */
+    int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
+
+
+    /* Initialize each ThreadStatus struct in the g_idle_handler array */
+    for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
+
+         strncpy(g_idle_handler[device_id].scanned_mac_address, "0",
+         LENGTH_OF_MAC_ADDRESS);
+        g_idle_handler[device_id].idle = true;
+        g_idle_handler[device_id].is_waiting_to_send = false;
+
+    }
+
+
+
     /* Create an arrayof threads for sending message to the scanned MAC
      * address */
     pthread_t send_file_thread[maximum_number_of_devices];
@@ -1922,7 +1910,7 @@ int main(int argc, char **argv) {
 
    for (device_id = 0; device_id < maximum_number_of_devices; device_id++) {
 
-         if (true == g_idle_handler[device_id].is_waiting_to_send) {
+         if (g_idle_handler[device_id].is_waiting_to_send == true) {
 
             /* Depending on the number of push dongles, split the threads
              * evenly and assign each thread to a push dongle device ID */
@@ -1957,7 +1945,8 @@ int main(int argc, char **argv) {
         //    perror(errordesc[E_START_THREAD].message);
          //   zlog_info(category_health_report,
          //             errordesc[E_START_THREAD].message);
-            cleanup_exit(E_START_THREAD);
+            cleanup_exit();
+            return 1;
         }
 
 
@@ -1979,19 +1968,14 @@ int main(int argc, char **argv) {
 
             perror(strerror(errno));
             zlog_info(category_health_report, strerror(errno));
-            cleanup_exit(E_START_THREAD);
+            cleanup_exit();
+            return;
+
         }
     }
 
-#endif //Bluetooth_classic
 
-    return WORK_SUCCESSFULLY;
 }
-
-
-/* Follow are functions for communication via BR/EDR path to Bluetooth
-   classic devices */
-#ifdef Bluetooth_classic
 
 
 char *choose_file(char *message_to_send) {
@@ -2084,7 +2068,7 @@ void *send_file(void *id) {
 
     obexftp_client_t *client = NULL; /* ObexFTP client */
     int dongle_device_id = 0;        /* Device ID of each dongle */
-    int socket = 0;                      /* ObexFTP client's socket */
+    int socket;                      /* ObexFTP client's socket */
     int channel = -1;                /* ObexFTP channel */
     int thread_id = (int)id;         /* Thread ID */
     char *address = NULL;            /* Scanned MAC address */
@@ -2104,17 +2088,13 @@ void *send_file(void *id) {
             device_id++) {
 
             if (device_id == thread_id &&
-                true == g_idle_handler[device_id].is_waiting_to_send) {
+                g_idle_handler[device_id].is_waiting_to_send == true) {
 
 
                 /* Open socket and use current time as start time to keep
                  * of how long has taken to send the message to the device */
-                int retry_time = SOCKET_OPEN_RETRY;
-		while(retry_time--){
-                    socket = hci_open_dev(dongle_device_id);
-		    if(0<= socket)
-		       break;
-		}
+                socket = hci_open_dev(dongle_device_id);
+
 
                 if (0 > dongle_device_id || 0 > socket) {
 
@@ -2158,7 +2138,7 @@ void *send_file(void *id) {
                 long long end = get_system_time();
                 printf("Time to open connection: %lld ms\n", end - start);
 
-                if (NULL == client) {
+                if (client == NULL) {
 
                     /* Error handling */
                  //   perror(errordesc[E_SEND_OBEXFTP_CLIENT].message);
@@ -2236,7 +2216,7 @@ void *send_file(void *id) {
     } //end while loop
 
     /* Exit forcibly by main thread */
-    if(false == ready_to_work){
+    if(ready_to_work == false){
         return;
     }
 
