@@ -41,6 +41,8 @@
       Joey, joeyzhou@iis.sinica.edu.tw
      
 */
+#ifndef LINKED_LIST_H
+#define LINKED_LIST_H
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -206,3 +208,4 @@ typedef struct List_Entry {
  int get_list_length(List_Entry *entry);
 
 
+#endif

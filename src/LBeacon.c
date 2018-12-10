@@ -50,7 +50,9 @@
 */
 
 #include "LBeacon.h"
-
+#include "zlog.h"
+#include "Communication.h"
+#include "thpool.h"
 
 #define Debugging
 
@@ -58,8 +60,14 @@
 ErrorCode get_config(Config *config, char *file_name) {
 
     /* Return value is a struct containing all config information */
+    int retry_time = FILE_OPEN_RETRY;
+    FILE *file = NULL;
 
-    FILE *file = fopen(file_name, "r");
+    while(retry_time--){
+	file=fopen(file_name, "r");
+	if(NULL != file)
+	    break;
+    }
     if (file == NULL) {
 
         /* Error handling */
@@ -686,7 +694,6 @@ void *manage_communication(void* param){
     #endif
 
     Threadpool thpool;
-    FILE *br_object_file, *ble_object_file;
     char zig_message[ZIG_MESSAGE_LENGTH];
     int polled_type, copy_progress;
 
@@ -731,15 +738,21 @@ void *manage_communication(void* param){
 
                 /* Copy track_object data to a file to be transmited */
                 copy_progress =
-                (int)copy_object_data_to_file("tracked_br_txt.txt",
+                (int)copy_object_data_to_file(TRACKED_BR_TXT_FILE_NAME,
                                                 BR_object_list_head);
 
                 if(copy_progress == WORK_SUCCESSFULLY){
 
                     /* Open the file that is going to be sent to the gateway */
-                    br_object_file = fopen("tracked_br_list.txt", "r");
-
-                    if (br_object_file == NULL) {
+		    FILE *br_object_file = NULL;
+	            int retry_time = FILE_OPEN_RETRY;
+		    while(retry_time--)
+	            {
+                    	br_object_file = fopen(TRACKED_BR_TXT_FILE_NAME, "r");
+		        if(NULL!=br_object_file)
+			   break;
+                    }
+		    if (br_object_file == NULL) {
 
                         /* Error handling */
                 //        perror(errordesc[E_OPEN_FILE].message);
@@ -759,14 +772,19 @@ void *manage_communication(void* param){
 
                 /* Copy BLE_tracked data to the a file to be transmited */
                 copy_progress =
-                (int)copy_object_data_to_file("tracked_ble_txt.txt",
+                (int)copy_object_data_to_file(TRACKED_BLE_TXT_FILE_NAME,
                                                 BLE_object_list_head);
 
                 if(copy_progress == WORK_SUCCESSFULLY){
 
                     /* Open the file that is going to be sent to the gateway */
-                    ble_object_file = fopen("tracked_ble_txt.txt", "r");
-
+		    FILE *ble_object_file = NULL;
+	            int retry_time = FILE_OPEN_RETRY;
+		    while(retry_time--){
+                    	ble_object_file = fopen(TRACKED_BLE_TXT_FILE_NAME, "r");
+			if(NULL!=ble_object_file)
+			    break;
+		    }
                     if (ble_object_file == NULL) {
 
                         /* Error handling */
@@ -875,7 +893,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
 
     }
 
-    FILE *track_file;
+    FILE *track_file = NULL;;
 
     /* Head of a local list for tracked object */
     List_Entry local_object_list_head;
@@ -894,14 +912,20 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
 
     DeviceType device_type = list.device_type;
 
-
     /* Create a new file to store data in the tracked_BLE_object_list */
-    track_file = fopen(file_name, "w");
-
+    int retry_time = FILE_OPEN_RETRY;
+    while(retry_time--){
+    	track_file = fopen(file_name, "w");
+	if(NULL != track_file)
+	    break;
+    }
     if(track_file == NULL){
-
-        track_file = fopen(file_name, "wt");
-
+        retry_time = FILE_OPEN_RETRY;
+        while(retry_time--){
+            track_file = fopen(file_name, "wt");
+            if(NULL != track_file)
+		break;
+	}
     }
     if(track_file == NULL){
 
@@ -1080,8 +1104,12 @@ void *start_ble_scanning(void *param){
     dongle_device_id = hci_get_route(NULL);
 
     /* Open Bluetooth device */
-    socket = hci_open_dev(dongle_device_id);
-
+    int retry_time = SOCKET_OPEN_RETRY;
+    while(retry_time--){
+    	socket = hci_open_dev(dongle_device_id);
+	if(0 <= socket)
+	    break;
+    }
     if (0 > dongle_device_id || 0 > socket) {
 
          /* Error handling */
@@ -1256,8 +1284,12 @@ void *start_br_scanning(void* param) {
         {
         /* Open Bluetooth device */
         dongle_device_id = hci_get_route(NULL);
-        socket = hci_open_dev(dongle_device_id);
-
+        int retry_time = SOCKET_OPEN_RETRY;
+        while(retry_time--){
+            socket = hci_open_dev(dongle_device_id);
+            if(0 <= socket)
+		break;
+	}
         if (0 > dongle_device_id || 0 > socket) {
 
             /* Error handling */
@@ -1617,6 +1649,7 @@ void cleanup_exit(){
         "<< cleanup_exit... ");
 #endif
 
+    exit(0);
 }
 
 
@@ -2080,7 +2113,7 @@ void *send_file(void *id) {
 
     obexftp_client_t *client = NULL; /* ObexFTP client */
     int dongle_device_id = 0;        /* Device ID of each dongle */
-    int socket;                      /* ObexFTP client's socket */
+    int socket = 0;                      /* ObexFTP client's socket */
     int channel = -1;                /* ObexFTP channel */
     int thread_id = (int)id;         /* Thread ID */
     char *address = NULL;            /* Scanned MAC address */
@@ -2105,8 +2138,12 @@ void *send_file(void *id) {
 
                 /* Open socket and use current time as start time to keep
                  * of how long has taken to send the message to the device */
-                socket = hci_open_dev(dongle_device_id);
-
+                int retry_time = SOCKET_OPEN_RETRY;
+		while(retry_time--){
+                    socket = hci_open_dev(dongle_device_id);
+		    if(0<= socket)
+		       break;
+		}
 
                 if (0 > dongle_device_id || 0 > socket) {
 

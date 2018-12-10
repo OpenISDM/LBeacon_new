@@ -3,6 +3,8 @@
  * License:     MIT
  *
  **********************************/
+#ifndef THPOOL_H
+#define THPOOL_H
 
 #define _POSIX_C_SOURCE 200809L
 #include <unistd.h>
@@ -272,3 +274,6 @@ int thpool_num_threads_working(Threadpool);
 
 /* The number of slots for the memory pool */
 #define SIZE_FOR_MEM_POOL 256
+
+#endif
+

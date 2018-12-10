@@ -36,14 +36,12 @@
 
  */
 
+#ifndef BEDIS_H
+#define BEDIS_H
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-
-
-#ifndef BEDIS_H
-#define BEDIS_H
 
 /* Parameter that marks the start of the config file */
 #define DELIMITER "="
@@ -53,6 +51,14 @@
 
 /* Number of lines in the config file */
 #define CONFIG_FILE_LENGTH 11
+
+/* Times of retrying to open file, because file openning operation 
+is possibily transient failed. */
+#define FILE_OPEN_RETRY 5
+
+/* Times of retrying to open socket, because socket openning operation 
+is possibily transient failed.*/
+#define SOCKET_OPEN_RETRY 5
 
 /* The number of slots in the memory pool */
 #define SLOTS_IN_MEM_POOL 1024

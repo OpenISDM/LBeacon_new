@@ -48,11 +48,10 @@
 
 
 */
-
-#include <stdlib.h>
-
 #ifndef MEMPOOL_H
 #define MEMPOOL_H
+
+#include <stdlib.h>
 
 #define MEMORY_POOL_SUCCESS 1
 #define MEMORY_POOL_ERROR 0

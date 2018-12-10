@@ -48,6 +48,8 @@ Authors:
 
 */
 
+#ifndef LBEACON_H
+#define LBEACON_H
 
 /*
 * INCLUDES
@@ -77,16 +79,10 @@ Authors:
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-#include "zlog.h"
-#include "LinkedList.h"
 #include "Utilities.h"
 #include "Mempool.h"
-#include "Communication.h"
-#include "thpool.h"
+#include "LinkedList.h"
 
-
-#ifndef LBEACON_H
-#define LBEACON_H
 /*
   CONSTANTS
 */
@@ -114,6 +110,12 @@ Authors:
 
 /* Parameter that marks the start of the config file */
 #define DELIMITER "="
+
+/* The temporary file for uploading tracked BR data */
+#define TRACKED_BR_TXT_FILE_NAME "tracked_br_txt.txt"
+
+/* The temporary file for uploading tracked BLE data */
+#define TRACKED_BLE_TXT_FILE_NAME "tracked_ble_txt.txt"
 
 /* BlueZ bluetooth extended inquiry response protocol: flags */
 #define EIR_FLAGS 0X01

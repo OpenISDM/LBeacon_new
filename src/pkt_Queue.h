@@ -36,15 +36,15 @@
  *      Gary Xiao		, garyh0205@hotmail.com
  */
 
+#ifndef pkt_Queue_H
+#define pkt_Queue_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
-
-#ifndef pkt_Queue_H
-#define pkt_Queue_H
 
 #define Gateway   "0000000000000000"
 #define Broadcast "000000000000FFFF"

@@ -42,6 +42,9 @@
         Jimmy Lai, jimmylai@iis.sinica.edu.tw
  */
 
+ #ifndef UTILITIES_H
+ #define UTILITIES_H
+
  #include <ctype.h>
  #include <stdbool.h>
  #include <pthread.h>
@@ -52,15 +55,7 @@
  #include <sys/time.h>
  #include <sys/timeb.h>
  #include <time.h>
-
- #ifndef BEDIS_H
-
  #include "BeDIS.h"
- #endif
-
-
- #ifndef UTILITIES_H
- #define UTILITIES_H
 
 
  // FUNCTIONS

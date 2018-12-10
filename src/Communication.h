@@ -42,6 +42,9 @@
 
 */
 
+#ifndef COMMUNICATION_H
+#define COMMUNICATION_H
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,12 +52,7 @@
 #include <errno.h>
 #include "zlog.h"
 #include "xbee_API.h"
-#ifndef BEDIS_H
 #include "BeDIS.h"
-#endif
-
-#ifndef COMMUNICATION_H
-#define COMMUNICATION_H
 
 /* Length of timeout in number of milliseconds */
 #define XBEE_TIMEOUT 2000000
