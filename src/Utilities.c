@@ -86,11 +86,11 @@ ErrorCode startThread(pthread_t *threads ,void *( *thfunct)(void *), void *arg){
     if ( pthread_attr_init( &attr) != 0
       || pthread_create(threads, &attr, thfunct, arg) != 0){
 
-          printf("Start Thread Error.\n");
+          //printf("Start Thread Error.\n");
           return E_START_THREAD;
     }
 
-    printf("Start Thread Success.\n");
+    //printf("Start Thread Success.\n");
     return WORK_SUCCESSFULLY;
 
 }

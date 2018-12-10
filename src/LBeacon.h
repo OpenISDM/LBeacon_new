@@ -148,7 +148,7 @@ Authors:
 
 /* Time interval in milliseconds of a bluetooth device stays in the
    scanned device list. This time interval is for
-   handle_scanned_list function
+   cleanup_scanned_list function
 */
 #define INTERVAL_HANDLE_SCANNED_LIST_IN_MS 30000
 
@@ -158,7 +158,7 @@ Authors:
 /* Time interval in milliseconds between advertising by a LBeacon */
 #define INTERVAL_ADVERTISING_IN_MS 3000
 
-/* Time interval in seconds for handle_scanned_list busy-wait
+/* Time interval in seconds for cleanup_scanned_list busy-wait
 checking in threads */
 #define INTERVAL_FOR_BUSY_WAITING_CHECK_CLEANUP_SCANNED_LIST_IN_SEC 30
 
@@ -669,7 +669,7 @@ ErrorCode disable_advertising();
 
 
 /*
-  handle_scanned_list:
+  cleanup_scanned_list:
 
       This function checks each ScannedDevice node in the scanned list to
       determine whether the node has been in the list for over TIMEOUT unit
@@ -688,7 +688,7 @@ ErrorCode disable_advertising();
       None
 */
 
-void *handle_scanned_list(void *param);
+void *cleanup_scanned_list(void *param);
 
 
 /*

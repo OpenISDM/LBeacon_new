@@ -622,7 +622,7 @@ ErrorCode disable_advertising() {
 
 }
 
-void *handle_scanned_list(void* param) {
+void *cleanup_scanned_list(void* param) {
     #ifdef Debugging
         zlog_debug(category_debug,
                     ">> cleanup_scanned_list ");
@@ -1141,8 +1141,6 @@ void *start_ble_scanning(void *param){
 
         return;
     }
-
-    printf("LE Scan ...\n");
 
     le_set_event_mask_cp event_mask_cp;
     memset(&event_mask_cp, 0, sizeof(le_set_event_mask_cp));
@@ -1762,11 +1760,11 @@ int main(int argc, char **argv) {
     }
 
 
-    /* Create the the handle_scanned_list thread */
-    pthread_t handle_scanned_list_thread;
+    /* Create the the cleanup_scanned_list thread */
+    pthread_t cleanup_scanned_list_thread;
 
-    return_value = startThread(&handle_scanned_list_thread,
-                               handle_scanned_list, &scanned_list_head);
+    return_value = startThread(&cleanup_scanned_list_thread,
+                               cleanup_scanned_list, &scanned_list_head);
 
     if(return_value != WORK_SUCCESSFULLY){
 
