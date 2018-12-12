@@ -150,24 +150,24 @@ ErrorCode get_config(Config *config, char *file_name) {
            strlen(config_message));
     config->rssi_coverage_length = strlen(config_message);
 
-/*
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    memcpy(config->uuid, config_message, strlen(config_message));
-    config->uuid_length = strlen(config_message);
-*/
-
     coordinate_X.f = (float)atof(config->coordinate_X);
     coordinate_Y.f = (float)atof(config->coordinate_Y);
     coordinate_Z.f = (float)atof(config->coordinate_Z);
 
     /* Store coordinates of the beacon */
     sprintf(config->uuid,
-            "OPENISDMN402%02x%02x%02x%02xD0F5%02x%02x%02x%02x48D2B060",
-            coordinate_X.b[0], coordinate_X.b[1], coordinate_X.b[2],
-            coordinate_X.b[3], coordinate_Y.b[0], coordinate_Y.b[1],
-            coordinate_Y.b[2], coordinate_Y.b[3]);
+            "%02x%02x%02x%02x0000%02x%02x%02x%02x0000%02x%02x%02x%02x",
+            coordinate_Z.b[0], coordinate_Z.b[1], coordinate_Z.b[2],
+            coordinate_Z.b[3], coordinate_X.b[0], coordinate_X.b[1], 
+            coordinate_X.b[2], coordinate_X.b[3], coordinate_Y.b[0], 
+            coordinate_Y.b[1], coordinate_Y.b[2], coordinate_Y.b[3]);
+
+#ifdef Debugging
+
+        zlog_debug(category_debug,
+                    "Generated UUID: [%s]", config->uuid);
+
+#endif
 
     fclose(file);
 
@@ -353,6 +353,8 @@ struct ScannedDevice *check_is_in_list(char address[],
 
 ErrorCode enable_advertising(int advertising_interval,
                              char *advertising_uuid,
+			     int major_number,
+			     int minor_number,
                              int rssi_value) {
 
     int dongle_device_id = hci_get_route(NULL);
@@ -496,6 +498,28 @@ ErrorCode enable_advertising(int advertising_interval,
         segment_length++;
 
     }
+
+
+    /* Major number */
+    advertisement_data_copy
+        .data[advertisement_data_copy.length + segment_length] =
+        htobs(major_number >> 8 & 0x00FF);
+    segment_length++;
+    advertisement_data_copy
+        .data[advertisement_data_copy.length + segment_length] =
+        htobs(major_number & 0x00FF);
+    segment_length++;
+
+    /* Minor number */
+    advertisement_data_copy
+        .data[advertisement_data_copy.length + segment_length] =
+        htobs(minor_number >> 8 & 0x00FF);
+    segment_length++;
+    advertisement_data_copy
+        .data[advertisement_data_copy.length + segment_length] =
+        htobs(minor_number & 0x00FF);
+    segment_length++;
+
 
     /* RSSI calibration */
     advertisement_data_copy
@@ -1671,6 +1695,30 @@ void cleanup_exit(ErrorCode err_code){
 
 int main(int argc, char **argv) {
 
+    /* Initialize the application log */
+    if (zlog_init("../config/zlog.conf") == 0) {
+
+        category_health_report = zlog_get_category(LOG_CATEGORY_HEALTH_REPORT);
+
+        if (!category_health_report) {
+
+            zlog_fini();
+        //    perror(errordesc[E_LOG_GET_CATEGORY].message);
+            cleanup_exit(E_LOG_GET_CATEGORY);
+        }
+
+#ifdef Debugging
+    category_debug = zlog_get_category(LOG_CATEGORY_DEBUG);
+
+        if (!category_debug) {
+
+            zlog_fini();
+            //   perror(errordesc[E_LOG_GET_CATEGORY].message);
+        cleanup_exit(E_LOG_GET_CATEGORY);
+        }
+#endif
+    }
+
     /* Load config struct */
     int return_value = WORK_SUCCESSFULLY;
     return_value = get_config(&g_config, CONFIG_FILE_NAME);
@@ -1699,31 +1747,6 @@ int main(int argc, char **argv) {
       //  perror(errordesc[E_MALLOC].message);
      //   zlog_info(category_health_report, errordesc[E_MALLOC].message);
         cleanup_exit(E_MALLOC);
-    }
-
-
-    /* Initialize the application log */
-    if (zlog_init("../config/zlog.conf") == 0) {
-
-        category_health_report = zlog_get_category(LOG_CATEGORY_HEALTH_REPORT);
-
-        if (!category_health_report) {
-
-            zlog_fini();
-        //    perror(errordesc[E_LOG_GET_CATEGORY].message);
-            cleanup_exit(E_LOG_GET_CATEGORY);
-        }
-
-#ifdef Debugging
-    category_debug = zlog_get_category(LOG_CATEGORY_DEBUG);
-
-        if (!category_debug) {
-
-            zlog_fini();
-            //   perror(errordesc[E_LOG_GET_CATEGORY].message);
-        cleanup_exit(E_LOG_GET_CATEGORY);
-        }
-#endif
     }
 
 
@@ -1832,9 +1855,11 @@ int main(int argc, char **argv) {
     int enable_advertising_success =
         enable_advertising(INTERVAL_ADVERTISING_IN_MS,
                g_config.uuid,
-                           RSSI_VALUE);
+	       LBEACON_MAJOR_VER,
+               LBEACON_MINOR_VER,
+               RSSI_VALUE);
 
-    if (0 == enable_advertising_success) {
+    if (WORK_SUCCESSFULLY == enable_advertising_success) {
 
         perror("Hit ctrl-c to stop advertising");
         while (false == g_done) {

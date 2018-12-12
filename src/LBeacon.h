@@ -87,6 +87,10 @@ Authors:
   CONSTANTS
 */
 
+/* The major and minor versions of LBeacon used for advertising */ 
+#define LBEACON_MAJOR_VER 1
+#define LBEACON_MINOR_VER 0
+
 /* Command opcode pack/unpack from HCI library. ogf and ocf stand for Opcode
    group field and Opcofe command field, respectively. See Bluetooth
    specification - core version 4.0, vol.2, part E Chapter 5.4 for details.
@@ -636,6 +640,8 @@ struct ScannedDevice *check_is_in_list(char address[],
       advertising_interval - the time interval during which the LBeacon can
                          advertise
       advertising_uuid - universally unique identifier for advertising
+      major_number - major version number of LBeacon
+      minor_number - minor version number of LBeacon
       rssi_value - RSSI value of the bluetooth device
 
   Return value:
@@ -647,6 +653,8 @@ struct ScannedDevice *check_is_in_list(char address[],
 
 ErrorCode enable_advertising(int advertising_interval,
                              char *advertising_uuid,
+			     int major_number,
+			     int minor_number,
                              int rssi_value);
 
 
