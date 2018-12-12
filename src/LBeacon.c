@@ -356,7 +356,16 @@ ErrorCode enable_advertising(int advertising_interval,
                              int rssi_value) {
 
     int dongle_device_id = hci_get_route(NULL);
+    
     int device_handle = 0;
+
+    /* Open Bluetooth device */
+    int retry_time = SOCKET_OPEN_RETRY;
+    while(retry_time--){
+        device_handle = hci_open_dev(dongle_device_id);
+        if(0 <= device_handle)
+            break;
+    }
 
     if ((device_handle = hci_open_dev(dongle_device_id)) < 0) {
 
@@ -552,7 +561,17 @@ ErrorCode enable_advertising(int advertising_interval,
 ErrorCode disable_advertising() {
 
     int dongle_device_id = hci_get_route(NULL);
+
     int device_handle = 0;
+    
+    /* Open Bluetooth device */
+    int retry_time = SOCKET_OPEN_RETRY;
+    while(retry_time--){
+        device_handle = hci_open_dev(dongle_device_id);
+        if(0 <= device_handle)
+            break;
+    }
+
     if ((device_handle = hci_open_dev(dongle_device_id)) < 0) {
         /* Error handling */
     //    perror(errordesc[E_OPEN_FILE].message);
@@ -1106,8 +1125,8 @@ void *start_ble_scanning(void *param){
     int retry_time = SOCKET_OPEN_RETRY;
     while(retry_time--){
         socket = hci_open_dev(dongle_device_id);
-    if(0 <= socket)
-        break;
+        if(0 <= socket)
+            break;
     }
     if (0 > dongle_device_id || 0 > socket) {
 
@@ -1276,24 +1295,22 @@ void *start_br_scanning(void* param) {
     int results_id; /*ID of the result */
 
     while(false == g_done && true == ready_to_work){
-        {
         /* Open Bluetooth device */
         dongle_device_id = hci_get_route(NULL);
+        
         int retry_time = SOCKET_OPEN_RETRY;
         while(retry_time--){
             socket = hci_open_dev(dongle_device_id);
             if(0 <= socket)
-        break;
-    }
-        if (0 > dongle_device_id || 0 > socket) {
+                break;
+        }
 
+        if (0 > dongle_device_id || 0 > socket) {
             /* Error handling */
         //    perror(errordesc[E_OPEN_SOCKET].message);
         //    zlog_info(category_health_report,
         //              errordesc[E_OPEN_SOCKET].message);
             return;
-
-        }
         }
 
         /* Setup filter */
