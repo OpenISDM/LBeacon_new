@@ -370,11 +370,12 @@ ErrorCode enable_advertising(int advertising_interval,
     /* Open Bluetooth device */
     while(retry_time--){
         device_handle = hci_open_dev(dongle_device_id);
-        if(0 <= device_handle)
+
+        if(device_handle >= 0)
             break;
     }
-
-    if ((device_handle = hci_open_dev(dongle_device_id)) < 0) {
+    
+    if (device_handle < 0) {
 
         /* Error handling */
     //    perror(errordesc[E_OPEN_DEVICE].message);
@@ -596,17 +597,18 @@ ErrorCode disable_advertising() {
     /* Open Bluetooth device */
     while(retry_time--){
         device_handle = hci_open_dev(dongle_device_id);
-        if(0 <= device_handle)
+
+        if(device_handle >= 0)
             break;
     }
 
-    if ((device_handle = hci_open_dev(dongle_device_id)) < 0) {
+    if (device_handle < 0) {
         /* Error handling */
     //    perror(errordesc[E_OPEN_FILE].message);
     //    zlog_info(category_health_report,
      //             errordesc[E_OPEN_FILE].message);
 
-        return E_OPEN_FILE;
+        return E_OPEN_DEVICE;
     }
 
     le_set_advertise_enable_cp advertisement_copy;
@@ -1171,10 +1173,10 @@ void *start_ble_scanning(void *param){
     while(retry_time--){
         socket = hci_open_dev(dongle_device_id);
 
-        if(0 <= socket)
+        if(socket >= 0)
             break;
     }
-    if (0 > dongle_device_id || 0 > socket) {
+    if (dongle_device_id < 0 || socket < 0) {
 
          /* Error handling */
      //    perror(errordesc[E_OPEN_SOCKET].message);
@@ -1349,11 +1351,12 @@ void *start_br_scanning(void* param) {
         retry_time = SOCKET_OPEN_RETRY;
         while(retry_time--){
             socket = hci_open_dev(dongle_device_id);
-            if(0 <= socket)
+
+            if(socket >= 0)
                 break;
         }
 
-        if (0 > dongle_device_id || 0 > socket) {
+        if (dongle_device_id < 0 || socket < 0 ){
             /* Error handling */
         //    perror(errordesc[E_OPEN_SOCKET].message);
         //    zlog_info(category_health_report,
@@ -1721,9 +1724,8 @@ void cleanup_exit(ErrorCode err_code){
 
 int main(int argc, char **argv) {
 
-    int return_value = WORK_SUCCESSFULLY;
+    ErrorCode return_value = WORK_SUCCESSFULLY;
     struct sigaction sigint_handler;
-    int enable_advertising_success;
     
     /* Initialize the application log */
     if (zlog_init("../config/zlog.conf") == 0) {
@@ -1734,7 +1736,6 @@ int main(int argc, char **argv) {
 
             zlog_fini();
         //    perror(errordesc[E_LOG_GET_CATEGORY].message);
-            cleanup_exit(E_LOG_GET_CATEGORY);
         }
 
 #ifdef Debugging
@@ -1744,7 +1745,6 @@ int main(int argc, char **argv) {
 
             zlog_fini();
             //   perror(errordesc[E_LOG_GET_CATEGORY].message);
-        cleanup_exit(E_LOG_GET_CATEGORY);
         }
 #endif
     }
@@ -1775,7 +1775,6 @@ int main(int argc, char **argv) {
 
       //  perror(errordesc[E_MALLOC].message);
      //   zlog_info(category_health_report, errordesc[E_MALLOC].message);
-        cleanup_exit(E_MALLOC);
     }
 
 
@@ -1809,7 +1808,6 @@ int main(int argc, char **argv) {
     //    perror(errordesc[E_START_THREAD].message);
     //    zlog_info(category_health_report,
     //              errordesc[E_START_THREAD].message);
-        cleanup_exit(E_START_THREAD);
     }
 
 
@@ -1824,7 +1822,6 @@ int main(int argc, char **argv) {
     //    perror(errordesc[E_START_THREAD].message);
     //    zlog_info(category_health_report,
     //              errordesc[E_START_THREAD].message);
-        cleanup_exit(E_START_THREAD);
     }
 
 
@@ -1839,7 +1836,6 @@ int main(int argc, char **argv) {
     //    perror(errordesc[E_START_THREAD].message);
     //    zlog_info(category_health_report,
     //              errordesc[E_START_THREAD].message);
-        cleanup_exit(E_START_THREAD);
     }
 
 
@@ -1854,7 +1850,6 @@ int main(int argc, char **argv) {
     //    perror(errordesc[E_START_THREAD].message);
     //    zlog_info(category_health_report,
     //              errordesc[E_START_THREAD].message);
-        cleanup_exit(E_START_THREAD);
     }
 
 
@@ -1869,7 +1864,6 @@ int main(int argc, char **argv) {
     //    perror(errordesc[E_START_THREAD].message);
      //   zlog_info(category_health_report,
      //             errordesc[E_START_THREAD].message);
-        cleanup_exit(E_START_THREAD);
     }
 
 #ifdef Debugging
@@ -1880,29 +1874,39 @@ int main(int argc, char **argv) {
     /* Start bluetooth advertising and wait while all threads are
        executing
     */
-    enable_advertising_success =
+     return_value =
         enable_advertising(INTERVAL_ADVERTISING_IN_MS,
                g_config.uuid,
 	       LBEACON_MAJOR_VER,
                LBEACON_MINOR_VER,
                RSSI_VALUE);
 
-    if (WORK_SUCCESSFULLY == enable_advertising_success) {
+    if (WORK_SUCCESSFULLY != return_value){
+    
+	#ifdef Debugging
+	    zlog_debug(category_debug, 
+		"Unable to enable advertising. Please make sure" 
+		" all the hardware devices are ready and try again.");
+	#endif
 
-        perror("Hit ctrl-c to stop advertising");
-        while (false == g_done) {
-            sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
-        }
-
-        /* When signal is received, disable message advertising */
-        perror("Shutting down");
-        disable_advertising();
+        zlog_info(category_health_report, 
+		"Unable to enable advertising. Please make sure" 
+		"all the hardware devices are ready and try again.");
+    	cleanup_exit(return_value);
     }
 
+    perror("Hit ctrl-c to stop advertising");
+    while (false == g_done) {
+    	sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
+    }
+
+    /* When signal is received, disable message advertising */
+    perror("Shutting down");
+    disable_advertising();
 
     cleanup_exit(WORK_SUCCESSFULLY);
-    return WORK_SUCCESSFULLY;
 
+    return WORK_SUCCESSFULLY;
 
 }
 
@@ -2170,7 +2174,7 @@ void *send_file(void *id) {
                 socket = hci_open_dev(dongle_device_id);
 
 
-                if (0 > dongle_device_id || 0 > socket) {
+                if (dongle_device_id < 0 || socket < 0) {
 
                     /* Error handling */
                 //    perror(errordesc[E_SEND_OPEN_SOCKET].message);
