@@ -357,9 +357,9 @@ ErrorCode enable_advertising(int advertising_interval,
 			     int minor_number,
                              int rssi_value) {
 
-    int dongle_device_id = hci_get_route(NULL);
+    int dongle_device_id = 0;
     int device_handle = 0;
-    int retry_time = SOCKET_OPEN_RETRY;
+    int retry_time = 0; 
     uint8_t status;
     struct hci_request request;
     int return_value = 0;
@@ -368,6 +368,18 @@ ErrorCode enable_advertising(int advertising_interval,
     int uuid_iterator;
 
     /* Open Bluetooth device */
+    retry_time = DONGLE_GET_RETRY;
+    while(retry_time--){
+    	dongle_device_id =  hci_get_route(NULL);
+
+        if(dongle_device_id >= 0)
+	    break;
+    }
+    if (dongle_device_id < 0){
+	return E_OPEN_DEVICE;
+    }
+
+    retry_time = SOCKET_OPEN_RETRY;
     while(retry_time--){
         device_handle = hci_open_dev(dongle_device_id);
 
@@ -587,14 +599,28 @@ ErrorCode enable_advertising(int advertising_interval,
 
 ErrorCode disable_advertising() {
 
-    int dongle_device_id = hci_get_route(NULL);
+    int dongle_device_id = 0;
     int device_handle = 0;
-    int retry_time = SOCKET_OPEN_RETRY;
+    int retry_time = 0;
     uint8_t status;
     struct hci_request request;
     int return_value = 0;
 
     /* Open Bluetooth device */
+    retry_time = DONGLE_GET_RETRY;
+    while(retry_time--){
+        dongle_device_id = hci_get_route(NULL);
+
+        if(dongle_device_id >= 0)
+            break;
+    }
+
+    if (dongle_device_id < 0) {
+
+        return E_OPEN_DEVICE;
+    }
+    
+    retry_time = SOCKET_OPEN_RETRY;
     while(retry_time--){
         device_handle = hci_open_dev(dongle_device_id);
 
@@ -767,7 +793,6 @@ void *manage_communication(void* param){
         poll type. */
 
         polled_type = receive_call_back();
-
         while(false == g_done && NOT_YET_POLLED == polled_type){
 
 #ifdef Debugging
@@ -1165,102 +1190,118 @@ void *start_ble_scanning(void *param){
     void * offset = NULL;
     int rssi;
 
-    /* Get the dongle id */
-    dongle_device_id = hci_get_route(NULL);
+#ifdef Debugging
+        zlog_debug(category_debug,
+        ">> start_ble_scanning... ");
+#endif
 
-    /* Open Bluetooth device */
-    retry_time = SOCKET_OPEN_RETRY;
-    while(retry_time--){
-        socket = hci_open_dev(dongle_device_id);
+    while( false == g_done){
 
-        if(socket >= 0)
-            break;
-    }
-    if (dongle_device_id < 0 || socket < 0) {
+        /* Get the dongle id */
+        retry_time = DONGLE_GET_RETRY;
+        while(retry_time--){
+            dongle_device_id = hci_get_route(NULL);
 
-         /* Error handling */
+            if(dongle_device_id >= 0)
+                break;
+        }
+        if (dongle_device_id < 0) {
+	
+	    return;
+        }
+
+        /* Open Bluetooth device */
+        retry_time = SOCKET_OPEN_RETRY;
+        while(retry_time--){
+            socket = hci_open_dev(dongle_device_id);
+
+            if(socket >= 0)
+                break;
+        }
+        if (socket < 0) {
+
+             /* Error handling */
      //    perror(errordesc[E_OPEN_SOCKET].message);
      //    zlog_info(category_health_report,
      //              errordesc[E_OPEN_SOCKET].message);
-         return;
-    }
+             return;
+        }
 
-    /* Set BLE scan para,eters */
-    le_set_scan_parameters_cp scan_params_cp;
-    memset(&scan_params_cp, 0, sizeof(scan_params_cp));
-    scan_params_cp.type             = 0x00;
-    scan_params_cp.interval         = htobs(0x0010);
-    scan_params_cp.window           = htobs(0x0010);
-    scan_params_cp.own_bdaddr_type  = 0x00; // Public Device Address
-    scan_params_cp.filter           = 0x00; // Accept all.
+        /* Set BLE scan para,eters */
+        le_set_scan_parameters_cp scan_params_cp;
+        memset(&scan_params_cp, 0, sizeof(scan_params_cp));
+        scan_params_cp.type             = 0x00;
+        scan_params_cp.interval         = htobs(0x0010);
+        scan_params_cp.window           = htobs(0x0010);
+        scan_params_cp.own_bdaddr_type  = 0x00; // Public Device Address
+        scan_params_cp.filter           = 0x00; // Accept all.
 
 
-    scan_params_rq =
-        ble_hci_request(OCF_LE_SET_SCAN_PARAMETERS,
+        scan_params_rq =
+            ble_hci_request(OCF_LE_SET_SCAN_PARAMETERS,
                         LE_SET_SCAN_PARAMETERS_CP_SIZE,
                         &status, &scan_params_cp);
 
-    ret = hci_send_req(socket, &scan_params_rq, HCI_SEND_REQUEST_TIMEOUT_IN_MS);
-    if ( ret < 0 ) {
+        ret = hci_send_req(socket, &scan_params_rq, HCI_SEND_REQUEST_TIMEOUT_IN_MS);
+        if ( ret < 0 ) {
 
-        hci_close_dev(socket);
-        perror("Failed to set scan parameters data.");
+             hci_close_dev(socket);
+             perror("Failed to set scan parameters data.");
 
-        return;
-    }
+             return;
+        }
 
-    le_set_event_mask_cp event_mask_cp;
-    memset(&event_mask_cp, 0, sizeof(le_set_event_mask_cp));
+        le_set_event_mask_cp event_mask_cp;
+        memset(&event_mask_cp, 0, sizeof(le_set_event_mask_cp));
 
-    for (i = 0 ; i < 8 ; i++ ) event_mask_cp.mask[i] = 0xFF;
+        for (i = 0 ; i < 8 ; i++ ) event_mask_cp.mask[i] = 0xFF;
 
-    set_mask_rq =
-        ble_hci_request(OCF_LE_SET_EVENT_MASK, LE_SET_EVENT_MASK_CP_SIZE,
+        set_mask_rq =
+            ble_hci_request(OCF_LE_SET_EVENT_MASK, LE_SET_EVENT_MASK_CP_SIZE,
                         &status, &event_mask_cp);
 
-    ret = hci_send_req(socket, &set_mask_rq, HCI_SEND_REQUEST_TIMEOUT_IN_MS);
+        ret = hci_send_req(socket, &set_mask_rq, HCI_SEND_REQUEST_TIMEOUT_IN_MS);
 
-    if ( ret < 0 ) {
+        if ( ret < 0 ) {
 
-        hci_close_dev(socket);
-        perror("Failed to set event mask.");
-        return;
-    }
+            hci_close_dev(socket);
+            perror("Failed to set event mask.");
+            return;
+        }
 
-    le_set_scan_enable_cp scan_cp;
-    memset(&scan_cp, 0, sizeof(scan_cp));
-    scan_cp.enable      = 0x01; // Enable flag.
-    scan_cp.filter_dup  = 0x00; // Filtering disabled.
+        le_set_scan_enable_cp scan_cp;
+        memset(&scan_cp, 0, sizeof(scan_cp));
+        scan_cp.enable      = 0x01; // Enable flag.
+        scan_cp.filter_dup  = 0x00; // Filtering disabled.
 
-    enable_adv_rq =
-        ble_hci_request(OCF_LE_SET_SCAN_ENABLE, LE_SET_SCAN_ENABLE_CP_SIZE,
+        enable_adv_rq =
+            ble_hci_request(OCF_LE_SET_SCAN_ENABLE, LE_SET_SCAN_ENABLE_CP_SIZE,
                         &status, &scan_cp);
 
-    ret = hci_send_req(socket, &enable_adv_rq, HCI_SEND_REQUEST_TIMEOUT_IN_MS);
-    if ( ret < 0 ) {
+        ret = hci_send_req(socket, &enable_adv_rq, HCI_SEND_REQUEST_TIMEOUT_IN_MS);
+        if ( ret < 0 ) {
 
-        hci_close_dev(socket);
-        perror("Failed to enable scan.");
+            hci_close_dev(socket);
+            perror("Failed to enable scan.");
 
-        return;
-    }
+            return;
+        }
 
-    hci_filter_clear(&new_filter);
-    hci_filter_set_ptype(HCI_EVENT_PKT, &new_filter);
-    hci_filter_set_event(EVT_LE_META_EVENT, &new_filter);
+        hci_filter_clear(&new_filter);
+        hci_filter_set_ptype(HCI_EVENT_PKT, &new_filter);
+        hci_filter_set_event(EVT_LE_META_EVENT, &new_filter);
 
-    if (0 > setsockopt(socket, SOL_HCI, HCI_FILTER, &new_filter,
+        if (0 > setsockopt(socket, SOL_HCI, HCI_FILTER, &new_filter,
             sizeof(new_filter)) ) {
 
-        /* Error handling */
-        hci_close_dev(socket);
+          /* Error handling */
+            hci_close_dev(socket);
     //    perror(errordesc[E_SCAN_SET_HCI_FILTER].message);
     //    zlog_info(category_health_report,
     //               errordesc[E_SCAN_SET_HCI_FILTER].message);
 
-    }
+        }
 
-    while(false == g_done){
 
         if(read(socket, ble_buffer, sizeof(ble_buffer))
                                                 >= HCI_EVENT_HDR_SIZE) {
@@ -1297,24 +1338,30 @@ void *start_ble_scanning(void *param){
             break;
         }
 
+
+        /* Close the process of scanning BLE device, and close the socket. */
+        memset(&scan_cp, 0, sizeof(scan_cp));
+        scan_cp.enable = 0x00;  // Disable flag.
+
+        disable_adv_rq =
+        ble_hci_request(OCF_LE_SET_SCAN_ENABLE, LE_SET_SCAN_ENABLE_CP_SIZE,
+            &status, &scan_cp);
+
+        ret = hci_send_req(socket, &disable_adv_rq, HCI_SEND_REQUEST_TIMEOUT_IN_MS);
+        if ( ret < 0 ) {
+            hci_close_dev(socket);
+            perror("Failed to disable scan.");
+            return 0;
+        }
+
+        hci_close_dev(socket);
+
     } // end while
 
-    /* Close the process of scanning BLE device, and close the socket. */
-    memset(&scan_cp, 0, sizeof(scan_cp));
-    scan_cp.enable = 0x00;  // Disable flag.
-
-    disable_adv_rq =
-    ble_hci_request(OCF_LE_SET_SCAN_ENABLE, LE_SET_SCAN_ENABLE_CP_SIZE,
-        &status, &scan_cp);
-
-    ret = hci_send_req(socket, &disable_adv_rq, HCI_SEND_REQUEST_TIMEOUT_IN_MS);
-    if ( ret < 0 ) {
-        hci_close_dev(socket);
-        perror("Failed to disable scan.");
-        return 0;
-    }
-
-    hci_close_dev(socket);
+#ifdef Debugging
+        zlog_debug(category_debug,
+        "<< start_ble_scanning... ");
+#endif
 
 }
 
@@ -1346,7 +1393,17 @@ void *start_br_scanning(void* param) {
 
     while(false == g_done && true == ready_to_work){
         /* Open Bluetooth device */
-        dongle_device_id = hci_get_route(NULL);
+        retry_time = DONGLE_GET_RETRY;
+        while(retry_time--){
+            dongle_device_id = hci_get_route(NULL);
+
+            if(dongle_device_id >= 0)
+                break;
+        }
+        if(dongle_device_id < 0){
+
+ 	    return;
+	}
         
         retry_time = SOCKET_OPEN_RETRY;
         while(retry_time--){
@@ -1356,7 +1413,7 @@ void *start_br_scanning(void* param) {
                 break;
         }
 
-        if (dongle_device_id < 0 || socket < 0 ){
+        if (socket < 0 ){
             /* Error handling */
         //    perror(errordesc[E_OPEN_SOCKET].message);
         //    zlog_info(category_health_report,

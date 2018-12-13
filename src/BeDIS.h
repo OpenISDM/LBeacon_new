@@ -56,6 +56,10 @@
 is possibily transient failed. */
 #define FILE_OPEN_RETRY 5
 
+/* Times of retrying to get dongle, because this operation 
+is possibily transient failed.*/
+#define DONGLE_GET_RETRY 5
+
 /* Times of retrying to open socket, because socket openning operation 
 is possibily transient failed.*/
 #define SOCKET_OPEN_RETRY 5
