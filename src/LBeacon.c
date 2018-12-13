@@ -60,9 +60,14 @@
 ErrorCode get_config(Config *config, char *file_name) {
 
     /* Return value is a struct containing all config information */
-    int retry_time = FILE_OPEN_RETRY;
+    int retry_time = 0;
     FILE *file = NULL;
+    
+    /* Create spaces for storing the string of the current line being read */
+    char config_setting[CONFIG_BUFFER_SIZE];
+    char *config_message = NULL;
 
+    retry_time = FILE_OPEN_RETRY;
     while(retry_time--){
     file=fopen(file_name, "r");
     if(NULL != file)
@@ -76,10 +81,6 @@ ErrorCode get_config(Config *config, char *file_name) {
     //              errordesc[E_OPEN_FILE].message);
         return E_OPEN_FILE;
     }
-
-    /* Create spaces for storing the string of the current line being read */
-    char config_setting[CONFIG_BUFFER_SIZE];
-    char *config_message = NULL;
 
      /* Keep reading each line and store into the config struct */
     fgets(config_setting, sizeof(config_setting), file);
@@ -201,17 +202,15 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
 
     /* Stores the MAC address as a string */
     char address[LENGTH_OF_MAC_ADDRESS];
+    struct ScannedDevice *temp_node;
 
     /* Converts the bluetooth device address to a string */
     ba2str(bluetooth_device_address, address);
     strcat(address, "\0");
 
-    struct ScannedDevice *temp_node;
-
     /* Check whether the MAC address has been seen recently by the LBeacon.*/
 
     if(true == is_ble){
-
 
         temp_node = check_is_in_list(address,
                                     &BLE_object_list_head);
@@ -293,9 +292,10 @@ struct ScannedDevice *check_is_in_list(char address[],
     /* Create a temporary list pointer and set as the head */
     struct List_Entry *list_pointers;
     ScannedDevice *temp = NULL;
-
-
     int number_in_list = get_list_length(&list->list_entry);
+    int len = 0;
+    char *addr_last_digits = NULL;
+    char *temp_last_digits = NULL;
 
     /* If there is no node in the list, reutrn NULL directly. */
     if(list->list_entry.next == list->list_entry.prev &&
@@ -327,10 +327,10 @@ struct ScannedDevice *check_is_in_list(char address[],
 
         }
 
-        int len = strlen(address);
+        len = strlen(address);
 
-        char *addr_last_digits = &address[len - NUM_DIGITS_TO_COMPARE];
-        char *temp_last_digits =
+        addr_last_digits = &address[len - NUM_DIGITS_TO_COMPARE];
+        temp_last_digits =
                      &temp->scanned_mac_address[len - NUM_DIGITS_TO_COMPARE];
 
         /* Compare the first and the last digits of the MAC address */
@@ -358,11 +358,16 @@ ErrorCode enable_advertising(int advertising_interval,
                              int rssi_value) {
 
     int dongle_device_id = hci_get_route(NULL);
-    
     int device_handle = 0;
+    int retry_time = SOCKET_OPEN_RETRY;
+    uint8_t status;
+    struct hci_request request;
+    int return_value = 0;
+    uint8_t segment_length = 1;
+    unsigned int *uuid = NULL;
+    int uuid_iterator;
 
     /* Open Bluetooth device */
-    int retry_time = SOCKET_OPEN_RETRY;
     while(retry_time--){
         device_handle = hci_open_dev(dongle_device_id);
         if(0 <= device_handle)
@@ -386,8 +391,6 @@ ErrorCode enable_advertising(int advertising_interval,
     advertising_parameters_copy.max_interval = htobs(advertising_interval);
     advertising_parameters_copy.chan_map = 7;
 
-    uint8_t status;
-    struct hci_request request;
     memset(&request, 0, sizeof(request));
     request.ogf = OGF_LE_CTL;
     request.ocf = OCF_LE_SET_ADVERTISING_PARAMETERS;
@@ -396,7 +399,7 @@ ErrorCode enable_advertising(int advertising_interval,
     request.rparam = &status;
     request.rlen = 1;
 
-     int return_value = hci_send_req(device_handle, &request,
+    return_value = hci_send_req(device_handle, &request,
                                     HCI_SEND_REQUEST_TIMEOUT_IN_MS);
 
     if (return_value < 0) {
@@ -456,7 +459,7 @@ ErrorCode enable_advertising(int advertising_interval,
     le_set_advertising_data_cp advertisement_data_copy;
     memset(&advertisement_data_copy, 0, sizeof(advertisement_data_copy));
 
-    uint8_t segment_length = 1;
+    segment_length = 1;
     advertisement_data_copy
         .data[advertisement_data_copy.length + segment_length] =
         htobs(EIR_FLAGS);
@@ -487,8 +490,7 @@ ErrorCode enable_advertising(int advertising_interval,
         .data[advertisement_data_copy.length + segment_length] = htobs(0x15);
     segment_length++;
 
-    unsigned int *uuid = uuid_str_to_data(advertising_uuid);
-    int uuid_iterator;
+    uuid = uuid_str_to_data(advertising_uuid);
 
     for (uuid_iterator = 0; uuid_iterator < strlen(advertising_uuid) / 2;
         uuid_iterator++) {
@@ -585,11 +587,13 @@ ErrorCode enable_advertising(int advertising_interval,
 ErrorCode disable_advertising() {
 
     int dongle_device_id = hci_get_route(NULL);
-
     int device_handle = 0;
-    
-    /* Open Bluetooth device */
     int retry_time = SOCKET_OPEN_RETRY;
+    uint8_t status;
+    struct hci_request request;
+    int return_value = 0;
+
+    /* Open Bluetooth device */
     while(retry_time--){
         device_handle = hci_open_dev(dongle_device_id);
         if(0 <= device_handle)
@@ -606,11 +610,9 @@ ErrorCode disable_advertising() {
     }
 
     le_set_advertise_enable_cp advertisement_copy;
-    uint8_t status;
 
     memset(&advertisement_copy, 0, sizeof(advertisement_copy));
 
-    struct hci_request request;
     memset(&request, 0, sizeof(request));
     request.ogf = OGF_LE_CTL;
     request.ocf = OCF_LE_SET_ADVERTISE_ENABLE;
@@ -619,7 +621,7 @@ ErrorCode disable_advertising() {
     request.rparam = &status;
     request.rlen = 1;
 
-    int return_value = hci_send_req(device_handle, &request,
+    return_value = hci_send_req(device_handle, &request,
                                     HCI_SEND_REQUEST_TIMEOUT_IN_MS);
 
     hci_close_dev(device_handle);
@@ -666,13 +668,13 @@ ErrorCode disable_advertising() {
 }
 
 void *cleanup_scanned_list(void* param) {
+    struct List_Entry *list_pointers, *save_list_pointers;
+    ScannedDevice *temp;
+
     #ifdef Debugging
         zlog_debug(category_debug,
                     ">> cleanup_scanned_list ");
     #endif
-
-    struct List_Entry *list_pointers, *save_list_pointers;
-    ScannedDevice *temp;
 
     while (false == g_done && true == ready_to_work) {
         /*Check whether the list is empty */
@@ -729,15 +731,18 @@ void *cleanup_scanned_list(void* param) {
 
 
 void *manage_communication(void* param){
+    Threadpool thpool;
+    char zig_message[ZIG_MESSAGE_LENGTH];
+    char temp_char[ZIG_MESSAGE_LENGTH];
+    int polled_type, copy_progress;
+    FILE *br_object_file = NULL;
+    FILE *ble_object_file = NULL;
+    int retry_time = 0;
 
     #ifdef Debugging
         zlog_debug(category_debug,
                     ">> manage_communication ");
     #endif
-
-    Threadpool thpool;
-    char zig_message[ZIG_MESSAGE_LENGTH];
-    int polled_type, copy_progress;
 
     /* Initialize the thread pool and worker threads waiting for the
     new work/job to be assigned. */
@@ -787,27 +792,27 @@ void *manage_communication(void* param){
                 if(WORK_SUCCESSFULLY == copy_progress){
 
                     /* Open the file that is going to be sent to the gateway */
-            FILE *br_object_file = NULL;
-                int retry_time = FILE_OPEN_RETRY;
-            while(retry_time--)
-                {
-                        br_object_file = fopen(TRACKED_BR_TXT_FILE_NAME, "r");
-                if(NULL!=br_object_file)
-               break;
+            	    br_object_file = NULL;
+                    retry_time = FILE_OPEN_RETRY;
+            	    while(retry_time--){
+                    	br_object_file = fopen(TRACKED_BR_TXT_FILE_NAME, "r");
+
+                	if(NULL!=br_object_file)
+               			break;
                     }
-            if (NULL == br_object_file) {
+            	    if (NULL == br_object_file) {
 
                         /* Error handling */
                 //        perror(errordesc[E_OPEN_FILE].message);
                 //        zlog_info(category_health_report,
                 //                  errordesc[E_OPEN_FILE].message);
                         return;
-                        }
+                    }
 
                     /* Read the file to get the content for the message to
                        send */
-                    fgets(zig_message, sizeof(zig_message),
-                          br_object_file);
+
+              	    fgets(zig_message, sizeof(zig_message), br_object_file);
 
                     fclose(br_object_file);
 
@@ -821,27 +826,28 @@ void *manage_communication(void* param){
                 if(WORK_SUCCESSFULLY == copy_progress){
 
                     /* Open the file that is going to be sent to the gateway */
-            FILE *ble_object_file = NULL;
-                int retry_time = FILE_OPEN_RETRY;
-            while(retry_time--){
-                        ble_object_file = fopen(TRACKED_BLE_TXT_FILE_NAME, "r");
-            if(NULL!=ble_object_file)
-                break;
-            }
+            	    ble_object_file = NULL;
+                    retry_time = FILE_OPEN_RETRY;
+
+            	    while(retry_time--){
+                    	ble_object_file = fopen(TRACKED_BLE_TXT_FILE_NAME, "r");
+
+		        if(NULL!=ble_object_file)
+                	    break;
+                    }
                     if (NULL == ble_object_file) {
 
                         /* Error handling */
                     //    perror(errordesc[E_OPEN_FILE].message);
                     //    zlog_info(category_health_report,
                     //              errordesc[E_OPEN_FILE].message);
-                        return;
+                    	return;
                     }
 
                     /* Read the file to get the content for the message to
                     send */
-                    char temp_char[ZIG_MESSAGE_LENGTH];
-                    fgets(temp_char, sizeof(zig_message),
-                          ble_object_file);
+                    
+                    fgets(temp_char, sizeof(zig_message), ble_object_file);
 
                     /* Add the result of BLE scanning to the message that is
                     going to be sent to the gateway */
@@ -924,6 +930,20 @@ void *manage_communication(void* param){
 
 ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
 
+    FILE *track_file = NULL;;
+    /* Two pointers to be used locally */
+    struct List_Entry *list_pointers, *tail_pointers;
+    ScannedDevice *temp;
+    int number_in_list;
+    int number_to_send;
+    char timestamp_initial_str[LENGTH_OF_EPOCH_TIME];
+    char timestamp_final_str[LENGTH_OF_EPOCH_TIME];
+    char basic_info[LENGTH_OF_INFO];
+    int retry_time = 0;
+    int node_count;
+    unsigned timestamp_init;
+    unsigned timestamp_end;
+
     /* Check the input parameter if is valid */
     if(&list != &BR_object_list_head ||
        &list != &BLE_object_list_head){
@@ -936,39 +956,31 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
 
     }
 
-    FILE *track_file = NULL;;
 
     /* Head of a local list for tracked object */
     List_Entry local_object_list_head;
     /* Initilize the local list */
     init_entry(&local_object_list_head);
 
-    /* Two pointers to be used locally */
-    struct List_Entry *list_pointers, *tail_pointers;
-
-    ScannedDevice *temp;
-    int number_in_list;
-    int number_to_send;
-    char timestamp_initial_str[LENGTH_OF_EPOCH_TIME];
-    char timestamp_final_str[LENGTH_OF_EPOCH_TIME];
-    char basic_info[LENGTH_OF_INFO];
 
     DeviceType device_type = list.device_type;
 
     /* Create a new file to store data in the tracked_BLE_object_list */
-    int retry_time = FILE_OPEN_RETRY;
+    retry_time = FILE_OPEN_RETRY;
     while(retry_time--){
         track_file = fopen(file_name, "w");
-    if(NULL != track_file)
-        break;
+
+        if(NULL != track_file)
+            break;
     }
     if(NULL == track_file){
         retry_time = FILE_OPEN_RETRY;
         while(retry_time--){
             track_file = fopen(file_name, "wt");
+
             if(NULL != track_file)
-        break;
-    }
+                break;
+    	}
     }
     if(NULL == track_file){
 
@@ -1014,8 +1026,6 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
     list */
     local_object_list_head.next = list_pointers;
 
-    int node_count;
-
     /* Go through the input tracked_object list to move number_to_send nodes
     in the list to local list */
     for (node_count = 1; node_count <= number_to_send;
@@ -1049,8 +1059,8 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
         temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
 
         /* Convert the timestamp to string */
-        unsigned timestamp_init = (unsigned)&temp->initial_scanned_time;
-        unsigned timestamp_end = (unsigned)&temp->final_scanned_time;
+        timestamp_init = (unsigned)&temp->initial_scanned_time;
+        timestamp_end = (unsigned)&temp->final_scanned_time;
 
         /* sprintf() is the function to set a format and convert the
            datatype to char */
@@ -1079,9 +1089,9 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
 
 void free_list(List_Entry *list_entry, DeviceType device_type){
 
-
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
+
 
     pthread_mutex_lock(&list_lock);
 
@@ -1110,6 +1120,7 @@ void free_list(List_Entry *list_entry, DeviceType device_type){
 
         }
     }
+
     pthread_mutex_unlock(&list_lock);
 
     return;
@@ -1142,14 +1153,24 @@ void *start_ble_scanning(void *param){
     evt_le_meta_event *meta;
     le_advertising_info *info;
     char addr[18];
+    int retry_time = 0;
+    struct hci_request scan_params_rq;
+    struct hci_request set_mask_rq;
+    struct hci_request enable_adv_rq;
+    struct hci_request disable_adv_rq;
+    int i=0;
+    uint8_t reports_count;
+    void * offset = NULL;
+    int rssi;
 
     /* Get the dongle id */
     dongle_device_id = hci_get_route(NULL);
 
     /* Open Bluetooth device */
-    int retry_time = SOCKET_OPEN_RETRY;
+    retry_time = SOCKET_OPEN_RETRY;
     while(retry_time--){
         socket = hci_open_dev(dongle_device_id);
+
         if(0 <= socket)
             break;
     }
@@ -1172,7 +1193,7 @@ void *start_ble_scanning(void *param){
     scan_params_cp.filter           = 0x00; // Accept all.
 
 
-    struct hci_request scan_params_rq =
+    scan_params_rq =
         ble_hci_request(OCF_LE_SET_SCAN_PARAMETERS,
                         LE_SET_SCAN_PARAMETERS_CP_SIZE,
                         &status, &scan_params_cp);
@@ -1189,9 +1210,9 @@ void *start_ble_scanning(void *param){
     le_set_event_mask_cp event_mask_cp;
     memset(&event_mask_cp, 0, sizeof(le_set_event_mask_cp));
 
-    for (int i = 0 ; i < 8 ; i++ ) event_mask_cp.mask[i] = 0xFF;
+    for (i = 0 ; i < 8 ; i++ ) event_mask_cp.mask[i] = 0xFF;
 
-    struct hci_request set_mask_rq =
+    set_mask_rq =
         ble_hci_request(OCF_LE_SET_EVENT_MASK, LE_SET_EVENT_MASK_CP_SIZE,
                         &status, &event_mask_cp);
 
@@ -1209,7 +1230,7 @@ void *start_ble_scanning(void *param){
     scan_cp.enable      = 0x01; // Enable flag.
     scan_cp.filter_dup  = 0x00; // Filtering disabled.
 
-    struct hci_request enable_adv_rq =
+    enable_adv_rq =
         ble_hci_request(OCF_LE_SET_SCAN_ENABLE, LE_SET_SCAN_ENABLE_CP_SIZE,
                         &status, &scan_cp);
 
@@ -1237,8 +1258,7 @@ void *start_ble_scanning(void *param){
 
     }
 
-    bool keep_scanning = true;
-    while(false == g_done && true == keep_scanning){
+    while(false == g_done){
 
         if(read(socket, ble_buffer, sizeof(ble_buffer))
                                                 >= HCI_EVENT_HDR_SIZE) {
@@ -1247,15 +1267,15 @@ void *start_ble_scanning(void *param){
 
             if(EVT_LE_ADVERTISING_REPORT == meta->subevent){
 
-                uint8_t reports_count = meta->data[0];
-                void * offset = meta->data + 1;
+                reports_count = meta->data[0];
+                offset = meta->data + 1;
 
                 while ( reports_count-- ) {
 
                     info = (le_advertising_info *)offset;
 
                     ba2str(&(info->bdaddr), addr);
-                    int rssi = (signed char)info->data[info->length];
+                    rssi = (signed char)info->data[info->length];
 
                     /* If the rssi vaule is within the threshold */
                     if(rssi > RSSI_RANGE){
@@ -1281,7 +1301,7 @@ void *start_ble_scanning(void *param){
     memset(&scan_cp, 0, sizeof(scan_cp));
     scan_cp.enable = 0x00;  // Disable flag.
 
-    struct hci_request disable_adv_rq =
+    disable_adv_rq =
     ble_hci_request(OCF_LE_SET_SCAN_ENABLE, LE_SET_SCAN_ENABLE_CP_SIZE,
         &status, &scan_cp);
 
@@ -1297,10 +1317,6 @@ void *start_ble_scanning(void *param){
 }
 
 void *start_br_scanning(void* param) {
-#ifdef Debugging
-        zlog_debug(category_debug,
-        ">> start_br_scanning... ");
-#endif
 
     struct hci_filter filter; /*Filter for controling the events*/
     struct pollfd output; /*A callback event from the socket */
@@ -1318,12 +1334,19 @@ void *start_br_scanning(void* param) {
     int socket = 0; /*Number of the socket */
     int results; /*Return the result form the socket */
     int results_id; /*ID of the result */
+    int retry_time = 0;
+    bool keep_scanning;
+
+#ifdef Debugging
+        zlog_debug(category_debug,
+        ">> start_br_scanning... ");
+#endif
 
     while(false == g_done && true == ready_to_work){
         /* Open Bluetooth device */
         dongle_device_id = hci_get_route(NULL);
         
-        int retry_time = SOCKET_OPEN_RETRY;
+        retry_time = SOCKET_OPEN_RETRY;
         while(retry_time--){
             socket = hci_open_dev(dongle_device_id);
             if(0 <= socket)
@@ -1409,7 +1432,7 @@ void *start_br_scanning(void* param) {
         /* After the inquiring events completing, it should jump out of the while
         loop for getting a new socket */
 
-        bool keep_scanning = true;
+        keep_scanning = true;
 
         while (false == g_done && true == keep_scanning) {
             output.revents = 0;
@@ -1505,14 +1528,15 @@ void *start_br_scanning(void* param) {
 
 void *timeout_cleanup(void* param){
 
-#ifdef Debugging
-        zlog_debug(category_debug,
-        ">> timeout_cleanup... ");
-#endif
     /* Create a temporary node and set as the head */
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
     long long start_time = get_system_time();
+
+#ifdef Debugging
+        zlog_debug(category_debug,
+        ">> timeout_cleanup... ");
+#endif
 
     while(false == g_done && true == ready_to_work){
 
@@ -1610,14 +1634,15 @@ void *timeout_cleanup(void* param){
 
 
 void cleanup_exit(ErrorCode err_code){
-#ifdef Debugging
-        zlog_debug(category_debug,
-        ">> cleanup_exit... ");
-#endif
 
     /* Create a temporary node and set as the head */
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
+
+#ifdef Debugging
+        zlog_debug(category_debug,
+        ">> cleanup_exit... ");
+#endif
 
     /* Set flag to false */
     ready_to_work = false;
@@ -1696,6 +1721,10 @@ void cleanup_exit(ErrorCode err_code){
 
 int main(int argc, char **argv) {
 
+    int return_value = WORK_SUCCESSFULLY;
+    struct sigaction sigint_handler;
+    int enable_advertising_success;
+    
     /* Initialize the application log */
     if (zlog_init("../config/zlog.conf") == 0) {
 
@@ -1721,7 +1750,6 @@ int main(int argc, char **argv) {
     }
 
     /* Load config struct */
-    int return_value = WORK_SUCCESSFULLY;
     return_value = get_config(&g_config, CONFIG_FILE_NAME);
     if(WORK_SUCCESSFULLY != return_value){
 
@@ -1761,7 +1789,6 @@ int main(int argc, char **argv) {
 
 
     /* Register handler function for SIGINT signal */
-    struct sigaction sigint_handler;
     sigint_handler.sa_handler = ctrlc_handler;
     sigemptyset(&sigint_handler.sa_mask);
     sigint_handler.sa_flags = 0;
@@ -1853,7 +1880,7 @@ int main(int argc, char **argv) {
     /* Start bluetooth advertising and wait while all threads are
        executing
     */
-    int enable_advertising_success =
+    enable_advertising_success =
         enable_advertising(INTERVAL_ADVERTISING_IN_MS,
                g_config.uuid,
 	       LBEACON_MAJOR_VER,
@@ -1903,6 +1930,7 @@ void start_classic_pushing(void){
     int block_id;
 
     int dongle_device_id = 0; /*Device ID of dongle */
+    int maximum_number_of_devices;;
 
 
 
@@ -1926,7 +1954,7 @@ void start_classic_pushing(void){
            g_config.file_name, g_config.file_name_length - 1);
 
     /* the  maximum number of devices of an array */
-    int maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
+    maximum_number_of_devices = atoi(g_config.maximum_number_of_devices);
 
 
     /* Initialize each ThreadStatus struct in the g_idle_handler array */
@@ -2038,6 +2066,11 @@ char *choose_file(char *message_to_send) {
 
     /* An array of buffer for message file names */
     char messages[number_of_messages][FILE_NAME_BUFFER];
+    
+    char file_path[FILE_NAME_BUFFER];
+
+    DIR *messagedir = NULL;
+    struct dirent *messageent = NULL;
 
     /* Stores all the name of files and directories in groups */
     groupdir = opendir("/home/pi/LBeacon/messages/");
@@ -2058,7 +2091,6 @@ char *choose_file(char *message_to_send) {
     }
 
     /* Stores file path of message_to_send */
-    char file_path[FILE_NAME_BUFFER];
     memset(file_path, 0, FILE_NAME_BUFFER);
     message_id = 0;
 
@@ -2068,8 +2100,6 @@ char *choose_file(char *message_to_send) {
         sprintf(file_path, "/home/pi/LBeacon/messages/");
         strcat(file_path, groups[group_id]);
 
-        DIR *messagedir;
-        struct dirent *messageent;
         messagedir = opendir(file_path);
         if (messagedir) {
             while ((messageent = readdir(messagedir)) != NULL) {
@@ -2121,6 +2151,9 @@ void *send_file(void *id) {
 
     /* An iterator through the array of ScannedDevice struct */
     int device_id;
+    
+    long long start;
+    long long end;
 
 
     while (false == g_done && false == send_message_cancelled) {
@@ -2152,7 +2185,7 @@ void *send_file(void *id) {
 
                 }
 
-                long long start = get_system_time();
+                start = get_system_time();
                 address =
                     (char *)g_idle_handler[device_id].scanned_mac_address;
                 channel = obexftp_browse_bt_push(address);
@@ -2176,7 +2209,7 @@ void *send_file(void *id) {
                 /* Open connection */
                 client = obexftp_open(OBEX_TRANS_BLUETOOTH, NULL, NULL,
                                       NULL);
-                long long end = get_system_time();
+                end = get_system_time();
                 printf("Time to open connection: %lld ms\n", end - start);
 
                 if (client == NULL) {
