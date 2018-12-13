@@ -739,8 +739,9 @@ void *manage_communication(void* param){
     char zig_message[ZIG_MESSAGE_LENGTH];
     int polled_type, copy_progress;
 
-    /* Initialize the thread pool and work threads waiting for the
+    /* Initialize the thread pool and worker threads waiting for the
     new work/job to be assigned. */
+
     thpool = thpool_init(NUM_WORK_THREADS);
     if(NULL == thpool){
 
@@ -1176,7 +1177,7 @@ void *start_ble_scanning(void *param){
                         LE_SET_SCAN_PARAMETERS_CP_SIZE,
                         &status, &scan_params_cp);
 
-    ret = hci_send_req(socket, &scan_params_rq, 1000);
+    ret = hci_send_req(socket, &scan_params_rq, HCI_SEND_REQUEST_TIMEOUT_IN_MS);
     if ( ret < 0 ) {
 
         hci_close_dev(socket);
@@ -1194,7 +1195,7 @@ void *start_ble_scanning(void *param){
         ble_hci_request(OCF_LE_SET_EVENT_MASK, LE_SET_EVENT_MASK_CP_SIZE,
                         &status, &event_mask_cp);
 
-    ret = hci_send_req(socket, &set_mask_rq, 1000);
+    ret = hci_send_req(socket, &set_mask_rq, HCI_SEND_REQUEST_TIMEOUT_IN_MS);
 
     if ( ret < 0 ) {
 
@@ -1212,7 +1213,7 @@ void *start_ble_scanning(void *param){
         ble_hci_request(OCF_LE_SET_SCAN_ENABLE, LE_SET_SCAN_ENABLE_CP_SIZE,
                         &status, &scan_cp);
 
-    ret = hci_send_req(socket, &enable_adv_rq, 1000);
+    ret = hci_send_req(socket, &enable_adv_rq, HCI_SEND_REQUEST_TIMEOUT_IN_MS);
     if ( ret < 0 ) {
 
         hci_close_dev(socket);
@@ -1284,7 +1285,7 @@ void *start_ble_scanning(void *param){
     ble_hci_request(OCF_LE_SET_SCAN_ENABLE, LE_SET_SCAN_ENABLE_CP_SIZE,
         &status, &scan_cp);
 
-    ret = hci_send_req(socket, &disable_adv_rq, 1000);
+    ret = hci_send_req(socket, &disable_adv_rq, HCI_SEND_REQUEST_TIMEOUT_IN_MS);
     if ( ret < 0 ) {
         hci_close_dev(socket);
         perror("Failed to disable scan.");

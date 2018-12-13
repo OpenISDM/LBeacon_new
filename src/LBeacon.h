@@ -89,7 +89,7 @@ Authors:
 
 /* The major and minor versions of LBeacon used for advertising */ 
 #define LBEACON_MAJOR_VER 1
-#define LBEACON_MINOR_VER 0
+#define LBEACON_MINOR_VER 2
 
 /* Command opcode pack/unpack from HCI library. ogf and ocf stand for Opcode
    group field and Opcofe command field, respectively. See Bluetooth
@@ -394,19 +394,6 @@ typedef struct object_list_head{
 /* Path of the object push file */
 char *g_push_file_path;
 
-/* First timestamp of the output file used for tracking scanned
-   devices
-*/
-unsigned g_initial_timestamp_of_tracking_file = 0;
-
-/* The most recent timestamp in the output file used for tracking scanned
-   devices
-*/
-unsigned g_most_recent_timestamp_of_tracking_file = 0;
-
-/* Number of lines in the output file used for tracking scanned devices */
-int g_size_of_file = 0;
-
 /* Struct for storing config information from the input file */
 Config g_config;
 
@@ -525,11 +512,12 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
   start_ble_scanning:
 
       This function scans continuously for BLE bluetooth devices under the
-      coverage of the  beacon until scanning is cancelled. When the name of
-      the vendor to the device is available, this function calls
-      send_to_push_dongle to either add a new ScannedDevice struct of the
-      device to ble_object_list or update the final scan time of a struct in
-      the list.
+      coverage of the  beacon until scanning is cancelled. To reduce the 
+      traffic among BeDIS system, this function only tracks the tags with
+      our specific name. When one tag with specific name are scanned, this 
+      function calls send_to_push_dongle to either add a new ScannedDevice 
+      struct of the device to ble_object_list or update the final scan time 
+      of a struct in the list.
 
   Parameters:
 
@@ -702,9 +690,9 @@ void *cleanup_scanned_list(void *param);
 /*
   timeout_cleanup:
 
-      This function sets a timer to countdown a specific time. And when timer
-      expires, clean up tracked object lists to make sure the space in the
-      memory is always available.
+      This function sets a timer to countdown a specific time. When timer
+      expires, cleans up tracked object lists to make sure the memory space 
+      is always available.
 
   Parameters:
 
@@ -723,7 +711,7 @@ void *timeout_cleanup(void *param);
   manage_communication:
 
       This is the start function of the main thread in the communication
-      unit of LBeacon. After initializing the zigbee struct, it creates a
+      unit of LBeacon. After initializing the wifi network, it creates a
       thread pool with NUM_WORK_THREADS worker threads; then while the beacon
       is ready to work, the function waits for poll from the gateway, when
       polled, the function creates appropriate work items to be executed by
