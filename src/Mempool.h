@@ -9,14 +9,14 @@
 
  Project Name:
 
-      BeDIS
+      BeDIPS
 
  File Description:
 
       This file contains the declarations and definition of variables
       used in the Mempool.c file.
 
-      Note:This code is referred from a post by 2013Asker on 20140504 
+      Note: This code is referred from a post by 2013Asker on 20140504 
       on the stackexchange website here:
       https://codereview.stackexchange.com/questions/48919/simple-memory-
       pool-using-no-extra-memory
@@ -32,7 +32,7 @@
 
  Abstract:
 
-      BeDIS uses LBeacons to deliver 3D coordinates and textual
+      BeDIPS uses LBeacons to deliver 3D coordinates and textual
       descriptions of their locations to users' devices. Basically, a
       LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
       coordinates and location description of every LBeacon are retrieved
@@ -48,10 +48,12 @@
 
 
 */
-#ifndef MEMPOOL_H
-#define MEMPOOL_H
 
 #include <stdlib.h>
+#include <pthread.h>
+
+#ifndef MEMPOOL_H
+#define MEMPOOL_H
 
 #define MEMORY_POOL_SUCCESS 1
 #define MEMORY_POOL_ERROR 0
@@ -63,6 +65,8 @@
 typedef struct {
     void **head;
     void *memory;
+    /* A per list lock */
+    pthread_mutex_t mem_lock;
     int size;
 } Memory_Pool;
 

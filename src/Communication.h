@@ -42,34 +42,24 @@
 
 */
 
-#ifndef COMMUNICATION_H
-#define COMMUNICATION_H
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "zlog.h"
-#include "xbee_API.h"
+
+
+#ifndef BEDIS_H
 #include "BeDIS.h"
+#endif
 
-/* Length of timeout in number of milliseconds */
-#define XBEE_TIMEOUT 2000000
+#ifndef COMMUNICATION_H
+#define COMMUNICATION_H
 
-#define XBEE_MODE "xbeeZB"
 
-#define XBEE_DEVICE "/dev/ttyAMA0"
-
-#define XBEE_DATASTREAM -1
-
-#define XBEE_CONFIG_PATH "/home/pi/LBeacon/config/xbee_config.conf"
 
 /* The pointer to the category of the log file */
 zlog_category_t *category_health_report, *category_debug;
-
-/* Struct for storing necessary objects for zigbee connection */
-sxbee_config xbee_config;
 
 
 
@@ -84,24 +74,6 @@ typedef enum PolledDataType {
 } PolledDataType;
 
 
-/*
-  zigbee_init:
-
-    This function initilizes the zigbee object containing parameters and
-    data governing communication of the zigbee link.
-
-  Parameters:
-
-
-    None
-
-
-  Return value:
-
-    ErrorCode: The error code for the corresponding error or successful
-
-*/
-ErrorCode zigbee_init();
 
 
 /*
@@ -124,36 +96,22 @@ ErrorCode zigbee_init();
 int receive_call_back();
 
 /*
-  zigbee_send_file:
+  send_data:
 
     When called, this function sends a packet that containing the specified
     message to the gateway via xbee module.
 
   Parameters:
 
-    zig_message - the message to be sent via xbee module
+    message - the message to be sent via xbee module
 
   Return value:
 
     None
 
 */
-void *zigbee_send_file(char *zig_message);
+void *send_data(char *message);
 
-/*
-  zigbee_free:
 
-    When called, this function frees zigbee struct.
-
-  Parameters:
-
-    None
-
-  Return value:
-
-    ErrorCode: The error code for the corresponding error
-
-*/
-void zigbee_free();
 
 #endif

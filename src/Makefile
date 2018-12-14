@@ -1,7 +1,7 @@
 # LBeacon
 #---------------------------------------------------------------------------
-CC = gcc -std=gnu99 
-OBJS = Utilities.o LinkedList.o Mempool.o thpool.o Communication.o xbee_Serial.o xbee_API.o pkt_Queue.o LBeacon.o
+CC = gcc -std=gnu99
+OBJS = LinkedList.o Mempool.o thpool.o Communication.o UDP_API.o pkt_Queue.o BeDIS.o LBeacon.o
 LIB = -L /usr/local/lib
 
 #---------------------------------------------------------------------------
@@ -10,16 +10,14 @@ LBeacon: $(OBJS)
 	$(CC) $(OBJS) $(CFLAGS) -o LBeacon $(LIB) -lrt -lpthread -lmulticobex -lbfb -lbluetooth -lobexftp -lopenobex -lxbee -lwiringPi -lzlog
 LBeacon.o: LBeacon.c LBeacon.h
 	$(CC) LBeacon.c LBeacon.h $(LIB) -c
-Utilities.o: Utilities.c Utilities.h
-	$(CC) Utilities.c Utilities.h  $(LIB) -c
+BeDIS.o: BeDIS.c BeDIS.h
+	$(CC) $(CFLAGS) BeDIS.c -c
 LinkedList.o: LinkedList.c LinkedList.h
 	$(CC) LinkedList.c LinkedList.h $(LIB) -c
 pkt_Queue.o: pkt_Queue.c pkt_Queue.h
 	$(CC) pkt_Queue.c pkt_Queue.h -c
-xbee_Serial.o: xbee_Serial.c xbee_Serial.h
-	$(CC) xbee_Serial.c xbee_Serial.h -c
-xbee_API.o: xbee_API.c xbee_API.h
-	$(CC) xbee_API.c xbee_API.h -c
+UDP_API.o: UDP_API.c UDP_API.h pkt_Queue.o
+	$(CC) $(CFLAGS) UDP_API.c -c
 Mempool.o: Mempool.c Mempool.h
 	$(CC) Mempool.c Mempool.h $(LIB) -c
 Thpool.o: thpool.c thpool.h

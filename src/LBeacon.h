@@ -58,36 +58,16 @@ Authors:
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
-#include <ctype.h>
-#include <dirent.h>
-#include <limits.h>
-#include <netdb.h>
 #include <netinet/in.h>
 #include <obexftp/client.h>
-#include <pthread.h>
-#include <semaphore.h>
-#include <signal.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <sys/poll.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/timeb.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
-#include "Utilities.h"
-#include "Mempool.h"
-#include "LinkedList.h"
+#include "BeDIS.h"
+
 
 /*
   CONSTANTS
 */
 
-/* The major and minor versions of LBeacon used for advertising */ 
+/* The major and minor versions of LBeacon used for advertising */
 #define LBEACON_MAJOR_VER 1
 #define LBEACON_MINOR_VER 2
 
@@ -140,14 +120,11 @@ Authors:
 /* Length in number of chars used for basic information */
 #define LENGTH_OF_INFO 128
 
-/* The maxinum length in bytes of the message to be sent over zigbee link */
-#define ZIG_MESSAGE_LENGTH 104
+/* The maxinum length in bytes of the message to be sent over */
+#define MESSAGE_LENGTH 104
 
 /* Maximum length of message to be sent over WiFi in bytes */
 #define WIFI_MESSAGE_LENGTH 4096
-
-/* Number of bytes in the string format of epoch time */
-#define LENGTH_OF_EPOCH_TIME 10
 
 
 /* Time interval in milliseconds of a bluetooth device stays in the
@@ -213,35 +190,6 @@ for abnormal network situatins */
      _a < _b ? _a : _b; })
 
 
-
-/*
-  UNION
-*/
-
-/* This union will convert floats into Hex code used for the beacon
-   location
-*/
-union {
-
-    float f;
-    unsigned char b[sizeof(float)];
-    int d[2];
-
-} coordinate_X;
-
-union {
-
-    float f;
-    unsigned char b[sizeof(float)];
-
-} coordinate_Y;
-
-union {
-
-    float f;
-    unsigned char b[sizeof(float)];
-
-} coordinate_Z;
 
 
 
@@ -323,14 +271,6 @@ typedef struct Config {
 
 } Config;
 
-/* Type of device to be tracked. */
-typedef enum DeviceType {
-
-  BR_EDR = 0,
-  BLE = 1,
-  max_type = 2
-
-} DeviceType;
 
 /* The structure for storing information and status of a thread */
 typedef struct ThreadStatus {
@@ -512,11 +452,11 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
   start_ble_scanning:
 
       This function scans continuously for BLE bluetooth devices under the
-      coverage of the  beacon until scanning is cancelled. To reduce the 
+      coverage of the  beacon until scanning is cancelled. To reduce the
       traffic among BeDIS system, this function only tracks the tags with
-      our specific name. When one tag with specific name are scanned, this 
-      function calls send_to_push_dongle to either add a new ScannedDevice 
-      struct of the device to ble_object_list or update the final scan time 
+      our specific name. When one tag with specific name are scanned, this
+      function calls send_to_push_dongle to either add a new ScannedDevice
+      struct of the device to ble_object_list or update the final scan time
       of a struct in the list.
 
   Parameters:
@@ -641,8 +581,8 @@ struct ScannedDevice *check_is_in_list(char address[],
 
 ErrorCode enable_advertising(int advertising_interval,
                              char *advertising_uuid,
-			     int major_number,
-			     int minor_number,
+           int major_number,
+           int minor_number,
                              int rssi_value);
 
 
@@ -691,7 +631,7 @@ void *cleanup_scanned_list(void *param);
   timeout_cleanup:
 
       This function sets a timer to countdown a specific time. When timer
-      expires, cleans up tracked object lists to make sure the memory space 
+      expires, cleans up tracked object lists to make sure the memory space
       is always available.
 
   Parameters:
@@ -1042,21 +982,21 @@ extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 
 
 /*
-  zigbee_send_file:
+  send_data:
 
       When called, this function sends a packet that containing the specified
       message to the gateway via xbee module.
 
   Parameters:
 
-    zig_message - the message to be sent via xbee module
+    message - the message to be sent via xbee module
 
   Return value:
 
       None
 
 */
-extern void *zigbee_send_file(char *zig_message);
+extern void *send_data(char *message);
 
 
 /* Functions for communication via BR/EDR path to Bluetooth

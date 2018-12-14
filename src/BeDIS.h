@@ -8,12 +8,12 @@
 
   Project Name:
 
-     BeDIPS
+     BeDIS
 
   File Description:
 
-     In this file, we group all the definition and declarations used in Gateway
-     and LBeacon, including.
+     This file, contain the definitions and declarations of constant structure.
+     and function used in both Gateway and LBeacon.
 
   File Name:
 
@@ -21,7 +21,7 @@
 
   Abstract:
 
-     BeDIPS uses LBeacons to deliver 3D coordinates and textual descriptions of
+     BeDIS uses LBeacons to deliver 3D coordinates and textual descriptions of
      their locations to users' devices. Basically, a LBeacon is an inexpensive,
      Bluetooth Smart Ready device. The 3D coordinates and location description
      of every LBeacon are retrieved from BeDIS (Building/environment Data and
@@ -33,7 +33,13 @@
   Authors:
 
      Gary Xiao     , garyh0205@hotmail.com
-
+     Joey Zhou     , joeyzhou5566@gmail.com
+     Jake Lee      , jakelee@iis.sinica.edu.tw
+     Johnson Su    , johnsonsu@iis.sinica.edu.tw
+     Shirley Huang , shirley.huang.93@gmail.com
+     Han Hu        , hhu14@illinois.edu
+     Jeffrey Lin   , lin.jeff03@gmail.com
+     Howard Hsu    , haohsu0823@gmail.com
  */
 
 #ifndef BEDIS_H
@@ -42,6 +48,39 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+#include <ctype.h>
+#include <errno.h>
+#include <limits.h>
+#include <netdb.h>
+#include <dirent.h>
+#include <pthread.h>
+#include <signal.h>
+#include <time.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <sys/poll.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/timeb.h>
+#include <ctype.h>
+#include <stdbool.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <sys/timeb.h>
+#include <time.h>
+#include "Mempool.h"
+#include "UDP_API.h"
+#include "LinkedList.h"
+#include "thpool.h"
+#include "zlog.h"
 
 /* Parameter that marks the start of the config file */
 #define DELIMITER "="
@@ -49,18 +88,15 @@
 /* Maximum number of characters in each line of config file */
 #define CONFIG_BUFFER_SIZE 64
 
-/* Number of lines in the config file */
-#define CONFIG_FILE_LENGTH 11
-
-/* Times of retrying to open file, because file openning operation 
+/* Times of retrying to open file, because file openning operation
 is possibily transient failed. */
 #define FILE_OPEN_RETRY 5
 
-/* Times of retrying to get dongle, because this operation 
+/* Times of retrying to get dongle, because this operation
 is possibily transient failed.*/
 #define DONGLE_GET_RETRY 5
 
-/* Times of retrying to open socket, because socket openning operation 
+/* Times of retrying to open socket, because socket openning operation
 is possibily transient failed.*/
 #define SOCKET_OPEN_RETRY 5
 
@@ -79,11 +115,13 @@ is possibily transient failed.*/
 /* Maximum length of message to be sent over WiFi in bytes */
 #define WIFI_MESSAGE_LENGTH 4096
 
+/* define the size of array to store Wi-Fi SSID */
 #define WIFI_SSID_LENGTH 10
 
+/* define the size of array to store Wi-Fi Password */
 #define WIFI_PASS_LENGTH 10
 
-/* Length of the beacon's UUID in a number of charaters */
+/* Length of the Lbeacon's UUID in a number of characters */
 #define UUID_LENGTH 32
 
 // Length of coordinates in number of bits
@@ -91,6 +129,9 @@ is possibily transient failed.*/
 
 //The port on which to listen for incoming data
 #define UDP_LISTEN_PORT 8888
+
+/* Number of bytes in the string format of epoch time */
+#define LENGTH_OF_EPOCH_TIME 3
 
 /* Timeout interval in seconds */
 #define A_LONG_TIME 36000
@@ -140,67 +181,48 @@ typedef enum _ErrorCode{
 
 } ErrorCode;
 
-typedef enum ErrorCode error_t;
-
-/*
 typedef struct _errordesc {
-    int code;
+    ErrorCode code;
     char *message;
-} s_er_d;
+} errordesc;
 
-s_er_d errordesc[]; = {
-
-    {WORK_SUCCESSFULLY, "The code works successfullly"},
-    {E_MALLOC, "Error allocating memory"},
-    {E_OPEN_FILE, "Error opening file"},
-    {E_OPEN_DEVICE, "Error opening the dvice"},
-    {E_OPEN_SOCKET, "Error opening socket"},
-    {E_SEND_OBEXFTP_CLIENT, "Error opening obexftp client"},
-    {E_SEND_CONNECT_DEVICE, "Error connecting to obexftp device"},
-    {E_SEND_PUSH_FILE, "Error pushing file to device"},
-    {E_SEND_DISCONNECT_CLIENT, "Disconnecting the client"},
-    {E_SCAN_SET_HCI_FILTER, "Error setting HCI filter"},
-    {E_SCAN_SET_INQUIRY_MODE, "Error settnig inquiry mode"},
-    {E_SCAN_START_INQUIRY, "Error starting inquiry"},
-    {E_SEND_REQUEST_TIMEOUT, "Sending request timeout"},
-    {E_ADVERTISE_STATUS, "LE set advertise returned status"},
-    {E_ADVERTISE_MODE, "Error setting advertise mode"},
-    {E_SET_BLE_PARAMETER, "Error setting parameters of BLE scanning "},
-    {E_BLE_ENABLE, "Error enabling BLE scanning"},
-    {E_GET_BLE_SOCKET, "Error getting BLE socket options"},
-    {E_START_THREAD, "Error creating thread"},
-    {E_INIT_THREAD_POOL, "Error initializing thread pool"},
-    {E_INIT_ZIGBEE, "Error initializing the zigbee"},
-    {E_ZIGBEE_CONNECT, "Error zigbee connection"},
-    {E_LOG_INIT, "Error initializing log file"},
-    {E_LOG_GET_CATEGORY, "Error getting log category"},
-    {E_EMPTY_FILE, "Empty file"},
-    {E_INPUT_PARAMETER , "Error of invalid input parameter"},
-    {E_ADD_WORK_THREAD, "Error adding work to the work thread"},
-    {MAX_ERROR_CODE, "The element is invalid"},
-    {E_INITIALIZATION_FAIL, "The Network or Buffer initialization Fail."},
-    {E_WIFI_INIT_FAIL, "Wi-Fi initialization Fail."},
-    {E_ZIGBEE_INIT_FAIL, "Zigbee initialization Fail."},
-    {E_XBEE_VALIDATE, "Zigbee Connection Fail."},
-    {E_START_COMMUNICAT_ROUTINE_THREAD, "Start Communocation Thread Fail."},
-    {E_START_BHM_ROUTINE_THREAD, "Start BHM THread Fail."},
-    {E_START_TRACKING_THREAD, "Start Tracking Thread Fail."},
-    {E_ZIGBEE_CALL_BACK, "Error enabling call back function for xbee"},
-    {E_ZIGBEE_SHUT_DOWN,  "Error shutting down xbee."},
-    {E_REG_SIG_HANDLER, "Error registering signal handler"},
-    {E_JOIN_THREAD, "Error joining thread"}
-
-};
-*/
-
-typedef struct{
+typedef struct coordinates{
 
     char X_coordinates[COORDINATE_LENGTH];
     char Y_coordinates[COORDINATE_LENGTH];
-
     char Z_coordinates[COORDINATE_LENGTH];
 
 } Coordinates;
+
+/*
+  UNION
+*/
+
+/* This union will convert floats into Hex code used for the beacon
+   location
+*/
+union {
+
+    float f;
+    unsigned char b[sizeof(float)];
+    int d[2];
+
+} coordinate_X;
+
+union {
+
+    float f;
+    unsigned char b[sizeof(float)];
+
+} coordinate_Y;
+
+union {
+
+    float f;
+    unsigned char b[sizeof(float)];
+
+} coordinate_Z;
+
 
 /* A flag that is used to check if CTRL-C is pressed */
 bool g_done;
@@ -210,6 +232,102 @@ bool g_done;
    indicating that it is about to exit. */
 bool ready_to_work;
 
+/* Type of device to be tracked. */
+typedef enum DeviceType {
+
+  BR_EDR = 0,
+  BLE = 1,
+  max_type = 2
+
+} DeviceType;
+
+// FUNCTIONS
+
+/*
+  uuid_str_to_data:
+
+     @todo
+
+  Parameters:
+
+     uuid - @todo
+
+  Return value:
+
+     data - @todo
+ */
+unsigned int *uuid_str_to_data(char *uuid);
+
+
+/*
+  twoc:
+
+  @todo
+
+  Parameters:
+
+     in - @todo
+     t -  @todo
+
+  Return value:
+
+     data - @todo
+ */
+unsigned int twoc(int in, int t);
+
+
+/*
+ ctrlc_handler:
+
+     If the user presses CTRL-C, the global variable g_done will be set to true,
+     and a signal will be thrown to stop running the LBeacon program.
+
+ Parameters:
+
+     s - @todo
+
+ Return value:
+
+     None
+
+ */
+void ctrlc_handler(int stop);
+
+
+/*
+  startThread:
+
+     This function initializes the specified threads.
+
+  Parameters:
+
+     threads - name of the thread
+     thfunct - the function for thread to execute.
+     arg - the argument for thread's function
+
+  Return value:
+
+     Error_code: The error code for the corresponding error
+ */
+ErrorCode startThread(pthread_t *threads, void *( *thfunct)(void *), void *arg);
+
+
+/*
+  get_system_time:
+
+     This helper function fetches the current time according to the system
+     clock in terms of the number of seconds since January 1, 1970.
+
+  Parameters:
+
+     None
+
+  Return value:
+
+     system_time - system time in seconds
+*/
+
+long long get_system_time();
 
 /*
   memset:
@@ -218,10 +336,11 @@ bool ready_to_work;
 
   Parameters:
 
-      ptr - the pointer points to the memory area
-      value - the constant byte to replace the memory area
+      ptr - the pointer to the block memory to fill
+      value - The value as an int to be set: The function will fill
+              the memory as if this value
       number - number of bytes in the memory area starting from ptr to be
-               filled
+               set to value
 
   Return value:
 
@@ -289,7 +408,7 @@ extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 /*
   pthread_detach:
 
-      This function is called to make the thread identified by thread as
+      This function is called to mark the thread identified by thread as
       detached. When a detached thread returns, its resources are
       automatically released back to the system.
 

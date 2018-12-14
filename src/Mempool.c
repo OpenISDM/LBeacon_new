@@ -9,29 +9,29 @@
 
  Project Name:
 
-      BeDIS
+      BeDIPS
 
  File Description:
 
-      This file contains the program to allow the necessory memory 
-      allocation for the nodes in the linked list. 
+      This file contains the program to allow the necessory memory
+      allocation for the nodes in the linked list.
 
       Note: The code is referred to the site:
       https://codereview.stackexchange.com/questions/48919/simple-memory-
-      pool-%20using-no-extra-memory 
-       
+      pool-%20using-no-extra-memory
+
 
  File Name:
 
       Mempool.c
 
  Version:
- 
+
        1.2
 
  Abstract:
 
-      BeDIS uses LBeacons to deliver 3D coordinates and textual
+      BeDIPS uses LBeacons to deliver 3D coordinates and textual
       descriptions of their locations to users' devices. Basically, a
       LBeacon is an inexpensive, Bluetooth Smart Ready device. The 3D
       coordinates and location description of every LBeacon are retrieved
@@ -45,7 +45,7 @@
 
       Han Wang, hollywang@iis.sinica.edu.tw
 
-      
+
 */
 
 #include "Mempool.h"
@@ -54,23 +54,24 @@
 
 int mp_init(Memory_Pool *mp, size_t size, size_t slots)
 {
-  
-    
+
+    pthread_mutex_init( &mp->mem_lock, 0);
+
     //allocate memory
-    if((mp->memory = malloc(size * slots)) == NULL){    
-      
+    if((mp->memory = malloc(size * slots)) == NULL){
+
       return MEMORY_POOL_ERROR;
-    
+
     }
- 
+
     //initialize
     mp->head = NULL;
     mp->size = size;
 
     //add every slot to the free list
     char *end = (char *)mp->memory + size * slots;
-    
-    
+
+
     for(char *ite = mp->memory; ite < end; ite += size){
 
             //store first address
@@ -81,9 +82,9 @@ int mp_init(Memory_Pool *mp, size_t size, size_t slots)
 
             //link to the list from new node
             *mp->head = temp;
-  
+
     }
-  
+
     return MEMORY_POOL_SUCCESS;
 }
 
@@ -91,39 +92,43 @@ int mp_init(Memory_Pool *mp, size_t size, size_t slots)
 int mp_expand(Memory_Pool *mp, size_t slots)
 {
     void *new_mem;
-   
+
+    pthread_mutex_lock(&mp->mem_lock);
+
     new_mem = malloc(mp->size * slots);
     if(new_mem == NULL ){
-        
+
         return MEMORY_POOL_ERROR;
-        
+
     }
-    
+
     //add every slot to the free list
     char *end = (char *)new_mem + mp->size * slots;
-    
+
     for(char *ite = new_mem; ite < end; ite += mp->size){
-        
-       
+
+
         //store first address
         void *temp = mp->head;
-       
+
         //link the new node
         mp->head = ite;
-       
+
         //link to the list from new node
         *mp->head = temp;
-       
-        
+
+
     }
-    
+
+    pthread_mutex_unlock(&mp->mem_lock);
+
     return MEMORY_POOL_SUCCESS;
-    
-    
+
+
 }
 
 void mp_destroy(Memory_Pool *mp)
-{   
+{
 
     mp->memory = NULL;
     free(mp->memory);
@@ -134,22 +139,26 @@ void mp_destroy(Memory_Pool *mp)
 
 void *mp_alloc(Memory_Pool *mp)
 {
-         
+
+    pthread_mutex_lock(&mp->mem_lock);
+
     if( *mp->head == NULL){
-       
+
       if(mp_expand(mp, EXPAND_SLOT) == MEMORY_POOL_ERROR){
 
         return NULL;
 
       }
-           
+
     }
-        
+
     //store first address, i.e., address of the start of first element
     void *temp = mp->head;
 
     //link one past it
     mp->head = *mp->head;
+
+    pthread_mutex_unlock(&mp->mem_lock);
 
     //return the first address
     return temp;
@@ -159,13 +168,15 @@ void *mp_alloc(Memory_Pool *mp)
 
 int mp_free(Memory_Pool *mp, void *mem)
 {
-  
+
+    pthread_mutex_lock(&mp->mem_lock);
+
     //check if mem is correct, i.e. is pointing to the struct of a slot
     //calculate the offset from mem to mp->memory
     int diffrenceinbyte = (mem - mp->memory) * sizeof(mem);
-    
-    if((diffrenceinbyte % mp->size) != 0){  
-        
+
+    if((diffrenceinbyte % mp->size) != 0){
+
         return MEMORY_POOL_ERROR;
     }
 
@@ -176,6 +187,7 @@ int mp_free(Memory_Pool *mp, void *mem)
     //link to the list from new node
     *mp->head = temp;
 
-    return MEMORY_POOL_SUCCESS; 
-}
+    pthread_mutex_unlock(&mp->mem_lock);
 
+    return MEMORY_POOL_SUCCESS;
+}
