@@ -736,7 +736,7 @@ void *cleanup_scanned_list(void* param) {
             /* If the device has been in the scanned list for at least 30
             seconds, remove its struct node from the scanned list */
             if (get_system_time() - temp->initial_scanned_time >
-            INTERVAL_HANDLE_SCANNED_LIST_IN_MS){
+            INTERVAL_HANDLE_SCANNED_LIST_IN_SEC){
 
         remove_list_node(&temp->sc_list_entry);
 
@@ -1613,7 +1613,7 @@ void *timeout_cleanup(void* param){
         When timer expires, clean up and remove all the node. */
         while(false == g_done && true == network_is_down){
 
-          if(get_system_time() - start_time >= INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_MS){
+          if(get_system_time() - start_time >= INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_SEC){
 
               /*Check whether the list is empty */
               if(scanned_list_head.list_entry.next

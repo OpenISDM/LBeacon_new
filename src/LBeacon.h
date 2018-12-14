@@ -127,11 +127,11 @@ Authors:
 #define WIFI_MESSAGE_LENGTH 4096
 
 
-/* Time interval in milliseconds of a bluetooth device stays in the
+/* Time interval in seconds of a bluetooth device stays in the
    scanned device list. This time interval is for
    cleanup_scanned_list function
 */
-#define INTERVAL_HANDLE_SCANNED_LIST_IN_MS 30000
+#define INTERVAL_HANDLE_SCANNED_LIST_IN_SEC 30
 
 /* Timeout in milliseconds of hci_send_req funtion */
 #define HCI_SEND_REQUEST_TIMEOUT_IN_MS 1000
@@ -153,9 +153,9 @@ or memory allocations reach threshold situations.
 */
 #define INTERVAL_FOR_CLEANUP_LISTS_IN_SEC 1800
 
-/* Time interval in microseconds for timeout_cleanup function to wait
+/* Time interval in seconds for timeout_cleanup function to wait
 for abnormal network situatins */
-#define INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_MS 10000
+#define INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_SEC 10
 
 
 /* Nominal transmission range limit. Only devices in this RSSI range are
