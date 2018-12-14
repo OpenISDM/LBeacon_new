@@ -691,7 +691,7 @@ void *manage_communication(void *param);
       ErrorCode - The error code for the corresponding error if the function
                   fails or WORK SUCCESSFULLY otherwise
 */
-ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list);
+ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list);
 
 
 

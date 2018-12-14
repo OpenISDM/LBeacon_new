@@ -131,7 +131,7 @@ is possibily transient failed.*/
 #define UDP_LISTEN_PORT 8888
 
 /* Number of bytes in the string format of epoch time */
-#define LENGTH_OF_EPOCH_TIME 3
+#define LENGTH_OF_EPOCH_TIME 11
 
 /* Timeout interval in seconds */
 #define A_LONG_TIME 36000

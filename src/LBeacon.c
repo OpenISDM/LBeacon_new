@@ -823,7 +823,7 @@ void *manage_communication(void* param){
                 /* Copy track_object data to a file to be transmited */
                 copy_progress =
                 (int)copy_object_data_to_file(TRACKED_BR_TXT_FILE_NAME,
-                                                BR_object_list_head);
+                                                &BR_object_list_head);
 
                 if(WORK_SUCCESSFULLY == copy_progress){
 
@@ -857,7 +857,7 @@ void *manage_communication(void* param){
                 /* Copy BLE_tracked data to the a file to be transmited */
                 copy_progress =
                 (int)copy_object_data_to_file(TRACKED_BLE_TXT_FILE_NAME,
-                                                BLE_object_list_head);
+                                                &BLE_object_list_head);
 
                 if(WORK_SUCCESSFULLY == copy_progress){
 
@@ -892,7 +892,6 @@ void *manage_communication(void* param){
                     fclose(ble_object_file);
 
                 }
-
 #ifdef Debugging
 
                 zlog_debug(category_debug,
@@ -960,7 +959,7 @@ void *manage_communication(void* param){
     #endif
 }
 
-ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
+ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
 
     FILE *track_file = NULL;;
     /* Two pointers to be used locally */
@@ -977,8 +976,8 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
     unsigned timestamp_end;
 
     /* Check the input parameter if is valid */
-    if(&list != &BR_object_list_head ||
-       &list != &BLE_object_list_head){
+    if(list != &BR_object_list_head &&
+       list != &BLE_object_list_head){
 
     //    perror(errordesc[E_INPUT_PARAMETER].message);
     //    zlog_info(category_health_report,
@@ -995,7 +994,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
     init_entry(&local_object_list_head);
 
 
-    DeviceType device_type = list.device_type;
+    DeviceType device_type = list->device_type;
 
     /* Create a new file to store data in the tracked_BLE_object_list */
     retry_time = FILE_OPEN_RETRY;
@@ -1024,7 +1023,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
     }
 
     /* Get the number of objects with data to be transmitted */
-    number_in_list = get_list_length(&list.list_entry);
+    number_in_list = get_list_length(&list->list_entry);
     number_to_send = min(MAX_NUM_OBJECTS, number_in_list);
 
 
@@ -1039,7 +1038,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
 
     /* Insert device_type and number_to_send at the struct of the track
     file */
-    sprintf(basic_info, "%d; %d;", device_type, number_to_send);
+    sprintf(basic_info, "%d;%d;", device_type, number_to_send);
     fputs(basic_info, track_file);
 
 #ifdef Debugging
@@ -1052,7 +1051,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
     pthread_mutex_lock(&list_lock);
 
     /* Set temporary pointer to point to the head of the input list */
-    list_pointers = list.list_entry.next;
+    list_pointers = list->list_entry.next;
 
     /* Set the pointer of the local list head to the head of the input
     list */
@@ -1076,7 +1075,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
     }
 
     /* Set the head of the input list to point to the last node */
-    list.list_entry.next = list_pointers->next;
+    list->list_entry.next = list_pointers->next;
 
     /*Set the last node pointing to the local_object_list_head */
     tail_pointers->next = &local_object_list_head;
@@ -1090,18 +1089,16 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead list) {
 
         temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
 
-        /* Convert the timestamp to string */
-        timestamp_init = (unsigned)&temp->initial_scanned_time;
-        timestamp_end = (unsigned)&temp->final_scanned_time;
-
         /* sprintf() is the function to set a format and convert the
            datatype to char */
-        sprintf(timestamp_initial_str, ", %u", timestamp_init);
-        sprintf(timestamp_final_str, ", %u", timestamp_end);
+        sprintf(timestamp_initial_str, "%llu", temp->initial_scanned_time);
+        sprintf(timestamp_final_str, "%llu", temp->final_scanned_time);
 
         /* Write the content to the file */
-        fputs(&temp->scanned_mac_address[0], track_file);
+        fputs(temp->scanned_mac_address, track_file);
+        fputs(";", track_file);
         fputs(timestamp_initial_str, track_file);
+        fputs(";", track_file);
         fputs(timestamp_final_str, track_file);
         fputs(";", track_file);
 
