@@ -338,7 +338,7 @@ struct ScannedDevice *check_is_in_list(char address[],
 
             /* Update the final scan time */
             temp->final_scanned_time = get_system_time();
-            temp_is_null == false;
+            temp_is_null = false;
             break;
 
         }
