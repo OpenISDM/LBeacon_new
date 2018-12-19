@@ -34,12 +34,12 @@
 
      Gary Xiao     , garyh0205@hotmail.com
      Joey Zhou     , joeyzhou5566@gmail.com
+     Holly Wang    , hollywang@iis.sinica.edu.tw
      Jake Lee      , jakelee@iis.sinica.edu.tw
      Johnson Su    , johnsonsu@iis.sinica.edu.tw
      Shirley Huang , shirley.huang.93@gmail.com
-     Han Hu        , hhu14@illinois.edu
-     Jeffrey Lin   , lin.jeff03@gmail.com
-     Howard Hsu    , haohsu0823@gmail.com
+
+
  */
 
 #ifndef BEDIS_H
@@ -226,7 +226,7 @@ union {
 
 /* A global flag that is initially set to true by the main thread. It is set
    to false by any thread when the thread encounters a fatal error,
-   indicating that it is about to exit. In addition, if user presses Ctrl+C, 
+   indicating that it is about to exit. In addition, if user presses Ctrl+C,
    the ready_to_work will be set as false to stop all threadts. */
 bool ready_to_work;
 
@@ -277,7 +277,7 @@ unsigned int twoc(int in, int t);
 /*
  ctrlc_handler:
 
-     If the user presses CTRL-C, the global variable ready_to_work will be set 
+     If the user presses CTRL-C, the global variable ready_to_work will be set
      to false, and a signal will be thrown to stop running the program.
 
  Parameters:

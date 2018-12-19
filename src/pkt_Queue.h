@@ -19,7 +19,7 @@
      location description to Bluetooth enabled user devices within its coverage
      area.
   Authors:
-     Gary Xiao      , garyh0205@hotmail.com
+     Gary Xiao    , garyh0205@hotmail.com
  */
 
 #ifndef pkt_Queue_H
@@ -33,29 +33,34 @@
 #include <pthread.h>
 #include <sys/time.h>
 
+// If need to debug.
+#define debugging
 
 #define Gateway   "0000000000000000"
 #define Broadcast "000000000000FFFF"
 
-//#ifndef BEDIS_H
 
 /* Length of address of the network */
 #define NETWORK_ADDR_LENGTH 16
+//define the maximum pkt length per pkt.
+#define MAX_XBEE_PKT_LENGTH 100
 
 /* Length of address of the network in Hex */
 #define NETWORK_ADDR_LENGTH_HEX 8
+//define the maximum data length per pkt.
+#define MAX_XBEE_DATA_LENGTH 90
 
 /* Maximum length of message to be sent over WiFi in bytes */
-#define WIFI_MESSAGE_LENGTH 4096
-
-//#endif
+#define MESSAGE_LENGTH 1024
 
 //define the maximum length of pkt Queue.
-#define MAX_QUEUE_LENGTH 1024
+#define MAX_QUEUE_LENGTH 512
 
 enum {UNKNOWN, Data, Local_AT, UDP, NONE};
 
-enum{ pkt_Queue_SUCCESS = 0, pkt_Queue_FULL = -1, queue_len_error = -2};
+enum{ pkt_Queue_SUCCESS = 0, pkt_Queue_FULL = -1, queue_len_error = -2
+    , pkt_Queue_is_free = -3, pkt_Queue_is_NULL = -4
+    , pkt_Queue_display_over_range = -5, MESSAGE_OVERSIZE = -6};
 
 
 /* packet format */
@@ -69,7 +74,7 @@ typedef struct pkt {
     unsigned int type;
 
     // Data
-    char content[WIFI_MESSAGE_LENGTH];
+    char content[MESSAGE_LENGTH];
 
     int  content_size;
 
@@ -89,6 +94,8 @@ typedef struct pkt_header {
     sPkt Queue[MAX_QUEUE_LENGTH];
 
     unsigned char address[NETWORK_ADDR_LENGTH_HEX];
+
+    bool is_free;
 
     pthread_mutex_t mutex;
 
@@ -138,6 +145,16 @@ int Free_Packet_Queue(pkt_ptr pkt_queue);
  */
 int addpkt(pkt_ptr pkt_queue, unsigned int type
          , char *raw_addr, char *content, int content_size);
+
+
+/* get_pkt
+      get the first of the pkt_queue.
+  Parameter:
+      pkt_Queue : The Queue we store pkt.
+  Return Value:
+      sPkt : return the first pkt content.
+ */
+sPkt get_pkt(pkt_ptr pkt_queue);
 
 
 /*
@@ -201,23 +218,13 @@ char *hex_to_char(unsigned char *hex, int size);
 /* display_pkt
       display the packet we decide to see.
   Parameter:
-      content : The title we want to show in front of the packet content.
+      display_title : The title we want to show in front of the packet content.
       pkt     : The packet we want to see it's content.
       pkt_num : chose whitch pkts we want to display.
   Return Value:
-      None
+      int
  */
-void display_pkt(char *content, pkt_ptr pkt_queue, int pkt_num);
-
-
-/* get_pkt
-      get the first of the pkt_queue.
-  Parameter:
-      pkt_Queue : The Queue we store pkt.
-  Return Value:
-      pPkt : the pkt address.
- */
-pPkt get_pkt(pkt_ptr pkt_queue);
+int display_pkt(char *display_title, pkt_ptr pkt_queue, int pkt_num);
 
 
 /*

@@ -38,7 +38,7 @@
 
  Authors:
 
-      Han Wang, hollywang@iis.sinica.edu.tw
+      Holly Wang, hollywang@iis.sinica.edu.tw
       Jake Lee, jakelee@iis.sinica.edu.tw
       Joey Zhou, joeyzhou@iis.sinica.edu.tw
       Kenneth Tang, kennethtang@iis.sinica.edu.tw
@@ -792,11 +792,11 @@ void *manage_communication(void* param){
         for a short time. If polled, take the action according to the
         poll type. */
 
-        
+
         polled_type = TRACK_OBJECT_DATA;
         sleep(3);
      /*   polled_type = receive_call_back();
-     
+
         while(false == g_done && NOT_YET_POLLED == polled_type){
 
 #ifdef Debugging
@@ -823,19 +823,19 @@ void *manage_communication(void* param){
                 /* Copy track_object data to a file to be transmited */
 		memset(message, 0, sizeof(message));
 		memset(msg_temp, 0, sizeof(msg_temp));
-		    
-     		if(WORK_SUCCESSFULLY == 
-			consolidate_tracked_data(&BR_object_list_head, 
-						msg_temp, 
+
+     		if(WORK_SUCCESSFULLY ==
+			consolidate_tracked_data(&BR_object_list_head,
+						msg_temp,
 						sizeof(msg_temp))){
-			strcpy(message, msg_temp);	
+			strcpy(message, msg_temp);
 		}
-		
+
 		memset(msg_temp, 0, sizeof(msg_temp));
-                    
-		if(WORK_SUCCESSFULLY == 
-		        consolidate_tracked_data(&BLE_object_list_head, 
-						msg_temp, 
+
+		if(WORK_SUCCESSFULLY ==
+		        consolidate_tracked_data(&BLE_object_list_head,
+						msg_temp,
 						sizeof(msg_temp))){
 			strcat(message, msg_temp);
 		}
@@ -950,7 +950,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
         return E_OPEN_FILE;
 
     }
-    
+
     /* Get the number of objects with data to be transmitted */
     number_in_list = get_list_length(&list->list_entry);
     number_to_send = min(MAX_NUM_OBJECTS, number_in_list);
@@ -972,7 +972,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
 
 #ifdef Debugging
 
-    zlog_debug(category_debug, "Device type: %d; Number to send: %d", 
+    zlog_debug(category_debug, "Device type: %d; Number to send: %d",
 	device_type, number_to_send);
 
 #endif
@@ -983,11 +983,11 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
 #ifdef Debugging
 
     list_for_each(list_pointers, &list->list_entry){
-    	zlog_debug(category_debug, 
-	"Input list: list->list_entry %d list_pointers %d prev %d next %d", 
-		&list->list_entry, 
-		list_pointers, 
-		list_pointers->prev, 
+    	zlog_debug(category_debug,
+	"Input list: list->list_entry %d list_pointers %d prev %d next %d",
+		&list->list_entry,
+		list_pointers,
+		list_pointers->prev,
 		list_pointers->next);
     }
 
@@ -996,7 +996,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
     /* Set temporary pointer to point to the head of the input list */
     head_pointers = list->list_entry.next;
     list_pointers = list->list_entry.next;
-    
+
     /* Go through the input tracked_object list to move number_to_send nodes
     in the list to local list */
     for (node_count = 1; node_count <= number_to_send;
@@ -1012,27 +1012,27 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
 
 #ifdef Debugging
 
-    zlog_debug(category_debug, 
-	"head_pointers %d tail_pointers %d prev %d next %d", 
+    zlog_debug(category_debug,
+	"head_pointers %d tail_pointers %d prev %d next %d",
 		head_pointers,
 		tail_pointers,
 		tail_pointers->prev,
 		tail_pointers->next);
 
 #endif
-    
+
     /* Set the head of the input list to point to the last node */
     list->list_entry.next = tail_pointers->next;
     tail_pointers->next->prev = &list->list_entry;
-    
+
 #ifdef Debugging
 
     zlog_debug(category_debug,
-	 "Input list: list->list_entry %d prev %d next %d head_pointers %d tail_pointers %d\n", 
-		&list->list_entry, 
-		list->list_entry.prev, 
-		list->list_entry.next, 
-		head_pointers, 
+	 "Input list: list->list_entry %d prev %d next %d head_pointers %d tail_pointers %d\n",
+		&list->list_entry,
+		list->list_entry.prev,
+		list->list_entry.next,
+		head_pointers,
 		tail_pointers);
 
 #endif
@@ -1045,14 +1045,14 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
     tail_pointers->next = &local_list_entry;
 
       pthread_mutex_unlock(&list_lock);
-    
+
 #ifdef Debugging
 
       list_for_each(list_pointers, &local_list_entry){
-    	zlog_debug(category_debug, 
-		"local list:  list_pointers %d prev %d next %d\n", 
-			list_pointers, 
-			list_pointers->prev, 
+    	zlog_debug(category_debug,
+		"local list:  list_pointers %d prev %d next %d\n",
+			list_pointers,
+			list_pointers->prev,
 			list_pointers->next);
       }
 
@@ -1108,25 +1108,25 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list, char *msg_buf, size_t m
 	    file_name = TRACKED_BR_TXT_FILE_NAME;
 	else if(BLE == list->device_type)
 	    file_name = TRACKED_BLE_TXT_FILE_NAME;
-	else 
+	else
 	    return E_INPUT_PARAMETER;
-	
 
-	copy_progress = 
+
+	copy_progress =
 	    copy_object_data_to_file(file_name, list);
 
 
 	if(WORK_SUCCESSFULLY == copy_progress){
-	
+
 	    /* Open the file that is going to be sent to the gateway */
 	    retry_time = FILE_OPEN_RETRY;
             while(retry_time--){
                 file_fd = fopen(file_name, "r");
-      
+
                 if(NULL != file_fd)
                     break;
-                if (NULL == file_fd) 
-	            return E_OPEN_FILE;	
+                if (NULL == file_fd)
+	            return E_OPEN_FILE;
             }
 
             fgets(msg_buf, msg_size, file_fd);
@@ -1146,7 +1146,7 @@ void free_list(List_Entry *list_entry, DeviceType device_type){
     list_for_each_safe(list_pointers,
                        save_list_pointers,
                        list_entry){
-        
+
 	temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
 
         remove_list_node(list_pointers);
@@ -1187,6 +1187,46 @@ const struct hci_request ble_hci_request(uint16_t ocf, int clen,
     return rq;
 }
 
+/* A static function for prase the name from the BLE device. */
+static void eir_parse_name(uint8_t *eir, size_t eir_len,
+                        char *buf, size_t buf_len)
+{
+    size_t offset;
+
+    offset = 0;
+    while (offset < eir_len) {
+        uint8_t field_len = eir[0];
+        size_t name_len;
+
+        /* Check for the end of EIR */
+        if (field_len == 0)
+            break;
+
+        if (offset + field_len > eir_len)
+            goto failed;
+
+        switch (eir[1]) {
+
+            case EIR_NAME_SHORT:
+            case EIR_NAME_COMPLETE:
+
+                name_len = field_len - 1;
+
+                if (name_len > buf_len)
+                    goto failed;
+
+                memcpy(buf, &eir[2], name_len);
+                return;
+            }
+
+        offset += field_len + 1;
+        eir += field_len + 1;
+    }
+
+failed:
+    snprintf(buf, buf_len, NULL);
+}
+
 void *start_ble_scanning(void *param){
 
     uint8_t ble_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the
@@ -1213,7 +1253,7 @@ void *start_ble_scanning(void *param){
         ">> start_ble_scanning... ");
 #endif
 
-    while(true == ready_to_work){
+    while( ready_to_work == true){
 
         /* Get the dongle id */
         retry_time = DONGLE_GET_RETRY;
@@ -1246,28 +1286,28 @@ void *start_ble_scanning(void *param){
         }
 
         /* Set BLE scan para,eters */
-        le_set_scan_parameters_cp scan_params_cp;
-        memset(&scan_params_cp, 0, sizeof(scan_params_cp));
-        scan_params_cp.type             = 0x00;
-        scan_params_cp.interval         = htobs(0x0010);
-        scan_params_cp.window           = htobs(0x0010);
-        scan_params_cp.own_bdaddr_type  = 0x00; // Public Device Address
-        scan_params_cp.filter           = 0x00; // Accept all.
+        if( 0> hci_le_set_scan_parameters(socket, 0x01, htobs(0x0010),
+                                      htobs(0x0010), 0x00, 0x00, 1000)){
+
+            /* Error handling */
+            //perror(errordesc[E_SET_BLE_PARAMETER].message);
+            //zlog_info(category_health_report,
+                   //errordesc[E_SET_BLE_PARAMETER].message);
 
 
-        scan_params_rq =
-            ble_hci_request(OCF_LE_SET_SCAN_PARAMETERS,
-                        LE_SET_SCAN_PARAMETERS_CP_SIZE,
-                        &status, &scan_params_cp);
-
-        ret = hci_send_req(socket, &scan_params_rq, HCI_SEND_REQUEST_TIMEOUT_IN_MS);
-        if ( ret < 0 ) {
-
-             hci_close_dev(socket);
-             perror("Failed to set scan parameters data.");
-
-             return;
         }
+
+
+        if( 0> hci_le_set_scan_enable(socket, 0x01, 1, 1000)){
+
+            /* Error handling */
+            //perror(errordesc[E_BLE_ENABLE].message);
+            //zlog_info(category_health_report,
+                  // errordesc[E_BLE_ENABLE].message);
+
+        }
+
+
 
         le_set_event_mask_cp event_mask_cp;
         memset(&event_mask_cp, 0, sizeof(le_set_event_mask_cp));
@@ -1336,13 +1376,22 @@ void *start_ble_scanning(void *param){
                     info = (le_advertising_info *)offset;
 
                     ba2str(&(info->bdaddr), addr);
+                    char name[30];
+                    eir_parse_name(info->data, info->length,
+                            name, sizeof(name) - 1);
+
                     rssi = (signed char)info->data[info->length];
 
                     /* If the rssi vaule is within the threshold */
                     if(rssi > RSSI_RANGE){
 
-                        printf("BLE: %s - RSSI %d\n", addr, rssi);
-                        send_to_push_dongle(&info->bdaddr, true);
+                        if(strcmp(name, "")!= 0){
+
+                            printf("BLE: %s - %s - RSSI %d\n", addr,name,rssi);
+                            send_to_push_dongle(&info->bdaddr, true);
+
+                        }
+
 
                     }
 
@@ -1662,7 +1711,7 @@ void *timeout_cleanup(void* param){
                                        tr_list_entry);
 
                       remove_list_node(&temp->sc_list_entry);
-              
+
 		      remove_list_node(list_pointers);
 
                       if(is_isolated_node(&temp->sc_list_entry)){
@@ -1674,7 +1723,7 @@ void *timeout_cleanup(void* param){
               }
 
 	      if(false == is_entry_list_empty(&BLE_object_list_head.list_entry)){
-              
+
 		    pthread_mutex_lock(&list_lock);
 
           	    list_for_each_safe(list_pointers,
@@ -1730,7 +1779,7 @@ void cleanup_exit(ErrorCode err_code){
         pthread_mutex_lock(&list_lock);
 
         if(false == is_entry_list_empty(&scanned_list_head.list_entry)){
-        
+
 	    list_for_each_safe(list_pointers,
                        save_list_pointers,
                        &scanned_list_head.list_entry){
@@ -1750,7 +1799,7 @@ void cleanup_exit(ErrorCode err_code){
         }
 
         if(false == is_entry_list_empty(&BR_object_list_head.list_entry)){
-          
+
  	    list_for_each_safe(list_pointers,
                       save_list_pointers,
                       &BR_object_list_head.list_entry){

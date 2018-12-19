@@ -37,7 +37,7 @@
 
  Authors:
 
-      Han Wang, hollywang@iis.sinica.edu.tw
+      Holly Wang, hollywang@iis.sinica.edu.tw
       Gary Xiao, garyh0205@hotmail.com
 
 */
@@ -62,6 +62,8 @@
 zlog_category_t *category_health_report, *category_debug;
 
 
+sudp_config udp_config;
+
 
 /* The enumeration of the polled data */
 typedef enum PolledDataType {
@@ -74,7 +76,21 @@ typedef enum PolledDataType {
 } PolledDataType;
 
 
+/*
+  Wifi_init:
 
+     This function initilizes the Wifi's necessory object.
+
+  Parameters:
+
+     IPaddress - The address of the local server
+
+  Return value:
+
+      int - The error code for the corresponding error or successful
+
+ */
+int Wifi_init();
 
 /*
   receive_call_back:
@@ -111,6 +127,21 @@ int receive_call_back();
 
 */
 void *send_data(char *message);
+
+/*
+  Wifi_free:
+
+     When called, this function frees the necessory element.
+
+  Parameters:
+
+     None
+
+  Return value:
+
+     None
+ */
+void Wifi_free();
 
 
 

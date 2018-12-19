@@ -120,9 +120,6 @@ Authors:
 /* Length in number of chars used for basic information */
 #define LENGTH_OF_INFO 128
 
-/* The maxinum length in bytes of the message to be sent over */
-#define MESSAGE_LENGTH 4096
-
 /* Maximum length of message to be sent over WiFi in bytes */
 #define WIFI_MESSAGE_LENGTH 4096
 
@@ -688,7 +685,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list);
 
       This function consolidate the data on tracked objects captured in the
       specifed tracked object list to message to be transfer to gateway. The
-      output message buffer contains for each ScannedDevice struct found in 
+      output message buffer contains for each ScannedDevice struct found in
       the list, the MAC address and the initial and final timestamps.
 
   Parameters:
@@ -697,8 +694,8 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list);
              copied.
 
       msg_buf - message buffer to contain the consolidated data
-      
-      msg_size - size of bytes of msg_buf 
+
+      msg_size - size of bytes of msg_buf
 
   Return value:
 
