@@ -61,18 +61,7 @@ inline void init_entry(List_Entry *entry){
 
 }
 
-inline bool is_entry_list_empty(List_Entry *entry){
 
-	return is_isolated_node(entry);
-}
-
-inline bool is_isolated_node(List_Entry *node){
-        
-        if(node == node->next){
-	    return true;	
-	}
-	return false;
-}
 
 
 inline void insert_entry_list(List_Entry *new_node, List_Entry *prev, 
