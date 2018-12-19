@@ -710,9 +710,9 @@ void *cleanup_scanned_list(void* param) {
                     ">> cleanup_scanned_list ");
     #endif
 
-    while (true == ready_to_work) {
+    while (false == g_done && true == ready_to_work) {
         /*Check whether the list is empty */
-        while(true == ready_to_work &&
+        while(false == g_done &&
             is_entry_list_empty(&scanned_list_head.list_entry)){
 
             sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_CLEANUP_SCANNED_LIST_IN_SEC);
@@ -786,7 +786,7 @@ void *manage_communication(void* param){
         return;
     }
 
-    while(true == ready_to_work){
+    while(false == g_done && true == ready_to_work){
 
         /* Check call back from the gateway. If not polled by gateway, sleep
         for a short time. If polled, take the action according to the
@@ -1213,7 +1213,7 @@ void *start_ble_scanning(void *param){
         ">> start_ble_scanning... ");
 #endif
 
-    while(true == ready_to_work){
+    while( false == g_done){
 
         /* Get the dongle id */
         retry_time = DONGLE_GET_RETRY;
@@ -1409,7 +1409,7 @@ void *start_br_scanning(void* param) {
         ">> start_br_scanning... ");
 #endif
 
-    while(true == ready_to_work){
+    while(false == g_done && true == ready_to_work){
         /* Open Bluetooth device */
         retry_time = DONGLE_GET_RETRY;
         while(retry_time--){
@@ -1512,7 +1512,7 @@ void *start_br_scanning(void* param) {
 
         keep_scanning = true;
 
-        while (true == keep_scanning) {
+        while (false == g_done && true == keep_scanning) {
             output.revents = 0;
             /* Poll the bluetooth device for an event */
             if (0 < poll(&output, 1, -1)) {
@@ -1616,7 +1616,7 @@ void *timeout_cleanup(void* param){
         ">> timeout_cleanup... ");
 #endif
 
-    while(true == ready_to_work){
+    while(false == g_done && true == ready_to_work){
 
         /* In the normal situation, this function would keep sleeping, not
         be executed. */
@@ -1624,7 +1624,7 @@ void *timeout_cleanup(void* param){
 
         /* If the network is down, set a timer to count down the specific time.
         When timer expires, clean up and remove all the node. */
-        while(true == network_is_down){
+        while(false == g_done && true == network_is_down){
 
           if(get_system_time() - start_time >= INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_SEC){
 
@@ -1840,6 +1840,7 @@ int main(int argc, char **argv) {
 
 
     /*Initialize the global flag */
+    g_done = false;
     ready_to_work = true;
     network_is_down = false;
 
@@ -1975,7 +1976,7 @@ int main(int argc, char **argv) {
     }
 
     perror("Hit ctrl-c to stop advertising");
-    while (true == ready_to_work) {
+    while (false == g_done) {
         sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
     }
 
@@ -2239,7 +2240,7 @@ void *send_file(void *id) {
     long long end;
 
 
-    while (true == ready_to_work &&  false == send_message_cancelled) {
+    while (false == g_done && false == send_message_cancelled) {
 
         for (device_id = 0; device_id < maximum_number_of_devices;
             device_id++) {

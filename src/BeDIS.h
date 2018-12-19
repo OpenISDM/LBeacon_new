@@ -224,10 +224,12 @@ union {
 } coordinate_Z;
 
 
+/* A flag that is used to check if CTRL-C is pressed */
+bool g_done;
+
 /* A global flag that is initially set to true by the main thread. It is set
    to false by any thread when the thread encounters a fatal error,
-   indicating that it is about to exit. In addition, if user presses Ctrl+C, 
-   the ready_to_work will be set as false to stop all threadts. */
+   indicating that it is about to exit. */
 bool ready_to_work;
 
 /* Type of device to be tracked. */
@@ -277,8 +279,8 @@ unsigned int twoc(int in, int t);
 /*
  ctrlc_handler:
 
-     If the user presses CTRL-C, the global variable ready_to_work will be set 
-     to false, and a signal will be thrown to stop running the program.
+     If the user presses CTRL-C, the global variable g_done will be set to true,
+     and a signal will be thrown to stop running the LBeacon program.
 
  Parameters:
 

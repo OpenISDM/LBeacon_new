@@ -368,6 +368,17 @@ ObjectListHead BLE_object_list_head;
 
 /* Global flags for communication among threads */
 
+/* A global flag that is initially set to false by the main thread. It is
+set to true when users press Ctrl+C hotkey combinations. All LBeacon thread
+should monitor and observe this flag change and finish their jobs
+accordingly.*/
+bool g_done;
+
+/* A global flag that is initially set to true by the main thread. It is set
+   to false by any thread when the thread encounters a fatal error,
+   indicating that it is about to exit. */
+bool ready_to_work;
+
 /* A global flag that is initially set to false by the main thread. When there
 is any error of the network connection */
 bool network_is_down;

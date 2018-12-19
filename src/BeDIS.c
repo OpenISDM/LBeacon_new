@@ -76,7 +76,7 @@ unsigned int twoc(int in, int t) {
 }
 
 
-void ctrlc_handler(int stop) { ready_to_work = false; }
+void ctrlc_handler(int stop) { g_done = true; }
 
 
 ErrorCode startThread(pthread_t *threads ,void *( *thfunct)(void *), void *arg){
