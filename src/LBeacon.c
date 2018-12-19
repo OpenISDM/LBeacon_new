@@ -296,11 +296,20 @@ struct ScannedDevice *check_is_in_list(char address[],
     int len = 0;
     char *addr_last_digits = NULL;
     char *temp_last_digits = NULL;
-    bool temp_is_null = true;
+    bool temp_is_null = true; 
+    bool is_empty = false;
+    
+    pthread_mutex_lock(&list_lock);
+    
     /* If there is no node in the list, reutrn NULL directly. */
-    if(is_entry_list_empty(&list->list_entry)){
+    is_empty = is_entry_list_empty(&list->list_entry);
+
+    pthread_mutex_unlock(&list_lock);
+    
+    if(is_empty){ 
         return NULL;
     }
+     
 
     pthread_mutex_lock(&list_lock);
 
@@ -704,6 +713,7 @@ ErrorCode disable_advertising() {
 void *cleanup_scanned_list(void* param) {
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
+    bool is_empty = false;
 
     #ifdef Debugging
         zlog_debug(category_debug,
@@ -712,8 +722,16 @@ void *cleanup_scanned_list(void* param) {
 
     while (true == ready_to_work) {
         /*Check whether the list is empty */
-        while(true == ready_to_work &&
-            is_entry_list_empty(&scanned_list_head.list_entry)){
+        while(true == ready_to_work){
+	    pthread_mutex_lock(&list_lock);
+            
+            is_empty = is_entry_list_empty(&scanned_list_head.list_entry);
+   
+            pthread_mutex_unlock(&list_lock);
+
+            if(false == is_empty){
+		break;
+	    }
 
             sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_CLEANUP_SCANNED_LIST_IN_SEC);
         }
@@ -745,7 +763,7 @@ void *cleanup_scanned_list(void* param) {
             }
         }
 
-    pthread_mutex_unlock(&list_lock);
+        pthread_mutex_unlock(&list_lock);
 
     }//#end while
 
@@ -767,6 +785,8 @@ void *manage_communication(void* param){
     FILE *br_object_file = NULL;
     FILE *ble_object_file = NULL;
     int retry_time = 0;
+    bool is_br_empty = false;
+    bool is_ble_empty = false;
 
     #ifdef Debugging
         zlog_debug(category_debug,
@@ -815,10 +835,15 @@ void *manage_communication(void* param){
 
             case TRACK_OBJECT_DATA:
   		/* return directly, if both BR and BLE tracked list is emtpy*/
-		if(is_entry_list_empty(&BR_object_list_head.list_entry) &&
-			is_entry_list_empty(&BLE_object_list_head.list_entry)){
-			continue;
-		}
+                pthread_mutex_lock(&list_lock);
+
+		is_br_empty = is_entry_list_empty(&BR_object_list_head.list_entry);
+                is_ble_empty = is_entry_list_empty(&BLE_object_list_head.list_entry);
+                
+	        pthread_mutex_unlock(&list_lock);
+
+	        if(is_br_empty && is_ble_empty)
+		    continue;
 
                 /* Copy track_object data to a file to be transmited */
 		memset(message, 0, sizeof(message));
@@ -1676,12 +1701,13 @@ void *timeout_cleanup(void* param){
         while(true == network_is_down){
 
           if(get_system_time() - start_time >= INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_SEC){
-
-              /*Check whether the list is empty */
+		
+              pthread_mutex_lock(&list_lock);
+              
+	      /*Check whether the list is empty */
 	      if(false == is_entry_list_empty(&scanned_list_head.list_entry)){
                   /* Go throgth lists to release all memory allocated to the
                   nodes */
-                  pthread_mutex_lock(&list_lock);
 
            	  list_for_each_safe(list_pointers,
                                      save_list_pointers,
@@ -1696,12 +1722,9 @@ void *timeout_cleanup(void* param){
                       }
                   }
 
-                  pthread_mutex_unlock(&list_lock);
               }
 
 	      if(false == is_entry_list_empty(&BR_object_list_head.list_entry)){
-
-                  pthread_mutex_lock(&list_lock);
 
           	  list_for_each_safe(list_pointers,
                                      save_list_pointers,
@@ -1719,12 +1742,9 @@ void *timeout_cleanup(void* param){
                       }
                   }
 
-          	  pthread_mutex_unlock(&list_lock);
               }
 
 	      if(false == is_entry_list_empty(&BLE_object_list_head.list_entry)){
-
-		    pthread_mutex_lock(&list_lock);
 
           	    list_for_each_safe(list_pointers,
                                      save_list_pointers,
@@ -1738,10 +1758,11 @@ void *timeout_cleanup(void* param){
                       	mp_free(&mempool, temp);
                   }
 
-	          pthread_mutex_unlock(&list_lock);
               }
 
-              start_time = get_system_time();
+	      pthread_mutex_unlock(&list_lock);
+              
+  	      start_time = get_system_time();
 
           }
 
