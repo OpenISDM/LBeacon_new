@@ -148,7 +148,7 @@ for abnormal network situatins */
 
 /* Nominal transmission range limit. Only devices in this RSSI range are
    to be discovered and data sent. */
-#define RSSI_RANGE -70
+#define RSSI_RANGE -80
 
 /* RSSI value of TX power for calibration and broadcast  */
 #define RSSI_VALUE -50

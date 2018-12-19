@@ -296,20 +296,20 @@ struct ScannedDevice *check_is_in_list(char address[],
     int len = 0;
     char *addr_last_digits = NULL;
     char *temp_last_digits = NULL;
-    bool temp_is_null = true; 
+    bool temp_is_null = true;
     bool is_empty = false;
-    
+
     pthread_mutex_lock(&list_lock);
-    
+
     /* If there is no node in the list, reutrn NULL directly. */
     is_empty = is_entry_list_empty(&list->list_entry);
 
     pthread_mutex_unlock(&list_lock);
-    
-    if(is_empty){ 
+
+    if(is_empty){
         return NULL;
     }
-     
+
 
     pthread_mutex_lock(&list_lock);
 
@@ -724,9 +724,9 @@ void *cleanup_scanned_list(void* param) {
         /*Check whether the list is empty */
         while(true == ready_to_work){
 	    pthread_mutex_lock(&list_lock);
-            
+
             is_empty = is_entry_list_empty(&scanned_list_head.list_entry);
-   
+
             pthread_mutex_unlock(&list_lock);
 
             if(false == is_empty){
@@ -839,7 +839,7 @@ void *manage_communication(void* param){
 
 		is_br_empty = is_entry_list_empty(&BR_object_list_head.list_entry);
                 is_ble_empty = is_entry_list_empty(&BLE_object_list_head.list_entry);
-                
+
 	        pthread_mutex_unlock(&list_lock);
 
 	        if(is_br_empty && is_ble_empty)
@@ -1252,6 +1252,7 @@ failed:
     snprintf(buf, buf_len, NULL);
 }
 
+
 void *start_ble_scanning(void *param){
 
     uint8_t ble_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the
@@ -1272,6 +1273,7 @@ void *start_ble_scanning(void *param){
     uint8_t reports_count;
     void * offset = NULL;
     int rssi;
+    bool keep_scanning;
 
 #ifdef Debugging
         zlog_debug(category_debug,
@@ -1374,6 +1376,7 @@ void *start_ble_scanning(void *param){
         hci_filter_set_ptype(HCI_EVENT_PKT, &new_filter);
         hci_filter_set_event(EVT_LE_META_EVENT, &new_filter);
 
+
         if (0 > setsockopt(socket, SOL_HCI, HCI_FILTER, &new_filter,
             sizeof(new_filter)) ) {
 
@@ -1385,61 +1388,58 @@ void *start_ble_scanning(void *param){
 
         }
 
+        keep_scanning = true;
 
-        if(read(socket, ble_buffer, sizeof(ble_buffer))
+        while(keep_scanning == true && ready_to_work == true){
+
+            if(read(socket, ble_buffer, sizeof(ble_buffer))
                                                 >= HCI_EVENT_HDR_SIZE) {
 
-            meta = (evt_le_meta_event*)(ble_buffer + HCI_EVENT_HDR_SIZE + 1);
+                meta = (evt_le_meta_event*)
+                                      (ble_buffer + HCI_EVENT_HDR_SIZE + 1);
 
-            if(EVT_LE_ADVERTISING_REPORT == meta->subevent){
-
-                reports_count = meta->data[0];
                 offset = meta->data + 1;
+                info = (le_advertising_info *)offset;
 
-                while ( reports_count-- ) {
+                rssi = (signed char)info->data[info->length];
 
-                    info = (le_advertising_info *)offset;
+                /* If the rssi vaule is within the threshold */
+                if(rssi > RSSI_RANGE){
 
-                    ba2str(&(info->bdaddr), addr);
                     char name[30];
-                    eir_parse_name(info->data, info->length,
-                            name, sizeof(name) - 1);
+                    eir_parse_name(info->data, info->length, name,
+                                   sizeof(name) - 1);
+                    /* If the name of the BLE device is not unknown */
+                    if(strcmp(name, "")!= 0){
 
-                    rssi = (signed char)info->data[info->length];
-
-                    /* If the rssi vaule is within the threshold */
-                    if(rssi > RSSI_RANGE){
-
-                        if(strcmp(name, "")!= 0){
-
-                            printf("BLE: %s - %s - RSSI %d\n", addr,name,rssi);
-                            send_to_push_dongle(&info->bdaddr, true);
-
-                        }
-
+                        ba2str(&(info->bdaddr), addr);
+                        printf("BLE: %s - %s - RSSI %d\n", addr,name,rssi);
+                        send_to_push_dongle(&info->bdaddr, true);
 
                     }
 
-                    offset = info->data + info->length + 2;
                 }
+
+
+            }else{
+                perror("Cannot read from socket\n");
+                keep_scanning = false;
 
             }
 
-        }else{
-            perror("Cannot read from socket\n");
-            break;
         }
-
 
         /* Close the process of scanning BLE device, and close the socket. */
         memset(&scan_cp, 0, sizeof(scan_cp));
         scan_cp.enable = 0x00;  // Disable flag.
 
         disable_adv_rq =
-        ble_hci_request(OCF_LE_SET_SCAN_ENABLE, LE_SET_SCAN_ENABLE_CP_SIZE,
+            ble_hci_request(OCF_LE_SET_SCAN_ENABLE, LE_SET_SCAN_ENABLE_CP_SIZE,
             &status, &scan_cp);
 
-        ret = hci_send_req(socket, &disable_adv_rq, HCI_SEND_REQUEST_TIMEOUT_IN_MS);
+        ret = hci_send_req(socket, &disable_adv_rq,
+              HCI_SEND_REQUEST_TIMEOUT_IN_MS);
+
         if ( ret < 0 ) {
             hci_close_dev(socket);
             perror("Failed to disable scan.");
@@ -1448,7 +1448,7 @@ void *start_ble_scanning(void *param){
 
         hci_close_dev(socket);
 
-    } // end while
+    } // end while (ready_to_work)
 
 #ifdef Debugging
         zlog_debug(category_debug,
@@ -1701,9 +1701,9 @@ void *timeout_cleanup(void* param){
         while(true == network_is_down){
 
           if(get_system_time() - start_time >= INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_SEC){
-		
+
               pthread_mutex_lock(&list_lock);
-              
+
 	      /*Check whether the list is empty */
 	      if(false == is_entry_list_empty(&scanned_list_head.list_entry)){
                   /* Go throgth lists to release all memory allocated to the
@@ -1761,7 +1761,7 @@ void *timeout_cleanup(void* param){
               }
 
 	      pthread_mutex_unlock(&list_lock);
-              
+
   	      start_time = get_system_time();
 
           }
