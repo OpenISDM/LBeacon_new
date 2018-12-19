@@ -121,7 +121,7 @@ Authors:
 #define LENGTH_OF_INFO 128
 
 /* The maxinum length in bytes of the message to be sent over */
-#define MESSAGE_LENGTH 104
+#define MESSAGE_LENGTH 4096
 
 /* Maximum length of message to be sent over WiFi in bytes */
 #define WIFI_MESSAGE_LENGTH 4096
@@ -175,8 +175,8 @@ for abnormal network situatins */
 #define NUM_WORK_THREADS 2
 
 /* Location data of the maximum number of objects to be transmitted at
-   one time over zigbee link */
-#define MAX_NUM_OBJECTS 2
+   one time over wife network link */
+#define MAX_NUM_OBJECTS 20
 
 /* The number of slots in the memory pool */
 #define SLOTS_IN_MEM_POOL 1024
@@ -367,17 +367,6 @@ ObjectListHead BLE_object_list_head;
 
 
 /* Global flags for communication among threads */
-
-/* A global flag that is initially set to false by the main thread. It is
-set to true when users press Ctrl+C hotkey combinations. All LBeacon thread
-should monitor and observe this flag change and finish their jobs
-accordingly.*/
-bool g_done;
-
-/* A global flag that is initially set to true by the main thread. It is set
-   to false by any thread when the thread encounters a fatal error,
-   indicating that it is about to exit. */
-bool ready_to_work;
 
 /* A global flag that is initially set to false by the main thread. When there
 is any error of the network connection */
@@ -673,7 +662,7 @@ void *manage_communication(void *param);
 /*
   copy_object_data_to_file:
 
-      This finction copies the data on tracked objects captured in the
+      This function copies the data on tracked objects captured in the
       specifed tracked object list to file to be transfer to gateway. The
       output file contains for each ScannedDevice struct found in the list,
       the MAC address and the initial and final timestamps.
@@ -694,6 +683,29 @@ void *manage_communication(void *param);
 ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list);
 
 
+/*
+  consolidate_tracked_data:
+
+      This function consolidate the data on tracked objects captured in the
+      specifed tracked object list to message to be transfer to gateway. The
+      output message buffer contains for each ScannedDevice struct found in 
+      the list, the MAC address and the initial and final timestamps.
+
+  Parameters:
+
+      list - head of the tracked object list from which data is to be
+             copied.
+
+      msg_buf - message buffer to contain the consolidated data
+      
+      msg_size - size of bytes of msg_buf 
+
+  Return value:
+
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise
+*/
+ErrorCode consolidate_tracked_data(ObjectListHead *list, char *msg_buf, size_t msg_size);
 
 /*
   free_list:
