@@ -89,12 +89,6 @@ Authors:
 /* The category defined for the printf during debugging */
 #define LOG_CATEGORY_DEBUG "LBeacon_Debug"
 
-/* Maximum number of characters in each line of config file */
-#define CONFIG_BUFFER_SIZE 64
-
-/* Parameter that marks the start of the config file */
-#define DELIMITER "="
-
 /* The temporary file for uploading tracked BR data */
 #define TRACKED_BR_TXT_FILE_NAME "tracked_br_txt.txt"
 
@@ -119,9 +113,6 @@ Authors:
 
 /* Length in number of chars used for basic information */
 #define LENGTH_OF_INFO 128
-
-/* Maximum length of message to be sent over WiFi in bytes */
-#define WIFI_MESSAGE_LENGTH 4096
 
 
 /* Time interval in seconds of a bluetooth device stays in the
@@ -174,10 +165,6 @@ for abnormal network situatins */
 /* Location data of the maximum number of objects to be transmitted at
    one time over wife network link */
 #define MAX_NUM_OBJECTS 20
-
-/* The number of slots in the memory pool */
-#define SLOTS_IN_MEM_POOL 1024
-
 
 
 /* The macro of comparing two integer for minimum */
@@ -328,15 +315,11 @@ typedef struct object_list_head{
   GLOBAL VARIABLES
 */
 
-/* Path of the object push file */
-char *g_push_file_path;
-
 /* Struct for storing config information from the input file */
 Config g_config;
 
-/* An array of struct for storing information and status of threads */
-ThreadStatus g_idle_handler[MAX_NUM_OBJECTS];
-
+/* Path of the object push file */
+char *g_push_file_path;
 
 /* Heads of three lists of structs for recording scanned devices */
 
@@ -377,11 +360,17 @@ Memory_Pool mempool;
 /* The lock that controls access to lists */
 pthread_mutex_t  list_lock;
 
+#ifdef Bluetooth_classic
 
+/* An array of struct for storing information and status of threads */
+ThreadStatus g_idle_handler[MAX_NUM_OBJECTS];
+
+#endif
 
 /*
   EXTERNAL GLOBAL VARIABLES
 */
+
 extern int errno;
 
 
@@ -677,6 +666,7 @@ void *manage_communication(void *param);
       ErrorCode - The error code for the corresponding error if the function
                   fails or WORK SUCCESSFULLY otherwise
 */
+
 ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list);
 
 
@@ -702,6 +692,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list);
       ErrorCode - The error code for the corresponding error if the function
                   fails or WORK SUCCESSFULLY otherwise
 */
+
 ErrorCode consolidate_tracked_data(ObjectListHead *list, char *msg_buf, size_t msg_size);
 
 /*
@@ -722,11 +713,6 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list, char *msg_buf, size_t m
 */
 
 void free_list(List_Entry *list_entry, DeviceType device_type);
-
-
-
-
-
 
 /*
   cleanup_exit:
@@ -769,27 +755,6 @@ void cleanup_exit(ErrorCode err_code);
       dirp - a pointer to the directory stream.
 */
 extern DIR *opendir(const char *dirname);
-
-
-/*
-  obexftp_open:
-
-      This function is called to create an obexftp client.
-
-  Parameters:
-
-      transport - the transport protocol that will be used
-      ctrans - optional custom transport protocol
-      infocb - optional info callback
-      infocb_data - optional info callback data
-
-  Return value:
-
-      cli - a new allocated ObexFTP client instance, or NULL on error.
-*/
-extern obexftp_client_t * obexftp_open(int transport, obex_ctrans_t *ctrans,
-    obexftp_info_cb_t infocb, void *infocb_data);
-
 
 /*
   memset:
@@ -915,80 +880,28 @@ extern int hci_write_inquiry_mode(int dd, uint8_t mode, int to);
 extern int  hci_send_cmd(int dd, uint16_t ogf, uint16_t ocf, uint8_t plen,
     void *param);
 
+/* Functions for communication via BR/EDR path to Bluetooth
+   classic devices */
+#ifdef Bluetooth_classic
 
 /*
-  pthread_attr_init:
+  obexftp_open:
 
-      This function is called to initialize thread attributes object pointed
-      to by attr with default attribute values
+      This function is called to create an obexftp client.
 
   Parameters:
 
-      attr - pointer to the thread attributes object to be initialized
+      transport - the transport protocol that will be used
+      ctrans - optional custom transport protocol
+      infocb - optional info callback
+      infocb_data - optional info callback data
 
   Return value:
 
-      0 for success. error number for error.
+      cli - a new allocated ObexFTP client instance, or NULL on error.
 */
-extern int pthread_attr_init(pthread_attr_t *attr);
-
-
-/*
-  pthread_attr_destroy:
-
-      This function is called to destroy the thread attributes object
-      pointed to by attr
-
-  Parameters:
-
-      attr - the thread attributes object to be destroyed
-
-  Return value:
-
-      0 for success. error number for error.
-*/
-extern int pthread_attr_destroy(pthread_attr_t *attr);
-
-
-/*
-  pthread_detach:
-
-      This function is called to make the thread identified by thread as
-      detached. When a detached thread returns, its resources are
-      automatically released back to the system.
-
-  Parameters:
-
-      thread - a thread to be detached
-
-  Return value:
-
-      0 for success. error number for error.
-*/
-extern int pthread_detach(pthread_t thread);
-
-
-/*
-  pthread_create:
-
-      This function is called to start a new thread in the calling process.
-      The new thrad starts execution by invoking start_routine.
-
-  Parameters:
-
-      thread - a pointer to the new thread
-      attr - set thread properties
-      start_routine - routine to be executed by the new thread
-      arg - the parameters of the start_routine.
-
-  Return value:
-
-      0 for success. error number for error and the contents of *thread are
-      undefined.
-*/
-extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-    void *(*start_routine) (void *), void *arg);
-
+extern obexftp_client_t * obexftp_open(int transport, obex_ctrans_t *ctrans,
+    obexftp_info_cb_t infocb, void *infocb_data);
 
 /*
   send_data:
@@ -1006,13 +919,6 @@ extern int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 
 */
 extern void *send_data(char *message);
-
-
-/* Functions for communication via BR/EDR path to Bluetooth
-   classic devices */
-
-#ifdef Bluetooth_classic
-
 
 
 /*
