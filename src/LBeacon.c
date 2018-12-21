@@ -1017,6 +1017,7 @@ void *manage_communication(void* param){
 		    if(NULL != health_file)
             		break;
     		}
+
 		if(NULL != health_file){
   		    /* read health report data to temp buffer*/
 		    memset(msg_temp_one, 0, sizeof(msg_temp_one));
@@ -1032,34 +1033,24 @@ void *manage_communication(void* param){
                     if(sizeof(message) > 
 		        strlen(message) + strlen(msg_temp_one)){
 
-               	    strcat(message, msg_temp_one);
+               	        strcat(message, msg_temp_one);
 
-		    ret_val = addpkt(&udp_config.send_pkt_queue, UDP, 
+		        ret_val = addpkt(&udp_config.send_pkt_queue, UDP, 
 			    udp_config.send_ipv4_addr, message, sizeof(message)); 
-	    	    if(pkt_Queue_SUCCESS != ret_val)
-	    	    {
+	    	        if(pkt_Queue_SUCCESS != ret_val)
+	    	        {
 #ifdef Debugging
-        		zlog_debug(category_debug,
-	    	    	    "Unable to add packet to queue, error=[%d]", ret_val);
+        		    zlog_debug(category_debug,
+	    	    	        "Unable to add packet to queue, error=[%d]", ret_val);
 #endif
-	    	    }
-		}else{
+		        }
+		    }else{
 #ifdef Debugging
         		zlog_debug(category_debug,
 	    	    	    "Abort health report data, because there is potential \
 			    buffer overflow.");
 #endif
-		}
-		    ret_val = 0;
-		    ret_val = addpkt(&udp_config.send_pkt_queue, UDP, 
-			    udp_config.send_ipv4_addr, message, sizeof(message)); 
-	    	    if(pkt_Queue_SUCCESS != ret_val)
-	    	    {
-#ifdef Debugging
-        		zlog_debug(category_debug,
-	    	    	    "Unable to add package to queue, error=[%d]", ret_val);
-#endif
-	    	    }
+  		    }
 		}
 
                 break;
