@@ -44,7 +44,7 @@
 
  Authors:
 
-      Han Wang, hollywang@iis.sinica.edu.tw
+      Holly Wang, hollywang@iis.sinica.edu.tw
 
 
 */
@@ -57,20 +57,36 @@
 
 #define MEMORY_POOL_SUCCESS 1
 #define MEMORY_POOL_ERROR 0
-/* The specified number of slots to be expanded in the memory pool */
-#define EXPAND_SLOT 1024
 #define MEMORY_POOL_MINIMUM_SIZE sizeof(void *)
+#define MAX_EXP_TIME 5
+#define MAX_MEM_OFFSET 9999999
 
 /* The structure of the memory pool */
 typedef struct {
     void **head;
-    void *memory;
+    void *memory[MAX_EXP_TIME];
+    int alloc_time;
     /* A per list lock */
     pthread_mutex_t mem_lock;
     int size;
+    int slots;
 } Memory_Pool;
 
 
+/*
+  get_current_size_mempool:
+
+    This function returns the current size of the memory pool.
+
+  Parameters:
+
+    mp - pointer to a specific memory pool
+
+  Return value:
+
+    mem_size- the current size of the mempry pool
+*/
+size_t get_current_size_mempool(Memory_Pool *mp);
 
 /*
   mp_init:
