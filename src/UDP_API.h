@@ -39,6 +39,19 @@
 
 #define UDP_SELECT_TIMEOUT 5    //second
 
+typedef struct udp_config_beacon{
+
+    char send_ipv4_addr[NETWORK_ADDR_LENGTH];
+    int send_portno;
+    spkt_header send_pkt_queue;
+
+    struct sockaddr_in si_recv;
+    int recv_portno;
+    int  recv_socket;
+    spkt_header recv_pkt_queue;
+
+} sudp_config_beacon;
+
 typedef struct udp_config_{
 
     struct sockaddr_in si_server;
@@ -51,7 +64,7 @@ typedef struct udp_config_{
 
     bool shutdown;
 
-    spkt_ptr pkt_Queue, Received_Queue;
+    spkt_header pkt_Queue, Received_Queue;
 
 } sudp_config;
 

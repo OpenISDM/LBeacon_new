@@ -133,6 +133,9 @@ is possibily transient failed.*/
 /* Number of bytes in the string format of epoch time */
 #define LENGTH_OF_EPOCH_TIME 11
 
+/* Time interval in seconds for busy-wait checking in threads */
+#define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC 3
+
 /* Timeout interval in seconds */
 #define A_LONG_TIME 36000
 #define A_SHORT_TIME 6000
@@ -180,6 +183,20 @@ typedef enum _ErrorCode{
     E_JOIN_THREAD = 38,
 
 } ErrorCode;
+
+typedef enum pkt_types {
+    undefined = 0,
+    request_to_join = 1,
+    join_request_ack = 2,
+    join_request_deny = 3,
+    tracked_object_data = 8,
+    health_report = 9,
+    data_for_LBeacon = 10,
+    poll_for_tracked_object_data = 11,
+    RFHR_to_Lbeacons = 12,
+    poll_for_RFHR_from_sever = 13
+
+} PktType;
 
 typedef struct _errordesc {
     ErrorCode code;
@@ -238,6 +255,9 @@ typedef enum DeviceType {
   max_type = 2
 
 } DeviceType;
+
+/* The pointer to the category of the log file */
+zlog_category_t *category_health_report, *category_debug;
 
 // FUNCTIONS
 

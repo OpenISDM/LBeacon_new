@@ -99,9 +99,9 @@ typedef struct pkt_header {
 
     pthread_mutex_t mutex;
 
-} spkt_ptr;
+} spkt_header;
 
-typedef spkt_ptr *pkt_ptr;
+typedef spkt_header *pkt_ptr;
 
 
 /* init_Packet_Queue

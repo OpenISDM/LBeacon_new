@@ -89,11 +89,20 @@ Authors:
 /* The category defined for the printf during debugging */
 #define LOG_CATEGORY_DEBUG "LBeacon_Debug"
 
+/* The prefix for Beacon basic information */
+#define BEACON_BASIC_PREFIX "B:" 
+
+/* The prefix for Gateway basic information */
+#define GATEWAY_BASIC_PREFIX "G:" 
+
 /* The temporary file for uploading tracked BR data */
 #define TRACKED_BR_TXT_FILE_NAME "tracked_br_txt.txt"
 
 /* The temporary file for uploading tracked BLE data */
 #define TRACKED_BLE_TXT_FILE_NAME "tracked_ble_txt.txt"
+
+/* The log file for LBeacon health history */
+#define HEALTH_REPORT_LOG_FILE_NAME "Health_Report.log"
 
 /* BlueZ bluetooth extended inquiry response protocol: flags */
 #define EIR_FLAGS 0X01
@@ -131,9 +140,6 @@ Authors:
 checking in threads */
 #define INTERVAL_FOR_BUSY_WAITING_CHECK_CLEANUP_SCANNED_LIST_IN_SEC 30
 
-/* Time interval in seconds for busy-wait checking in threads */
-#define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC 3
-
 /* Time interval in seconds for timeout_cleanup function to cleanup
 all lists. Currently, it is a periodical tasks, and we will change
 this cleanup tasks to be only triggered by network connection failure
@@ -144,6 +150,11 @@ or memory allocations reach threshold situations.
 /* Time interval in seconds for timeout_cleanup function to wait
 for abnormal network situatins */
 #define INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_SEC 10
+
+/* Time interval in seconds for idle status in Wifi connection between
+LBeacon and gateway. When this situation happens, LBeacon will send
+join requset to gateway again. */
+#define INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC 300
 
 
 /* Nominal transmission range limit. Only devices in this RSSI range are
@@ -160,11 +171,11 @@ for abnormal network situatins */
 #define NUM_DIGITS_TO_COMPARE 2
 
 /* Number of worker threads in the thread pool used by communication unit */
-#define NUM_WORK_THREADS 2
+#define NUM_WORK_THREADS 4
 
-/* Location data of the maximum number of objects to be transmitted at
-   one time over wife network link */
-#define MAX_NUM_OBJECTS 20
+/* Location data of the maximum number of each type of objects (BR or BLE)
+   to be transmitted at one time over wife network link */
+#define MAX_NUM_OBJECTS 10
 
 
 /* The macro of comparing two integer for minimum */
@@ -188,70 +199,46 @@ typedef struct Config {
     /* String representation of the X coordinate of the beacon location */
     char coordinate_X[CONFIG_BUFFER_SIZE];
 
-    /* String length needed to store coordinate_X */
-    int coordinate_X_length;
-
     /* String representation of the Y coordinate of the beacon location */
     char coordinate_Y[CONFIG_BUFFER_SIZE];
-
-    /* String length needed to store coordinate_Y */
-    int coordinate_Y_length;
 
     /* String representation of the Z coordinate of the beacon location */
     char coordinate_Z[CONFIG_BUFFER_SIZE];
 
-    /* String length needed to store coordinate_Z */
-    int coordinate_Z_length;
-
     /* String representation of the message file name */
     char file_name[CONFIG_BUFFER_SIZE];
 
-    /* String length needed to store file name */
-    int file_name_length;
-
     /* String representation of the path name of message file */
     char file_path[CONFIG_BUFFER_SIZE];
-
-    /* String length needed to store path name of message file */
-    int file_path_length;
 
     /* String representation of the maximum number of devices to be
        handled by all push dongles
     */
     char maximum_number_of_devices[CONFIG_BUFFER_SIZE];
 
-    /* String length needed to store maximum_number_of_devices */
-    int maximum_number_of_devices_length;
-
     /* String representation of number of message groups */
     char number_of_groups[CONFIG_BUFFER_SIZE];
-
-    /* String length needed to store number_of_groups */
-    int number_of_groups_length;
 
     /* String representation of the number of messages */
     char number_of_messages[CONFIG_BUFFER_SIZE];
 
-    /* String length needed to store number_of_messages */
-    int number_of_messages_length;
-
     /* String representation of the number of push dongles */
     char number_of_push_dongles[CONFIG_BUFFER_SIZE];
-
-    /* String length needed to store number_of_push_dongles */
-    int number_of_push_dongles_length;
 
     /* String representation of the required signal strength */
     char rssi_coverage[CONFIG_BUFFER_SIZE];
 
-    /* String length needed to store rssi_coverage */
-    int rssi_coverage_length;
-
     /* String representation of the universally unique identifer */
     char uuid[CONFIG_BUFFER_SIZE];
 
-    /* String length needed to store uuid */
-    int uuid_length;
+    /* The IPv4 network address of gateway */
+    char gateway_addr[NETWORK_ADDR_LENGTH];
+    
+    /* Sepcify the UDP port of gateway connection*/
+    int gateway_port;
+    
+    /* Specify the UDP port for LBeacon to listen and receive UDP from gateway*/
+    int local_client_port;
 
 } Config;
 
@@ -320,6 +307,11 @@ Config g_config;
 
 /* Path of the object push file */
 char *g_push_file_path;
+
+
+/* The struct of UDP configuration */
+sudp_config_beacon udp_config;
+
 
 /* Heads of three lists of structs for recording scanned devices */
 

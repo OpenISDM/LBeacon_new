@@ -83,73 +83,74 @@ ErrorCode get_config(Config *config, char *file_name) {
     }
 
      /* Keep reading each line and store into the config struct */
+
+    /* item 1 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     memcpy(config->coordinate_X, config_message,
            strlen(config_message));
-    config->coordinate_X_length = strlen(config_message);
 
+    /* item 2 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     memcpy(config->coordinate_Y, config_message,
            strlen(config_message));
-    config->coordinate_Y_length = strlen(config_message);
 
+    /* item 3 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     memcpy(config->coordinate_Z, config_message,
            strlen(config_message));
-    config->coordinate_Z_length = strlen(config_message);
 
+    /* item 4 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     memcpy(config->file_name, config_message, strlen(config_message));
-    config->file_name_length = strlen(config_message);
 
+    /* item 5 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     memcpy(config->file_path, config_message, strlen(config_message));
-    config->file_path_length = strlen(config_message);
 
+    /* item 6 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     memcpy(config->maximum_number_of_devices, config_message,
            strlen(config_message));
-    config->maximum_number_of_devices_length = strlen(config_message);
 
+    /* item 7 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     memcpy(config->number_of_groups, config_message,
            strlen(config_message));
-    config->number_of_groups_length = strlen(config_message);
 
+    /* item 8 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     memcpy(config->number_of_messages, config_message,
            strlen(config_message));
-    config->number_of_messages_length = strlen(config_message);
 
+    /* item 9 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     memcpy(config->number_of_push_dongles, config_message,
            strlen(config_message));
-    config->number_of_push_dongles_length = strlen(config_message);
 
+    /* item 10 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     memcpy(config->rssi_coverage, config_message,
            strlen(config_message));
-    config->rssi_coverage_length = strlen(config_message);
 
     coordinate_X.f = (float)atof(config->coordinate_X);
     coordinate_Y.f = (float)atof(config->coordinate_Y);
@@ -167,6 +168,37 @@ ErrorCode get_config(Config *config, char *file_name) {
 
         zlog_debug(category_debug,
                     "Generated UUID: [%s]", config->uuid);
+
+#endif
+
+    /* item 11 */
+    fgets(config_setting, sizeof(config_setting), file);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    // discard the newline character at the end
+    if(strlen(config_message) >= 1 && config_message[strlen(config_message)-1] == '\n')
+        memcpy(config->gateway_addr, config_message, strlen(config_message) - 1);
+    else   
+        memcpy(config->gateway_addr, config_message, strlen(config_message));
+
+    /* item 12 */
+    fgets(config_setting, sizeof(config_setting), file);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    config->gateway_port = atoi(config_message);
+
+    /* item 13 */
+    fgets(config_setting, sizeof(config_setting), file);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    config->local_client_port = atoi(config_message);
+
+#ifdef Debugging
+
+        zlog_debug(category_debug,
+                    "Gateway conn: addr=[%s], port=[%d], client_port=[%d]", 
+			config->gateway_addr, config->gateway_port, 
+			config->local_client_port);
 
 #endif
 
@@ -773,72 +805,155 @@ void *cleanup_scanned_list(void* param) {
     #endif
 }// cleanup_scanned_list
 
+int beacon_basic_info(char *message, size_t message_size, int polled_type){
 
+    char basic_info[LENGTH_OF_INFO]; 
+    
+    // 1. packet type 
+    message[0] = 0x0F & polled_type;
+    message[1] = '\0';
+
+    // 2. LBeacon part
+    strcat(message, BEACON_BASIC_PREFIX);
+    
+    // LBeacon UUID
+    strcat(message, g_config.uuid);
+    strcat(message, ";");
+
+    // LBeacon major and minor version
+    memset(basic_info, 0, sizeof(basic_info));
+    sprintf(basic_info, "%d.%d;", LBEACON_MAJOR_VER, LBEACON_MINOR_VER);
+    strcat(message, basic_info);
+    
+    // 3. Gateway part
+    strcat(message, GATEWAY_BASIC_PREFIX);
+    // Gateway IP address
+    strcat(message, g_config.gateway_addr);
+    strcat(message, ";");
+    
+    return 0;   
+}
 
 
 void *manage_communication(void* param){
     Threadpool thpool;
-    char msg_temp[MESSAGE_LENGTH];
-    char message[MESSAGE_LENGTH];
+    int id = 0;
+
+    long long gateway_latest_time = 0;
     int polled_type;
-    ErrorCode copy_progress;
+    char message[MESSAGE_LENGTH];
+    
     FILE *br_object_file = NULL;
     FILE *ble_object_file = NULL;
-    int retry_time = 0;
     bool is_br_empty = false;
     bool is_ble_empty = false;
+    char msg_temp_one[MESSAGE_LENGTH];
+    char msg_temp_two[MESSAGE_LENGTH];
 
-    #ifdef Debugging
+    FILE *health_file = NULL;
+
+    int retry_time = 0;
+    int ret_val = 0;
+
+#ifdef Debugging
         zlog_debug(category_debug,
                     ">> manage_communication ");
-    #endif
+#endif
 
     /* Initialize the thread pool and worker threads waiting for the
     new work/job to be assigned. */
-
     thpool = thpool_init(NUM_WORK_THREADS);
-    if(NULL == thpool){
-
-        /* Could not create thread pool, handle error */
-    //    perror(errordesc[E_INIT_THREAD_POOL].message);
-    //    zlog_info(category_health_report,
-    //              errordesc[E_INIT_THREAD_POOL].message);
-        return;
+    if(NULL != thpool){
+		
+        for(id = 0; id< NUM_WORK_THREADS; id++){
+	    if(id % 2 == 0){
+	    	thpool_add_work(thpool,(void*)send_data, 
+			(sudp_config_beacon *) &udp_config, 0);
+	    }else{
+	    	thpool_add_work(thpool,(void*)receive_data, 
+			(sudp_config_beacon *) &udp_config, 0);
+	    }
+        }
+    }else{
+#ifdef Debugging
+        zlog_debug(category_debug,
+	    "Unable to initialize thread pool in manage_communication");	
+#endif
+	return;
     }
-
+              
+ 
     while(true == ready_to_work){
 
-        /* Check call back from the gateway. If not polled by gateway, sleep
-        for a short time. If polled, take the action according to the
-        poll type. */
-
-
-        polled_type = TRACK_OBJECT_DATA;
-        sleep(3);
-     /*   polled_type = receive_call_back();
-
-        while(false == g_done && NOT_YET_POLLED == polled_type){
-
+	/* If LBeacon has not got pakcet from gateway for 5 minutes, LBeacon sends
+	   request_to_join to gateway again. The purpose is to handle the gateway 
+	   upgrade cases in which gateway might not keep the registered LBeacon ID map.
+	*/
+	if(get_system_time() - gateway_latest_time > 
+		INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC){
 #ifdef Debugging
-
-            zlog_debug(category_debug, "Not yet Polled, go to sleep");
+        zlog_debug(category_debug,
+	    "Send requets_to_join to gateway again");	
 #endif
+            memset(message, 0, sizeof(message)); 
+	    beacon_basic_info(message, sizeof(message), request_to_join);
 
-            sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
+	    ret_val = addpkt(&udp_config.send_pkt_queue, 
+			UDP, udp_config.send_ipv4_addr, message, sizeof(message));
 
-            polled_type = receive_call_back();
+	    if(pkt_Queue_SUCCESS != ret_val)
+	    {
+#ifdef Debugging
+        	zlog_debug(category_debug,
+	    	    "Unable to add packet to queue, error=[%d]", ret_val);
+#endif
+	    }
+	}
 
+	/* sleep a short time to prevent occupying CPU in this busy while loop.
+	*/	
+	sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
+
+
+        /* Check call back from the gateway. If not polled by gateway. 
+        */
+        polled_type = undefined;
+        if(false == is_null(&udp_config.recv_pkt_queue)){
+	    /* Update gateway_latest_time to make LBeacon aware that its 
+	       connection to gateway is still okay.
+            */
+	    gateway_latest_time = get_system_time();
+	
+            /* 
+	       Get one packet from receive packet queue
+	    */
+            sPkt tmp_pkt = get_pkt(&udp_config.recv_pkt_queue);
+            polled_type = 0x0F & tmp_pkt.content[0];    
+
+	}else{
+
+            /* receive packet queue is empty, continue to next iteration */
+ 	    continue;
         }
-*/
-        /* According to the polled data type, prepare a work item */
-        switch(polled_type){
 
-            case TRACK_OBJECT_DATA:
-  		/* return directly, if both BR and BLE tracked list is emtpy*/
+	/* According to the polled data type, prepare a work item */
+        switch(polled_type){
+	    case join_request_ack:
+#ifdef Debugging
+        	zlog_debug(category_debug,
+	    	    "Receive join_request_ack from gateway");
+#endif
+		break;
+
+            case tracked_object_data:
+  		/* return directly, if both BR and BLE tracked list is emtpy
+                */
                 pthread_mutex_lock(&list_lock);
 
-		is_br_empty = is_entry_list_empty(&BR_object_list_head.list_entry);
-                is_ble_empty = is_entry_list_empty(&BLE_object_list_head.list_entry);
+		is_br_empty = 
+		    is_entry_list_empty(&BR_object_list_head.list_entry);
+                is_ble_empty = 
+ 		    is_entry_list_empty(&BLE_object_list_head.list_entry);
 
 	        pthread_mutex_unlock(&list_lock);
 
@@ -847,57 +962,105 @@ void *manage_communication(void* param){
 
                 /* Copy track_object data to a file to be transmited */
 		memset(message, 0, sizeof(message));
-		memset(msg_temp, 0, sizeof(msg_temp));
+		memset(msg_temp_one, 0, sizeof(msg_temp_one));
+		memset(msg_temp_two, 0, sizeof(msg_temp_two));
 
      		if(WORK_SUCCESSFULLY ==
 			consolidate_tracked_data(&BR_object_list_head,
-						msg_temp,
-						sizeof(msg_temp))){
-			strcpy(message, msg_temp);
+						msg_temp_one,
+						sizeof(msg_temp_one))){
 		}
-
-		memset(msg_temp, 0, sizeof(msg_temp));
 
 		if(WORK_SUCCESSFULLY ==
 		        consolidate_tracked_data(&BLE_object_list_head,
-						msg_temp,
-						sizeof(msg_temp))){
-			strcat(message, msg_temp);
+						msg_temp_two,
+						sizeof(msg_temp_two))){
+			
 		}
 
+		memset(message, 0, sizeof(message));
+	        beacon_basic_info(message, sizeof(message), tracked_object_data);
+		
+                if(sizeof(message) > 
+		    strlen(message) + strlen(msg_temp_one) + strlen(msg_temp_two)){
+
+               	    strcat(message, msg_temp_one);
+		    strcat(message, msg_temp_two);
+		    ret_val = addpkt(&udp_config.send_pkt_queue, UDP, 
+			    udp_config.send_ipv4_addr, message, sizeof(message)); 
+	    	    if(pkt_Queue_SUCCESS != ret_val)
+	    	    {
 #ifdef Debugging
-
-                zlog_debug(category_debug,
-                           "Tracked data: %s", message);
-
+        		zlog_debug(category_debug,
+	    	    	    "Unable to add packet to queue, error=[%d]", ret_val);
 #endif
+	    	    }
+		}else{
+#ifdef Debugging
+        		zlog_debug(category_debug,
+	    	    	    "Abort BR/BLE tracked data, because there is potential \
+			    buffer overflow.");
+#endif
+		}
+		
+		break;
 
-                zlog_info(category_health_report,
-                          "Tracked data: %s", message);
+            case health_report:
+#ifdef Debugging
+        	zlog_debug(category_debug,
+	    	    "Receive health_report from gateway");
+#endif
+    		retry_time = FILE_OPEN_RETRY;
+    		while(retry_time--){
+        	    health_file = fopen(HEALTH_REPORT_LOG_FILE_NAME, "r");
 
+		    if(NULL != health_file)
+            		break;
+    		}
+		if(NULL != health_file){
+  		    /* read health report data to temp buffer*/
+		    memset(msg_temp_one, 0, sizeof(msg_temp_one));
 
-                /* Add a work item to be executed by a work thread */
-/*                if(thpool_add_work(thpool,
-                                   (void*)send_data,
-                                    message, 2) != 0){
+	            fread(msg_temp_one, sizeof(msg_temp_one), sizeof(char), health_file); 
+		    fclose(health_file);
+		    
+                    /* contruct the content for UDP packet*/
+                    memset(message, 0, sizeof(message));
+	            
+		    beacon_basic_info(message, sizeof(message), health_report);
 
-                }
-*/
-                break;
+                    if(sizeof(message) > 
+		        strlen(message) + strlen(msg_temp_one)){
 
-            case HEALTH_REPORT:
+               	    strcat(message, msg_temp_one);
 
-            /* TODO:
-               Create the file for the health report. The files contains the
-               error log. will be done as soon as possible */
-
-                break;
-
-            case E_ZIGBEE_CALL_BACK:
-
-                  /* Error of call back function, set network_is_down to
-                  true */
-                  network_is_down = true;
+		    ret_val = addpkt(&udp_config.send_pkt_queue, UDP, 
+			    udp_config.send_ipv4_addr, message, sizeof(message)); 
+	    	    if(pkt_Queue_SUCCESS != ret_val)
+	    	    {
+#ifdef Debugging
+        		zlog_debug(category_debug,
+	    	    	    "Unable to add packet to queue, error=[%d]", ret_val);
+#endif
+	    	    }
+		}else{
+#ifdef Debugging
+        		zlog_debug(category_debug,
+	    	    	    "Abort health report data, because there is potential \
+			    buffer overflow.");
+#endif
+		}
+		    ret_val = 0;
+		    ret_val = addpkt(&udp_config.send_pkt_queue, UDP, 
+			    udp_config.send_ipv4_addr, message, sizeof(message)); 
+	    	    if(pkt_Queue_SUCCESS != ret_val)
+	    	    {
+#ifdef Debugging
+        		zlog_debug(category_debug,
+	    	    	    "Unable to add package to queue, error=[%d]", ret_val);
+#endif
+	    	    }
+		}
 
                 break;
 
@@ -1053,7 +1216,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
 #ifdef Debugging
 
     zlog_debug(category_debug,
-	 "Input list: list->list_entry %d prev %d next %d head_pointers %d tail_pointers %d\n",
+	 "Input list: list->list_entry %d prev %d next %d head_pointers %d tail_pointers %d",
 		&list->list_entry,
 		list->list_entry.prev,
 		list->list_entry.next,
@@ -1075,7 +1238,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
 
       list_for_each(list_pointers, &local_list_entry){
     	zlog_debug(category_debug,
-		"local list:  list_pointers %d prev %d next %d\n",
+		"local list:  list_pointers %d prev %d next %d",
 			list_pointers,
 			list_pointers->prev,
 			list_pointers->next);
@@ -1862,6 +2025,8 @@ void cleanup_exit(ErrorCode err_code){
 
     /* Release the handler for Bluetooth */
     free(g_push_file_path);
+    
+    Wifi_free(&udp_config);
 
 #ifdef Debugging
         zlog_debug(category_debug,
@@ -1913,7 +2078,6 @@ int main(int argc, char **argv) {
     ready_to_work = true;
     network_is_down = false;
 
-
     /* Initialize the lock for accessing the lists */
     pthread_mutex_init(&list_lock,NULL);
 
@@ -1926,6 +2090,14 @@ int main(int argc, char **argv) {
      //   zlog_info(category_health_report, errordesc[E_MALLOC].message);
     }
 
+    /* Initialize the wifi connection to gateway */
+    strcpy(udp_config.send_ipv4_addr, g_config.gateway_addr);
+    udp_config.send_portno = g_config.gateway_port;
+    udp_config.recv_portno = g_config.local_client_port;
+    return_value = Wifi_init(&udp_config);
+    if(WORK_SUCCESSFULLY != return_value){
+    
+    }
 
     /*Initialize the global lists */
     init_entry(&scanned_list_head.list_entry);
@@ -2018,7 +2190,8 @@ int main(int argc, char **argv) {
 #ifdef Debugging
     zlog_debug(category_debug, "All the threads are created.");
 #endif
-
+    zlog_info(category_health_report,
+                  "All the threads are created.");
 
     /* Start bluetooth advertising and wait while all threads are
        executing

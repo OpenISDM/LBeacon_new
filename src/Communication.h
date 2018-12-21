@@ -57,25 +57,6 @@
 #define COMMUNICATION_H
 
 
-
-/* The pointer to the category of the log file */
-zlog_category_t *category_health_report, *category_debug;
-
-
-sudp_config udp_config;
-
-
-/* The enumeration of the polled data */
-typedef enum PolledDataType {
-
-    NOT_YET_POLLED = 5,
-    TRACK_OBJECT_DATA = 6,
-    HEALTH_REPORT = 7,
-    MAX_NO_DATA_TYPES = 8
-
-} PolledDataType;
-
-
 /*
   Wifi_init:
 
@@ -83,50 +64,57 @@ typedef enum PolledDataType {
 
   Parameters:
 
-     IPaddress - The address of the local server
+     udp_config - The struct of UDP configuration setting
 
   Return value:
 
       int - The error code for the corresponding error or successful
 
  */
-int Wifi_init();
+int Wifi_init(sudp_config_beacon *udp_config);
 
 /*
-  receive_call_back:
+  receive_data:
 
-    This function receives the packet sent by the gateway and return an
-    indicator for the data as the polled type of the packet.
+    This is the entry function of worker thread. In LBeacon, we create 
+    multiple worker threads within thread pool to start from this function
+    to receive data from gateway. 
+    This function receives the packet sent by the gateway via Wifi UDP 
+    connection, creates a temporary node of queue to store the content and 
+    inserts this node to receive packet queue.
 
   Parameters:
 
-    None
+    udp_config - The struct of UDP configuration setting
 
 
   Return value:
-
-    polled_data: An indicator of the polled data
+    
+     int - The error code for the corresponding error or successful
 
 */
 
-int receive_call_back();
+int receive_data(void *udp_config);
 
 /*
   send_data:
 
-    When called, this function sends a packet that containing the specified
-    message to the gateway via xbee module.
+    This is the entry function of worker thread. In LBeacon, we create 
+    multiple worker threads within thread pool to start from this function 
+    to send data to gateway. 
+    This function prepares a socket, retrieves one packet from send packet
+    queue and sends this packet to gateway via Wifi UDP connection.
 
   Parameters:
 
-    message - the message to be sent via xbee module
+    udp_config - The struct of UDP configuration setting
 
   Return value:
 
     None
 
 */
-void *send_data(char *message);
+void *send_data(void *udp_config);
 
 /*
   Wifi_free:
@@ -135,13 +123,13 @@ void *send_data(char *message);
 
   Parameters:
 
-     None
+    udp_config - The struct of UDP configuration setting
 
   Return value:
 
      None
  */
-void Wifi_free();
+void Wifi_free(sudp_config_beacon *udp_config);
 
 
 
