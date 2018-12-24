@@ -62,7 +62,7 @@ int Wifi_init(sudp_config_beacon *udp_config){
 
 #ifdef Debugging
         zlog_debug(category_debug,
-    		"Unable to intitialize receive socket\n"); 
+    		"Unable to intitialize receive socket"); 
 #endif
 
         return E_WIFI_INIT_FAIL;	
@@ -91,7 +91,7 @@ int Wifi_init(sudp_config_beacon *udp_config){
     {
 #ifdef Debugging
         zlog_debug(category_debug,
-    		"Unable to intitialize receive packet queue\n");
+    		"Unable to intitialize receive packet queue");
 #endif
         return E_WIFI_INIT_FAIL;
     }
@@ -101,7 +101,7 @@ int Wifi_init(sudp_config_beacon *udp_config){
     {
 #ifdef Debugging
         zlog_debug(category_debug,
-    		"Unable to initialze send packet queue\n");
+    		"Unable to initialze send packet queue");
 #endif
         return E_WIFI_INIT_FAIL;
     }
@@ -129,8 +129,8 @@ int receive_data(void *udp_config){
         if(numbytes <0){
 #ifdef Debugging
             zlog_debug(category_debug,
-    		"Unable to receive data from gateway via recvfrom(), \
-		strerror(errno)=[%s]\n", strerror(errno));		
+    		"Unable to receive data from gateway via recvfrom(), "
+		"strerror(errno)=[%s]", strerror(errno));		
 #endif
         }else{
 	    ret_val = 
@@ -140,8 +140,8 @@ int receive_data(void *udp_config){
 	    if(pkt_Queue_SUCCESS != ret_val){
 #ifdef Debugging
             zlog_debug(category_debug,
-    		"Unable to add receive packet to receive packet queue. \
-			error=[%d]\n", ret_val);	
+    		"Unable to add receive packet to receive packet queue. "
+		"error=[%d]", ret_val);	
 #endif
 	    }
 	}
@@ -165,7 +165,7 @@ void *send_data(void *udp_config){
     if((he=gethostbyname(udp_config_ptr->send_ipv4_addr)) == NULL){
 #ifdef Debugging
             zlog_debug(category_debug,
-    		"Unable to gethostbyname(), addr=[%s]\n", 
+    		"Unable to gethostbyname(), addr=[%s]", 
 		    udp_config_ptr->send_ipv4_addr);
 #endif
         return;
@@ -181,7 +181,7 @@ void *send_data(void *udp_config){
 
 #ifdef Debugging
         zlog_debug(category_debug,
-    		"Unable to intitialize send socket\n"); 
+    		"Unable to intitialize send socket"); 
 #endif
 
         return;	
@@ -202,7 +202,7 @@ void *send_data(void *udp_config){
             // 2.2 send data to gateway
 #ifdef Debugging
             zlog_debug(category_debug,
-    		"prepare to send message =[%s] len=[%d]\n", 
+    		"prepare to send message =[%s] len=[%d]", 
 			tmp_pkt.content, strlen(tmp_pkt.content));
 #endif
 
@@ -212,8 +212,8 @@ void *send_data(void *udp_config){
             	if(numbytes < 0){
 #ifdef Debugging
             	    zlog_debug(category_debug,
-	 	        "Unable to send data to gateway via sendto(), \
-			strerror(errno)=[%s]\n", strerror(errno));
+	 	        "Unable to send data to gateway via sendto(), "
+			"strerror(errno)=[%s]", strerror(errno));
 #endif
                 }
             }
