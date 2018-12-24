@@ -137,7 +137,7 @@ is possibily transient failed.*/
 #define LENGTH_OF_EPOCH_TIME 11
 
 /* Time interval in seconds for busy-wait checking in threads */
-#define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC 3
+#define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC 1
 
 /* Timeout interval in seconds */
 #define A_LONG_TIME 36000

@@ -136,20 +136,17 @@ Authors:
 /* Time interval in milliseconds between advertising by a LBeacon */
 #define INTERVAL_ADVERTISING_IN_MS 3000
 
-/* Time interval in seconds for cleanup_scanned_list busy-wait
-checking in threads */
-#define INTERVAL_FOR_BUSY_WAITING_CHECK_CLEANUP_SCANNED_LIST_IN_SEC 30
-
-/* Time interval in seconds for timeout_cleanup function to cleanup
-all lists. Currently, it is a periodical tasks, and we will change
-this cleanup tasks to be only triggered by network connection failure
-or memory allocations reach threshold situations.
+/* Time interval in seconds for cleanup scanned_list_head. The decision 
+is made by manage_communication thread and it will notify 
+cleanup_scanned_list thread to do the taks.
 */
-#define INTERVAL_FOR_CLEANUP_LISTS_IN_SEC 1800
+#define INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC 30
 
-/* Time interval in seconds for timeout_cleanup function to wait
-for abnormal network situatins */
-#define INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_SEC 10
+/* Time interval in seconds for cleanup all lists. The decision 
+is made by manage_communication thread and it will notify 
+timeout_cleanup thread to do the taks.
+*/
+#define INTERVAL_FOR_CLEANUP_ALL_LISTS_IN_SEC 600
 
 /* Time interval in seconds for idle status in Wifi connection between
 LBeacon and gateway. When this situation happens, LBeacon will send
@@ -305,10 +302,6 @@ typedef struct object_list_head{
 /* Struct for storing config information from the input file */
 Config g_config;
 
-/* Path of the object push file */
-char *g_push_file_path;
-
-
 /* The struct of UDP configuration */
 sudp_config_beacon udp_config;
 
@@ -344,10 +337,36 @@ ObjectListHead BLE_object_list_head;
    tracked object lists. */
 Memory_Pool mempool;
 
-/* The lock that controls access to lists */
+/* The pthread lock that controls access to lists */
 pthread_mutex_t  list_lock;
 
+/* The pthread lock that controls execution of threads */
+pthread_mutex_t  exec_lock;
+
+/* The pthread condition variable identifing that the network connection has 
+been failed for too long, and we should cleanup the scanned list 
+*/
+pthread_cond_t  cond_cln_scanned_list;
+
+/* The pthread condition variable identifing that the network connection has 
+been failed for too long, and we should cleanup all lists 
+*/
+pthread_cond_t  cond_cln_all_lists;
+
+/* The flag used to identify the LBeacon has reaches the condition in which 
+we should clean up scanned_list_head to have more free memory space.
+*/
+bool reach_cln_scanned_list;
+
+/* The flag used to identify the LBeacon has reaches the condition in which 
+we should clean up all lists to have more free memory space.
+*/
+bool reach_cln_all_lists;
+
 #ifdef Bluetooth_classic
+
+/* Path of the object push file */
+char *g_push_file_path;
 
 /* An array of struct for storing information and status of threads */
 ThreadStatus g_idle_handler[MAX_NUM_OBJECTS];

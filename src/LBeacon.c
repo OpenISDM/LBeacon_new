@@ -765,9 +765,28 @@ void *cleanup_scanned_list(void* param) {
 #endif
 
     while (true == ready_to_work) {
-        
-	pthread_mutex_lock(&list_lock);
+	/* Use pthread mutex, cond and signal to control the flow, 
+	instead of using busy while loop and sleep mechanism.
+	*/
+	pthread_mutex_lock(&exec_lock);
 
+	while(true != reach_cln_scanned_list)
+	{
+	    pthread_cond_wait(&cond_cln_scanned_list, &exec_lock);
+	}
+	reach_cln_scanned_list = false;
+
+	pthread_mutex_unlock(&exec_lock);
+
+
+#ifdef Debugging
+        zlog_debug(category_debug,
+            "cleanup scanned list in cleanup_scanned_list function");
+#endif	
+
+
+	pthread_mutex_lock(&list_lock);
+        
         if(false == is_entry_list_empty(&scanned_list_head.list_entry)){
    
             list_for_each_safe(list_pointers,
@@ -795,8 +814,6 @@ void *cleanup_scanned_list(void* param) {
         }
 
         pthread_mutex_unlock(&list_lock);
-
-        sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_CLEANUP_SCANNED_LIST_IN_SEC);
 
     }//#end while
 
@@ -899,9 +916,10 @@ void *manage_communication(void* param){
 	if(get_system_time() - gateway_latest_time > 
 		INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC){
 #ifdef Debugging
-        zlog_debug(category_debug,
-	    "Send requets_to_join to gateway again");	
+            zlog_debug(category_debug,
+	        "Send requets_to_join to gateway again");	
 #endif
+
             memset(message, 0, sizeof(message)); 
 	    beacon_basic_info(message, sizeof(message), request_to_join);
 
@@ -919,6 +937,34 @@ void *manage_communication(void* param){
 		    ret_val);
 #endif
 	    }
+
+	    /* If network connection to gateway has failed for long time, we should 
+		notify cleanup_scanned_list thread to remove old nodes from 
+	        scanned_list_head.
+	    */
+
+	    if(get_system_time() - gateway_latest_time > 
+		INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC){
+		
+		pthread_mutex_lock(&exec_lock);
+		reach_cln_scanned_list = true;
+		pthread_cond_signal(&cond_cln_scanned_list);
+		pthread_mutex_unlock(&exec_lock);
+	    }
+
+	    /* If network connection to gateway has failed for very long time, we should 
+		notify timeout_cleanup thread to remove nodes from all lists.
+	    */
+
+	    if(get_system_time() - gateway_latest_time > 
+		INTERVAL_FOR_CLEANUP_ALL_LISTS_IN_SEC){
+		
+		pthread_mutex_lock(&exec_lock);
+		reach_cln_all_lists = true;
+		pthread_cond_signal(&cond_cln_all_lists);
+		pthread_mutex_unlock(&exec_lock);
+	    }
+
 	}
 
 	/* sleep a short time to prevent occupying CPU in this busy while loop.
@@ -1008,12 +1054,16 @@ void *manage_communication(void* param){
 	    	    }
 		}else{
         		zlog_info(category_health_report,
-	    	    	    "Abort BR/BLE tracked data, because there is potential \
-			    buffer overflow.");
+	    	    	    "Abort BR/BLE tracked data, because there is potential "
+			    "buffer overflow. strlen(message)=%d, "
+			    "strlen(msg_temp_one)=%d,strlen(msg_temp_two)=%d",
+			     strlen(message), strlen(msg_temp_one), strlen(msg_temp_two));
 #ifdef Debugging
         		zlog_debug(category_debug,
-	    	    	    "Abort BR/BLE tracked data, because there is potential \
-			    buffer overflow.");
+	    	    	    "Abort BR/BLE tracked data, because there is potential "
+			    "buffer overflow. strlen(message)=%d, "
+			    "strlen(msg_temp_one)=%d,strlen(msg_temp_two)=%d",
+			     strlen(message), strlen(msg_temp_one), strlen(msg_temp_two));
 #endif
 		} // if-else
 		
@@ -1043,17 +1093,19 @@ void *manage_communication(void* param){
 #endif
 			
 		}else{
-  		    /* read health report data to temp buffer*/
-		    memset(msg_temp_one, 0, sizeof(msg_temp_one));
-
-	            fread(msg_temp_one, sizeof(msg_temp_one), sizeof(char), health_file); 
-		    fclose(health_file);
-		    
                     /* contruct the content for UDP packet*/
                     memset(message, 0, sizeof(message));
 	            
 		    beacon_basic_info(message, sizeof(message), health_report);
 
+  		    /* read health report data to temp buffer*/
+		    memset(msg_temp_one, 0, sizeof(msg_temp_one));
+
+	            fread(msg_temp_one, sizeof(msg_temp_one) - strlen(message) - 1, 
+			sizeof(char), health_file); 
+
+		    fclose(health_file);
+		    
                     if(sizeof(message) > 
 		        strlen(message) + strlen(msg_temp_one)){
 
@@ -1074,12 +1126,14 @@ void *manage_communication(void* param){
 		        }
 		    }else{
         		zlog_info(category_health_report,
-	    	    	    "Abort health report data, because there is potential \
-			    buffer overflow.");
+	    	    	    "Abort health report data, because there is potential "
+			    "buffer overflow. strlen(message)=%d, strlen(msg_temp_one)=%d", 
+			    strlen(message), strlen(msg_temp_one));
 #ifdef Debugging
         		zlog_debug(category_debug,
-	    	    	    "Abort health report data, because there is potential \
-			    buffer overflow.");
+	    	    	    "Abort health report data, because there is potential "
+			    "buffer overflow. strlen(message)=%d, strlen(msg_temp_one)=%d",
+			    strlen(message), strlen(msg_temp_one));
 #endif
   		    } // if-else
 		}
@@ -1979,30 +2033,32 @@ void *start_br_scanning(void* param) {
 
 void *timeout_cleanup(void* param){
 
-    /* Create a temporary node and set as the head */
-    struct List_Entry *list_pointers, *save_list_pointers;
-    ScannedDevice *temp;
-    long long start_time = get_system_time();
-
 #ifdef Debugging
     zlog_debug(category_debug,
         ">> timeout_cleanup... ");
 #endif
-
+    
     while(true == ready_to_work){
+	/* Use pthread mutex, cond and signal to control the flow, 
+	instead of using busy while loop and sleep mechanism.
+	*/
+	pthread_mutex_lock(&exec_lock);
 
-        /* In the normal situation, this function would keep sleeping, not
-        be executed. */
-        sleep(INTERVAL_FOR_CLEANUP_LISTS_IN_SEC);
+	while(true != reach_cln_all_lists)
+	{
+	    pthread_cond_wait(&cond_cln_all_lists, &exec_lock);
+	}
+	reach_cln_all_lists = false;
 
-        if(get_system_time() - start_time >= INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_SEC){
+	pthread_mutex_unlock(&exec_lock);
 
-	      cleanup_list(&scanned_list_head, true);
-	      cleanup_list(&BR_object_list_head, false);
-	      cleanup_list(&BLE_object_list_head, false);
-
-  	      start_time = get_system_time();
-        }
+#ifdef Debugging
+        zlog_debug(category_debug,
+            "cleanup all lists in timeout_cleanup function");
+#endif	
+	cleanup_list(&scanned_list_head, true);
+	cleanup_list(&BR_object_list_head, false);
+	cleanup_list(&BLE_object_list_head, false);
     }
 
 #ifdef Debugging
@@ -2038,11 +2094,16 @@ void cleanup_exit(ErrorCode err_code){
     }
 
     pthread_mutex_destroy(&list_lock);
+    pthread_mutex_destroy(&exec_lock);
+    pthread_cond_destroy(&cond_cln_scanned_list);
+    pthread_cond_destroy(&cond_cln_all_lists);
 
+    Wifi_free(&udp_config);
+
+#ifdef Bluetooth_classic
     /* Release the handler for Bluetooth */
     free(g_push_file_path);
-    
-    Wifi_free(&udp_config);
+#endif
 
 #ifdef Debugging
     zlog_debug(category_debug,
@@ -2096,6 +2157,13 @@ int main(int argc, char **argv) {
 
     /* Initialize the lock for accessing the lists */
     pthread_mutex_init(&list_lock,NULL);
+
+    /* Initialize the lock for execution flows between threads */
+    reach_cln_scanned_list = false;
+    reach_cln_all_lists = false;
+    pthread_mutex_init(&exec_lock, NULL);
+    pthread_cond_init(&cond_cln_scanned_list, NULL);
+    pthread_cond_init(&cond_cln_all_lists, NULL);
 
 
     /* Initialize the memory pool */
