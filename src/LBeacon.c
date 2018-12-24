@@ -70,14 +70,15 @@ ErrorCode get_config(Config *config, char *file_name) {
 
     retry_time = FILE_OPEN_RETRY;
     while(retry_time--){
-    file=fopen(file_name, "r");
-    if(NULL != file)
-        break;
+        file = fopen(file_name, "r");
+
+        if(NULL != file){
+            break;
+	}
     }
     if (NULL == file) {
         zlog_info(category_health_report,
                     "Error openning file");
-        
 #ifdef Debugging
         zlog_debug(category_debug,
                     "Error openning file");
@@ -427,10 +428,11 @@ ErrorCode enable_advertising(int advertising_interval,
     /* Open Bluetooth device */
     retry_time = DONGLE_GET_RETRY;
     while(retry_time--){
-        dongle_device_id =  hci_get_route(NULL);
+        dongle_device_id = hci_get_route(NULL);
 
-        if(dongle_device_id >= 0)
-        break;
+        if(dongle_device_id >= 0){
+            break;
+	}
     }
     if (dongle_device_id < 0){
         zlog_info(category_health_report,
@@ -447,8 +449,9 @@ ErrorCode enable_advertising(int advertising_interval,
     while(retry_time--){
         device_handle = hci_open_dev(dongle_device_id);
 
-        if(device_handle >= 0)
+        if(device_handle >= 0){
             break;
+	}
     }
     if (device_handle < 0) {
         zlog_info(category_health_report,
@@ -666,8 +669,9 @@ ErrorCode disable_advertising() {
     while(retry_time--){
         dongle_device_id = hci_get_route(NULL);
 
-        if(dongle_device_id >= 0)
+        if(dongle_device_id >= 0){
             break;
+	}
     }
 
     if (dongle_device_id < 0) {
@@ -684,8 +688,9 @@ ErrorCode disable_advertising() {
     while(retry_time--){
         device_handle = hci_open_dev(dongle_device_id);
 
-        if(device_handle >= 0)
+        if(device_handle >= 0){
             break;
+	}
     }
 
     if (device_handle < 0) {
@@ -1024,8 +1029,9 @@ void *manage_communication(void* param){
         	    health_file = 
 			fopen(HEALTH_REPORT_LOG_FILE_NAME, "r");
 
-		    if(NULL != health_file)
+		    if(NULL != health_file){
             		break;
+		    }
     		}
 
 		if(NULL == health_file){
@@ -1133,16 +1139,19 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
     while(retry_time--){
         track_file = fopen(file_name, "w");
 
-        if(NULL != track_file)
+        if(NULL != track_file){
             break;
+	}
     }
     if(NULL == track_file){
+
         retry_time = FILE_OPEN_RETRY;
         while(retry_time--){
             track_file = fopen(file_name, "wt");
 
-            if(NULL != track_file)
+            if(NULL != track_file){
                 break;
+	    }
         }
     }
     if(NULL == track_file){
@@ -1329,8 +1338,9 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list, char *msg_buf,
         while(retry_time--){
             file_fd = fopen(file_name, "r");
 
-            if(NULL != file_fd)
+            if(NULL != file_fd){
                 break;
+	    }
         }
         if (NULL == file_fd){
             zlog_info(category_health_report, 
@@ -1534,8 +1544,9 @@ void *start_ble_scanning(void *param){
         while(retry_time--){
             dongle_device_id = hci_get_route(NULL);
 
-            if(dongle_device_id >= 0)
+            if(dongle_device_id >= 0){
                 break;
+	    }
         }
         if (dongle_device_id < 0) {
             zlog_info(category_health_report,
@@ -1552,8 +1563,9 @@ void *start_ble_scanning(void *param){
         while(retry_time--){
             socket = hci_open_dev(dongle_device_id);
 
-            if(socket >= 0)
+            if(socket >= 0){
                 break;
+	    }
         }
         if (socket < 0) {
             zlog_info(category_health_report,
@@ -1646,7 +1658,7 @@ void *start_ble_scanning(void *param){
 
         keep_scanning = true;
 
-        while(keep_scanning == true && ready_to_work == true){
+        while(true == keep_scanning){
 
             if(read(socket, ble_buffer, sizeof(ble_buffer))
                                                 >= HCI_EVENT_HDR_SIZE) {
@@ -1756,8 +1768,9 @@ void *start_br_scanning(void* param) {
         while(retry_time--){
             dongle_device_id = hci_get_route(NULL);
 
-            if(dongle_device_id >= 0)
+            if(dongle_device_id >= 0){
                 break;
+	    }
         }
         if(dongle_device_id < 0){
 
@@ -1774,8 +1787,9 @@ void *start_br_scanning(void* param) {
         while(retry_time--){
             socket = hci_open_dev(dongle_device_id);
 
-            if(socket >= 0)
+            if(socket >= 0){
                 break;
+	    }
         }
 
         if (socket < 0 ){
