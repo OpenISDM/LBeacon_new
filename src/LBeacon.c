@@ -2318,13 +2318,13 @@ int main(int argc, char **argv) {
     if (WORK_SUCCESSFULLY != return_value){
 
         zlog_info(category_health_report,
-            "Unable to enable advertising. Please make sure \
-            all the hardware devices are ready and try again.");
+            "Unable to enable advertising. Please make sure "
+            "all the hardware devices are ready and try again.");
 
 #ifdef Debugging
         zlog_debug(category_debug,
-            "Unable to enable advertising. Please make sure \
-            all the hardware devices are ready and try again.");
+            "Unable to enable advertising. Please make sure "
+            "all the hardware devices are ready and try again.");
 #endif
 
         cleanup_exit(return_value);
