@@ -124,6 +124,9 @@ is possibily transient failed.*/
 /* Length of the Lbeacon's UUID in a number of characters */
 #define UUID_LENGTH 32
 
+// Legnth of temporary buffer 
+#define BUFFER_LENGTH 1024
+
 // Length of coordinates in number of bits
 #define COORDINATE_LENGTH 64
 

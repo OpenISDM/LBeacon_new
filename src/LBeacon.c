@@ -67,6 +67,7 @@ ErrorCode get_config(Config *config, char *file_name) {
     char config_setting[CONFIG_BUFFER_SIZE];
     char *config_message = NULL;
 
+
     retry_time = FILE_OPEN_RETRY;
     while(retry_time--){
     file=fopen(file_name, "r");
@@ -74,11 +75,13 @@ ErrorCode get_config(Config *config, char *file_name) {
         break;
     }
     if (NULL == file) {
-
-        /* Error handling */
-    //    perror(errordesc[E_OPEN_FILE].message);
-    //    zlog_info(category_health_report,
-    //              errordesc[E_OPEN_FILE].message);
+        zlog_info(category_health_report,
+                    "Error openning file");
+        
+#ifdef Debugging
+        zlog_debug(category_debug,
+                    "Error openning file");
+#endif
         return E_OPEN_FILE;
     }
 
@@ -165,10 +168,8 @@ ErrorCode get_config(Config *config, char *file_name) {
             coordinate_Y.b[1], coordinate_Y.b[2], coordinate_Y.b[3]);
 
 #ifdef Debugging
-
         zlog_debug(category_debug,
                     "Generated UUID: [%s]", config->uuid);
-
 #endif
 
     /* item 11 */
@@ -194,12 +195,10 @@ ErrorCode get_config(Config *config, char *file_name) {
     config->local_client_port = atoi(config_message);
 
 #ifdef Debugging
-
         zlog_debug(category_debug,
                     "Gateway conn: addr=[%s], port=[%d], client_port=[%d]", 
 			config->gateway_addr, config->gateway_port, 
 			config->local_client_port);
-
 #endif
 
     fclose(file);
@@ -213,24 +212,30 @@ void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
 
     /* Scanned MAC address */
     char address[LENGTH_OF_MAC_ADDRESS];
+    char buf[BUFFER_LENGTH];
+    
+    memset(buf, 0, sizeof(buf));
 
     /* Converts the bluetooth device address to string */
     ba2str(bluetooth_device_address, address);
     strcat(address, "\0");
 
     /* Print bluetooth device's RSSI value */
-    printf("BR: %17s", address);
     if (has_rssi) {
-        printf(" RSSI:%d\n", rssi);
+        sprintf(buf, "BR: %17s RSSI:%d", address, rssi);      
+    }else{
+        sprintf(buf, "BR: %17s RSSI:n/a", address);      
     }
-    else {
-        printf(" RSSI:n/a\n");
-    }
-    fflush(NULL);
+#ifdef Debugging
+        zlog_debug(category_debug,
+                    "BR data: %s", buf);
+#endif
+    
 }
 
 
-void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
+void send_to_push_dongle(bdaddr_t *bluetooth_device_address, 
+					DeviceType device_type) {
 
     /* Stores the MAC address as a string */
     char address[LENGTH_OF_MAC_ADDRESS];
@@ -240,19 +245,25 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
     ba2str(bluetooth_device_address, address);
     strcat(address, "\0");
 
-    /* Check whether the MAC address has been seen recently by the LBeacon.*/
+    /* Check whether the MAC address has been seen recently by the LBeacon.
+       If the address is already in the list, we just update its final 
+       scanned time inside the function of check_is_in_list().
+    */
 
-    if(true == is_ble){
+    if(BLE == device_type){
 
-        temp_node = check_is_in_list(address,
-                                    &BLE_object_list_head);
+        temp_node = check_is_in_list(address, &BLE_object_list_head);
 
+    }else if(BR_EDR == device_type){
+
+        temp_node = check_is_in_list(address, &scanned_list_head);
 
     }else{
-
-        temp_node = check_is_in_list(address,
-                                    &scanned_list_head);
-
+#ifdef Debugging
+        zlog_debug(category_debug,
+                    "Unknown device_type=[%d]", device_type);
+#endif
+        return;
     }
 
     if (NULL == temp_node) {
@@ -266,10 +277,8 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
         BLE_object_list_head. */
 
 #ifdef Debugging
-
         zlog_debug(category_debug,
                     "******Get the memory from the pool. ****** ");
-
 #endif
 
         temp_node = (struct ScannedDevice*) mp_alloc(&mempool);
@@ -291,14 +300,13 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
         /* Insert the new node into the right lists. */
         pthread_mutex_lock(&list_lock);
 
-        if(true == is_ble){
+        if(BLE == device_type){
 
             /* Insert the new node to the BLE_object_list_head */
             insert_list_first(&temp_node->tr_list_entry,
                             &BLE_object_list_head.list_entry);
 
-
-        }else{
+        }else if(BR_EDR == device_type){
 
             /* Insert the new node to the scanned list */
             insert_list_first(&temp_node->sc_list_entry,
@@ -331,9 +339,9 @@ struct ScannedDevice *check_is_in_list(char address[],
     bool temp_is_null = true;
     bool is_empty = false;
 
+    /* If there is no node in the list, reutrn NULL directly. */
     pthread_mutex_lock(&list_lock);
 
-    /* If there is no node in the list, reutrn NULL directly. */
     is_empty = is_entry_list_empty(&list->list_entry);
 
     pthread_mutex_unlock(&list_lock);
@@ -342,10 +350,12 @@ struct ScannedDevice *check_is_in_list(char address[],
         return NULL;
     }
 
+    
+    /* Go through the list to check whether the input address is in the list.
+    */
 
     pthread_mutex_lock(&list_lock);
 
-    /* Go through list */
     list_for_each(list_pointers, &list->list_entry) {
         /* According to the device type stored in the list, get the specific
         data */
@@ -363,6 +373,8 @@ struct ScannedDevice *check_is_in_list(char address[],
                                  tr_list_entry);
                 break;
 
+            default:
+		break;
         }
 
         len = strlen(address);
@@ -381,14 +393,12 @@ struct ScannedDevice *check_is_in_list(char address[],
             temp->final_scanned_time = get_system_time();
             temp_is_null = false;
             break;
-
         }
     }
 
     pthread_mutex_unlock(&list_lock);
 
     if(temp_is_null == true){
-
         return NULL;
     }
 
@@ -423,8 +433,15 @@ ErrorCode enable_advertising(int advertising_interval,
         break;
     }
     if (dongle_device_id < 0){
-    return E_OPEN_DEVICE;
+        zlog_info(category_health_report,
+		"Error openning the device");
+#ifdef Debugging
+        zlog_debug(category_debug,
+		"Error openning the device");
+#endif
+        return E_OPEN_DEVICE;
     }
+
 
     retry_time = SOCKET_OPEN_RETRY;
     while(retry_time--){
@@ -433,14 +450,13 @@ ErrorCode enable_advertising(int advertising_interval,
         if(device_handle >= 0)
             break;
     }
-
     if (device_handle < 0) {
-
-        /* Error handling */
-    //    perror(errordesc[E_OPEN_DEVICE].message);
-    //    zlog_info(category_health_report,
-    //              errordesc[E_OPEN_DEVICE].message);
-
+        zlog_info(category_health_report,
+		"Error openning socket");
+#ifdef Debugging
+        zlog_debug(category_debug,
+		"Error openning socket");
+#endif
         return E_OPEN_DEVICE;
     }
 
@@ -503,17 +519,14 @@ ErrorCode enable_advertising(int advertising_interval,
         hci_close_dev(device_handle);
 
 #ifdef Debugging
-
         zlog_debug(category_debug,
                    "Can't send request %s (%d)", strerror(errno),
                    errno);
-
 #endif
         zlog_info(category_health_report,
                   "Can't send request %s (%d)", strerror(errno),
                   errno);
         return E_SEND_REQUEST_TIMEOUT;
-
     }
 
     le_set_advertising_data_cp advertisement_data_copy;
@@ -560,7 +573,6 @@ ErrorCode enable_advertising(int advertising_interval,
         segment_length++;
 
     }
-
 
     /* Major number */
     advertisement_data_copy
@@ -611,11 +623,9 @@ ErrorCode enable_advertising(int advertising_interval,
         /* Error handling */
 
 #ifdef Debugging
-
         zlog_debug(category_debug,
                    "Can't send request %s (%d)", strerror(errno),
                    errno);
-
 #endif
         zlog_info(category_health_report,
                   "Can't send request %s (%d)", strerror(errno),
@@ -628,10 +638,8 @@ ErrorCode enable_advertising(int advertising_interval,
         /* Error handling */
 
 #ifdef Debugging
-
         zlog_debug(category_debug,
                    "LE set advertise returned status %d", status);
-
 #endif
         zlog_info(category_health_report,
                   "LE set advertise returned status %d", status);
@@ -663,7 +671,12 @@ ErrorCode disable_advertising() {
     }
 
     if (dongle_device_id < 0) {
-
+        zlog_info(category_health_report,
+		"Error openning the device");
+#ifdef Debugging
+        zlog_debug(category_debug,
+		"Error openning the device");
+#endif
         return E_OPEN_DEVICE;
     }
 
@@ -676,11 +689,12 @@ ErrorCode disable_advertising() {
     }
 
     if (device_handle < 0) {
-        /* Error handling */
-    //    perror(errordesc[E_OPEN_FILE].message);
-    //    zlog_info(category_health_report,
-     //             errordesc[E_OPEN_FILE].message);
-
+        zlog_info(category_health_report,
+		"Error openning socket");
+#ifdef Debugging
+        zlog_debug(category_debug,
+		"Error openning socket");
+#endif
         return E_OPEN_DEVICE;
     }
 
@@ -705,38 +719,31 @@ ErrorCode disable_advertising() {
 
         /* Error handling */
 #ifdef Debugging
-
         zlog_debug(category_debug,
                    "Can't set advertise mode: %s (%d)",
                    strerror(errno), errno);
-
 #endif
         zlog_info(category_health_report,
                   "Can't set advertise mode: %s (%d)",
                   strerror(errno), errno);
 
         return E_ADVERTISE_MODE;
-
     }
 
     if (status) {
 
         /* Error handling */
 #ifdef Debugging
-
         zlog_debug(category_debug,
                    "LE set advertise enable on returned status %d",
                    status);
-
 #endif
         zlog_info(category_health_report,
                   "LE set advertise enable on returned status %d",
                   status);
 
         return E_ADVERTISE_STATUS;
-
     }
-
 
     return WORK_SUCCESSFULLY;
 
@@ -747,10 +754,10 @@ void *cleanup_scanned_list(void* param) {
     ScannedDevice *temp;
     bool is_empty = false;
 
-    #ifdef Debugging
-        zlog_debug(category_debug,
-                    ">> cleanup_scanned_list ");
-    #endif
+#ifdef Debugging
+    zlog_debug(category_debug,
+        ">> cleanup_scanned_list ");
+#endif
 
     while (true == ready_to_work) {
         
@@ -788,11 +795,13 @@ void *cleanup_scanned_list(void* param) {
 
     }//#end while
 
-    #ifdef Debugging
-        zlog_debug(category_debug,
-                    "<< cleanup_scanned_list ");
-    #endif
+#ifdef Debugging
+    zlog_debug(category_debug,
+        "<< cleanup_scanned_list ");
+#endif
+
 }// cleanup_scanned_list
+
 
 int beacon_basic_info(char *message, size_t message_size, int polled_type){
 
@@ -845,15 +854,17 @@ void *manage_communication(void* param){
     int ret_val = 0;
 
 #ifdef Debugging
-        zlog_debug(category_debug,
-                    ">> manage_communication ");
+    zlog_debug(category_debug,
+        ">> manage_communication ");
 #endif
 
-    /* Initialize the thread pool and worker threads waiting for the
-    new work/job to be assigned. */
+    /* Initialize the thread pool and worker threads 
+    */
     thpool = thpool_init(NUM_WORK_THREADS);
     if(NULL != thpool){
-		
+	/*Evenly assign the worker threads to own the jobs of send/recieve
+          data to/from gateway.
+        */		
         for(id = 0; id< NUM_WORK_THREADS; id++){
 	    if(id % 2 == 0){
 	    	thpool_add_work(thpool,(void*)send_data, 
@@ -864,12 +875,14 @@ void *manage_communication(void* param){
 	    }
         }
     }else{
+        zlog_info(category_health_report,
+	    "Unable to initialize thread pool in manage_communication");	
 #ifdef Debugging
         zlog_debug(category_debug,
 	    "Unable to initialize thread pool in manage_communication");	
 #endif
 	return;
-    }
+    } // if-else
               
  
     while(true == ready_to_work){
@@ -892,9 +905,13 @@ void *manage_communication(void* param){
 
 	    if(pkt_Queue_SUCCESS != ret_val)
 	    {
+        	zlog_info(category_health_report,
+	    	    "Unable to add packet to queue, error=[%d]", 
+		    ret_val);
 #ifdef Debugging
         	zlog_debug(category_debug,
-	    	    "Unable to add packet to queue, error=[%d]", ret_val);
+	    	    "Unable to add packet to queue, error=[%d]", 
+		    ret_val);
 #endif
 	    }
 	}
@@ -918,11 +935,6 @@ void *manage_communication(void* param){
 	    */
             sPkt tmp_pkt = get_pkt(&udp_config.recv_pkt_queue);
             polled_type = 0x0F & tmp_pkt.content[0];    
-
-	}else{
-
-            /* receive packet queue is empty, continue to next iteration */
- 	    continue;
         }
 
 	/* According to the polled data type, prepare a work item */
@@ -946,8 +958,9 @@ void *manage_communication(void* param){
 
 	        pthread_mutex_unlock(&list_lock);
 
-	        if(is_br_empty && is_ble_empty)
+	        if(is_br_empty && is_ble_empty){
 		    continue;
+		}
 
                 /* Copy track_object data to a file to be transmited */
 		memset(message, 0, sizeof(message));
@@ -979,18 +992,25 @@ void *manage_communication(void* param){
 			    udp_config.send_ipv4_addr, message, sizeof(message)); 
 	    	    if(pkt_Queue_SUCCESS != ret_val)
 	    	    {
+        		zlog_info(category_health_report,
+	    	    	    "Unable to add packet to queue, error=[%d]", 
+			    ret_val);
 #ifdef Debugging
         		zlog_debug(category_debug,
-	    	    	    "Unable to add packet to queue, error=[%d]", ret_val);
+	    	    	    "Unable to add packet to queue, error=[%d]", 
+			    ret_val);
 #endif
 	    	    }
 		}else{
+        		zlog_info(category_health_report,
+	    	    	    "Abort BR/BLE tracked data, because there is potential \
+			    buffer overflow.");
 #ifdef Debugging
         		zlog_debug(category_debug,
 	    	    	    "Abort BR/BLE tracked data, because there is potential \
 			    buffer overflow.");
 #endif
-		}
+		} // if-else
 		
 		break;
 
@@ -1001,13 +1021,22 @@ void *manage_communication(void* param){
 #endif
     		retry_time = FILE_OPEN_RETRY;
     		while(retry_time--){
-        	    health_file = fopen(HEALTH_REPORT_LOG_FILE_NAME, "r");
+        	    health_file = 
+			fopen(HEALTH_REPORT_LOG_FILE_NAME, "r");
 
 		    if(NULL != health_file)
             		break;
     		}
 
-		if(NULL != health_file){
+		if(NULL == health_file){
+       		    zlog_info(category_health_report,
+	    	    	"Error openning file");
+#ifdef Debugging
+        	    zlog_debug(category_debug,
+	    	    	"Error openning file");
+#endif
+			
+		}else{
   		    /* read health report data to temp buffer*/
 		    memset(msg_temp_one, 0, sizeof(msg_temp_one));
 
@@ -1028,18 +1057,25 @@ void *manage_communication(void* param){
 			    udp_config.send_ipv4_addr, message, sizeof(message)); 
 	    	        if(pkt_Queue_SUCCESS != ret_val)
 	    	        {
+        		    zlog_info(category_health_report,
+	    	    	        "Unable to add packet to queue, error=[%d]", 
+				ret_val);
 #ifdef Debugging
         		    zlog_debug(category_debug,
-	    	    	        "Unable to add packet to queue, error=[%d]", ret_val);
+	    	    	        "Unable to add packet to queue, error=[%d]", 
+				ret_val);
 #endif
 		        }
 		    }else{
+        		zlog_info(category_health_report,
+	    	    	    "Abort health report data, because there is potential \
+			    buffer overflow.");
 #ifdef Debugging
         		zlog_debug(category_debug,
 	    	    	    "Abort health report data, because there is potential \
 			    buffer overflow.");
 #endif
-  		    }
+  		    } // if-else
 		}
 
                 break;
@@ -1057,10 +1093,12 @@ void *manage_communication(void* param){
 
     /* Free the thread pool */
     thpool_destroy(thpool);
-    #ifdef Debugging
-        zlog_debug(category_debug,
-                    "<< manage_communication ");
-    #endif
+
+#ifdef Debugging
+    zlog_debug(category_debug,
+    "<< manage_communication ");
+#endif
+
 }
 
 ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
@@ -1108,10 +1146,12 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
         }
     }
     if(NULL == track_file){
-
-    //    perror(errordesc[E_OPEN_FILE].message);
-    //    zlog_info(category_health_report,
-    //              errordesc[E_OPEN_FILE].message);
+        zlog_info(category_health_report,
+            "Error openning file");
+#ifdef Debugging
+        zlog_debug(category_debug,
+            "Error openning file");
+#endif
         return E_OPEN_FILE;
 
     }
@@ -1136,14 +1176,17 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
     fputs(basic_info, track_file);
 
 #ifdef Debugging
-
-    zlog_debug(category_debug, "Device type: %d; Number to send: %d",
+    zlog_debug(category_debug, 
+	"Device type: %d; Number to send: %d",
 	device_type, number_to_send);
-
 #endif
 
 
     pthread_mutex_lock(&list_lock);
+
+/* This code block is for debugging the linked list operations. In release 
+version, we should not waste resource in iterating the linked list only ensure
+the correctnedd.
 
 #ifdef Debugging
 
@@ -1157,6 +1200,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
     }
 
 #endif
+*/
 
     /* Set temporary pointer to point to the head of the input list */
     head_pointers = list->list_entry.next;
@@ -1175,32 +1219,11 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
         }
     }
 
-#ifdef Debugging
-
-    zlog_debug(category_debug,
-	"head_pointers %d tail_pointers %d prev %d next %d",
-		head_pointers,
-		tail_pointers,
-		tail_pointers->prev,
-		tail_pointers->next);
-
-#endif
 
     /* Set the head of the input list to point to the last node */
     list->list_entry.next = tail_pointers->next;
     tail_pointers->next->prev = &list->list_entry;
 
-#ifdef Debugging
-
-    zlog_debug(category_debug,
-	 "Input list: list->list_entry %d prev %d next %d head_pointers %d tail_pointers %d",
-		&list->list_entry,
-		list->list_entry.prev,
-		list->list_entry.next,
-		head_pointers,
-		tail_pointers);
-
-#endif
 
     /* Initilize the local list */
     init_entry(&local_list_entry);
@@ -1209,7 +1232,13 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
     local_list_entry.prev = tail_pointers;
     tail_pointers->next = &local_list_entry;
 
-      pthread_mutex_unlock(&list_lock);
+    pthread_mutex_unlock(&list_lock);
+
+
+
+/* This code block is for debugging the linked list operations. In release 
+version, we should not waste resource in iterating the linked list only ensure
+the correctnedd.
 
 #ifdef Debugging
 
@@ -1222,6 +1251,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
       }
 
 #endif
+*/
 
     /* Go throngh the local object list to get the content and write the
        content to file */
@@ -1255,49 +1285,69 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
 
 }
 
-ErrorCode consolidate_tracked_data(ObjectListHead *list, char *msg_buf, size_t msg_size){
 
-	ErrorCode copy_progress;
-	FILE *file_fd = NULL;
-	char *file_name = NULL;
-	int retry_time;
+ErrorCode consolidate_tracked_data(ObjectListHead *list, char *msg_buf, 
+					size_t msg_size){
 
-        /* Check the input parameter if is valid */
-        if(list != &BR_object_list_head &&
-           list != &BLE_object_list_head){
+    ErrorCode copy_progress;
+    FILE *file_fd = NULL;
+    char *file_name = NULL;
+    int retry_time = 0;
 
-            return E_INPUT_PARAMETER;
+    /* Check the input parameter if is valid */
+    if(list != &BR_object_list_head &&
+        list != &BLE_object_list_head){
+#ifdef Debugging
+        zlog_debug(category_debug, 
+	    "Error of invalid input parameter, list is neither BR nor BLE list");
+#endif
+
+        return E_INPUT_PARAMETER;
+    }
+
+    if(BR_EDR == list->device_type)
+	file_name = TRACKED_BR_TXT_FILE_NAME;
+    else if(BLE == list->device_type)
+	file_name = TRACKED_BLE_TXT_FILE_NAME;
+    else{
+#ifdef Debugging
+        zlog_debug(category_debug, 
+	    "Error of invalid input parameter, list device_type=[%d]",
+	    list->device_type);
+#endif
+	return E_INPUT_PARAMETER;
+    }
+
+
+    copy_progress =
+	copy_object_data_to_file(file_name, list);
+
+    if(WORK_SUCCESSFULLY == copy_progress){
+
+        /* Open the file that is going to be sent to the gateway */
+	retry_time = FILE_OPEN_RETRY;
+        while(retry_time--){
+            file_fd = fopen(file_name, "r");
+
+            if(NULL != file_fd)
+                break;
         }
-
-        if(BR_EDR == list->device_type)
-	    file_name = TRACKED_BR_TXT_FILE_NAME;
-	else if(BLE == list->device_type)
-	    file_name = TRACKED_BLE_TXT_FILE_NAME;
-	else
-	    return E_INPUT_PARAMETER;
-
-
-	copy_progress =
-	    copy_object_data_to_file(file_name, list);
-
-
-	if(WORK_SUCCESSFULLY == copy_progress){
-
-	    /* Open the file that is going to be sent to the gateway */
-	    retry_time = FILE_OPEN_RETRY;
-            while(retry_time--){
-                file_fd = fopen(file_name, "r");
-
-                if(NULL != file_fd)
-                    break;
-                if (NULL == file_fd)
-	            return E_OPEN_FILE;
-            }
-
-            fgets(msg_buf, msg_size, file_fd);
-    	    fclose(file_fd);
+        if (NULL == file_fd){
+            zlog_info(category_health_report, 
+	    "Error openning file");
+#ifdef Debugging
+            zlog_debug(category_debug, 
+	    "Error openning file");
+#endif
+	    return E_OPEN_FILE;
 	}
-        return WORK_SUCCESSFULLY;
+
+        fgets(msg_buf, msg_size, file_fd);
+    	fclose(file_fd);
+    }
+
+    return copy_progress;
+
 }
 
 void free_tracked_list(List_Entry *list_entry, DeviceType device_type){
@@ -1338,8 +1388,7 @@ void free_tracked_list(List_Entry *list_entry, DeviceType device_type){
     return;
 }
 
-void cleanup_list(List_Entry *list_entry, DeviceType device_type,
-                                        bool is_scanned_list){
+void cleanup_list(ObjectListHead *list, bool is_scanned_list_head){
 
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
@@ -1347,19 +1396,19 @@ void cleanup_list(List_Entry *list_entry, DeviceType device_type,
     pthread_mutex_lock(&list_lock);
 
     /*Check whether the list is empty */
-    if(false == is_entry_list_empty(list_entry)){
+    if(false == is_entry_list_empty(&list->list_entry)){
         /* Go throgth lists to release all memory allocated to the
         nodes */
 
         list_for_each_safe(list_pointers,
                            save_list_pointers,
-                           list_entry){
+                           &list->list_entry){
 
         /* If the input list_entry is used for scanned list, we should 
            remove the node from sc_list_entry first. Otherwise, we remove 
            the node from tr_list_entry.
         */
-        if(is_scanned_list){
+        if(is_scanned_list_head){
             temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
             remove_list_node(&temp->sc_list_entry);
         }
@@ -1372,8 +1421,8 @@ void cleanup_list(List_Entry *list_entry, DeviceType device_type,
            if the device_type is BR_EDR, we should make sure the node is 
            removed from the other list as well. 
         */
-        if(BR_EDR == device_type){
-	    if(is_scanned_list){
+        if(BR_EDR == list->device_type){
+	    if(is_scanned_list_head){
 		if(false == is_isolated_node(&temp->tr_list_entry)){
 		    remove_list_node(&temp->tr_list_entry);
 		}
@@ -1461,7 +1510,7 @@ void *start_ble_scanning(void *param){
     struct hci_filter new_filter; /*Filter for controling the events*/
     evt_le_meta_event *meta;
     le_advertising_info *info;
-    char addr[18];
+    char addr[LENGTH_OF_MAC_ADDRESS];
     int retry_time = 0;
     struct hci_request scan_params_rq;
     struct hci_request set_mask_rq;
@@ -1474,11 +1523,11 @@ void *start_ble_scanning(void *param){
     bool keep_scanning;
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+    zlog_debug(category_debug,
         ">> start_ble_scanning... ");
 #endif
 
-    while( ready_to_work == true){
+    while(true == ready_to_work){
 
         /* Get the dongle id */
         retry_time = DONGLE_GET_RETRY;
@@ -1489,8 +1538,13 @@ void *start_ble_scanning(void *param){
                 break;
         }
         if (dongle_device_id < 0) {
-
-        return;
+            zlog_info(category_health_report,
+                "Error openning the device");
+#ifdef Debugging
+            zlog_debug(category_debug,
+                "Error openning the device");
+#endif
+            return;
         }
 
         /* Open Bluetooth device */
@@ -1502,37 +1556,40 @@ void *start_ble_scanning(void *param){
                 break;
         }
         if (socket < 0) {
-
-             /* Error handling */
-     //    perror(errordesc[E_OPEN_SOCKET].message);
-     //    zlog_info(category_health_report,
-     //              errordesc[E_OPEN_SOCKET].message);
+            zlog_info(category_health_report,
+                "Error openning socket");
+#ifdef Debugging
+            zlog_debug(category_debug,
+                "Error openning socket");
+#endif
              return;
         }
 
         /* Set BLE scan para,eters */
         if( 0> hci_le_set_scan_parameters(socket, 0x01, htobs(0x0010),
-                                      htobs(0x0010), 0x00, 0x00, 1000)){
-
-            /* Error handling */
-            //perror(errordesc[E_SET_BLE_PARAMETER].message);
-            //zlog_info(category_health_report,
-                   //errordesc[E_SET_BLE_PARAMETER].message);
-
-
+                                      htobs(0x0010), 0x00, 0x00, 
+					HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
+/*
+            zlog_info(category_health_report,
+                "Error setting parameters of BLE scanning");
+#ifdef Debugging
+            zlog_debug(category_debug,
+                "Error setting parameters of BLE scanning");
+#endif
+*/
         }
 
-
-        if( 0> hci_le_set_scan_enable(socket, 0x01, 1, 1000)){
-
-            /* Error handling */
-            //perror(errordesc[E_BLE_ENABLE].message);
-            //zlog_info(category_health_report,
-                  // errordesc[E_BLE_ENABLE].message);
-
-        }
-
-
+        if( 0> hci_le_set_scan_enable(socket, 0x01, 1, 
+					HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
+/*
+            zlog_info(category_health_report,
+                "Error enabling BLE scanning");
+#ifdef Debugging
+            zlog_debug(category_debug,
+                "Error enabling BLE scanning");
+#endif
+*/
+      }
 
         le_set_event_mask_cp event_mask_cp;
         memset(&event_mask_cp, 0, sizeof(le_set_event_mask_cp));
@@ -1548,7 +1605,6 @@ void *start_ble_scanning(void *param){
         if ( ret < 0 ) {
 
             hci_close_dev(socket);
-            perror("Failed to set event mask.");
             return;
         }
 
@@ -1565,7 +1621,6 @@ void *start_ble_scanning(void *param){
         if ( ret < 0 ) {
 
             hci_close_dev(socket);
-            perror("Failed to enable scan.");
 
             return;
         }
@@ -1580,10 +1635,13 @@ void *start_ble_scanning(void *param){
 
           /* Error handling */
             hci_close_dev(socket);
-    //    perror(errordesc[E_SCAN_SET_HCI_FILTER].message);
-    //    zlog_info(category_health_report,
-    //               errordesc[E_SCAN_SET_HCI_FILTER].message);
-
+            
+	    zlog_info(category_health_report,
+                "Error setting HCI filter");
+#ifdef Debugging
+            zlog_debug(category_debug,
+                "Error setting HCI filter");
+#endif
         }
 
         keep_scanning = true;
@@ -1610,17 +1668,17 @@ void *start_ble_scanning(void *param){
                     /* If the name of the BLE device is not unknown */
                     if(strcmp(name, "")!= 0){
 
-                        ba2str(&(info->bdaddr), addr);
-                        printf("BLE: %s - %s - RSSI %d\n", addr,name,rssi);
+			ba2str(&(info->bdaddr), addr);
+#ifdef Debugging
+	                zlog_debug(category_debug,
+                	    "BLE: %s - %s - RSSI %d", addr, name, rssi);
+#endif
                         send_to_push_dongle(&info->bdaddr, true);
 
                     }
-
                 }
 
-
             }else{
-                perror("Cannot read from socket\n");
                 keep_scanning = false;
 
             }
@@ -1640,16 +1698,27 @@ void *start_ble_scanning(void *param){
 
         if ( ret < 0 ) {
             hci_close_dev(socket);
-            perror("Failed to disable scan.");
+
+	    zlog_info(category_health_report,
+            	"Error sending HCI request");
+#ifdef Debugging
+	    zlog_debug(category_debug,
+            	"Error sending HCI request");
+#endif
             return 0;
         }
 
         hci_close_dev(socket);
 
+#ifdef Debugging
+        zlog_debug(category_debug, 
+		"Scanning done of BLE devices");
+#endif
+
     } // end while (ready_to_work)
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+    zlog_debug(category_debug,
         "<< start_ble_scanning... ");
 #endif
 
@@ -1677,7 +1746,7 @@ void *start_br_scanning(void* param) {
     bool keep_scanning;
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+    zlog_debug(category_debug,
         ">> start_br_scanning... ");
 #endif
 
@@ -1692,8 +1761,14 @@ void *start_br_scanning(void* param) {
         }
         if(dongle_device_id < 0){
 
-        return;
-    }
+            zlog_info(category_health_report,
+                "Error openning the device");
+#ifdef Debugging
+            zlog_debug(category_debug,
+                "Error openning the device");
+#endif
+            return;
+        }
 
         retry_time = SOCKET_OPEN_RETRY;
         while(retry_time--){
@@ -1704,10 +1779,12 @@ void *start_br_scanning(void* param) {
         }
 
         if (socket < 0 ){
-            /* Error handling */
-        //    perror(errordesc[E_OPEN_SOCKET].message);
-        //    zlog_info(category_health_report,
-        //              errordesc[E_OPEN_SOCKET].message);
+            zlog_info(category_health_report,
+                "Error openning socket");
+#ifdef Debugging
+            zlog_debug(category_debug,
+                "Error openning socket");
+#endif
             return;
         }
 
@@ -1721,11 +1798,13 @@ void *start_br_scanning(void* param) {
 
         if (0 > setsockopt(socket, SOL_HCI, HCI_FILTER, &filter,
                         sizeof(filter))) {
+            zlog_info(category_health_report,
+                "Error setting HCI filter");
+#ifdef Debugging
+            zlog_debug(category_debug,
+                "Error setting HCI filter");
+#endif
 
-            /* Error handling */
-        //    perror(errordesc[E_SCAN_SET_HCI_FILTER].message);
-        //    zlog_info(category_health_report,
-        //              errordesc[E_SCAN_SET_HCI_FILTER].message);
             hci_close_dev(socket);
             return;
 
@@ -1737,9 +1816,12 @@ void *start_br_scanning(void* param) {
             WRITE_INQUIRY_MODE_RP_SIZE, &inquiry_copy)) {
 
             /* Error handling */
-        //    perror(errordesc[E_SCAN_SET_INQUIRY_MODE].message);
-        //    zlog_info(category_health_report,
-        //              errordesc[E_SCAN_SET_INQUIRY_MODE].message);
+            zlog_info(category_health_report,
+                "Error setting inquiry mode");
+#ifdef Debugging
+            zlog_debug(category_debug,
+                "Error setting inquiry mode");
+#endif
             hci_close_dev(socket);
             return;
 
@@ -1766,9 +1848,13 @@ void *start_br_scanning(void* param) {
             &inquiry_copy)) {
 
             /* Error handling */
-        //    perror(errordesc[E_SCAN_START_INQUIRY].message);
-        //    zlog_info(category_health_report,
-        //              errordesc[E_SCAN_START_INQUIRY].message);
+            zlog_info(category_health_report,
+                "Error starting inquiry");
+#ifdef Debugging
+            zlog_debug(category_debug,
+                "Error starting inquiry");
+#endif
+
             hci_close_dev(socket);
             return;
 
@@ -1861,17 +1947,18 @@ void *start_br_scanning(void* param) {
 
         } //end while
 
-#ifdef Debugging
-        zlog_debug(category_debug, "Scanning done");
-#endif
-
         close(socket);
+
+#ifdef Debugging
+        zlog_debug(category_debug, 
+		"Scanning done of BR devices");
+#endif
 
     }//end while
 
 #ifdef Debugging
-        zlog_debug(category_debug,
-        "<< start_br_scanning... ");
+    zlog_debug(category_debug,
+    "<< start_br_scanning... ");
 #endif
 
 }
@@ -1884,7 +1971,7 @@ void *timeout_cleanup(void* param){
     long long start_time = get_system_time();
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+    zlog_debug(category_debug,
         ">> timeout_cleanup... ");
 #endif
 
@@ -1896,16 +1983,16 @@ void *timeout_cleanup(void* param){
 
         if(get_system_time() - start_time >= INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_SEC){
 
-	      cleanup_list(&scanned_list_head.list_entry, BR_EDR, true);
-	      cleanup_list(&BR_object_list_head.list_entry, BR_EDR, false);
-	      cleanup_list(&BLE_object_list_head.list_entry, BLE, false);
+	      cleanup_list(&scanned_list_head, true);
+	      cleanup_list(&BR_object_list_head, false);
+	      cleanup_list(&BLE_object_list_head, false);
 
   	      start_time = get_system_time();
         }
     }
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+    zlog_debug(category_debug,
         "<< timeout_cleanup... ");
 #endif
 }
@@ -1913,12 +2000,11 @@ void *timeout_cleanup(void* param){
 
 void cleanup_exit(ErrorCode err_code){
 
-    /* Create a temporary node and set as the head */
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+    zlog_debug(category_debug,
         ">> cleanup_exit... ");
 #endif
 
@@ -1930,9 +2016,9 @@ void cleanup_exit(ErrorCode err_code){
         /* Go throgth all three lists to release all memory allocated
            to the nodes */
 
-	cleanup_list(&scanned_list_head.list_entry, BR_EDR, true);
-	cleanup_list(&BR_object_list_head.list_entry, BR_EDR, false);
-	cleanup_list(&BLE_object_list_head.list_entry, BLE, false);
+	cleanup_list(&scanned_list_head, true);
+	cleanup_list(&BR_object_list_head, false);
+	cleanup_list(&BLE_object_list_head, false);
         
         mp_destroy(&mempool);
     }
@@ -1945,7 +2031,7 @@ void cleanup_exit(ErrorCode err_code){
     Wifi_free(&udp_config);
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+    zlog_debug(category_debug,
         "<< cleanup_exit... ");
 #endif
 
@@ -1966,7 +2052,6 @@ int main(int argc, char **argv) {
         if (!category_health_report) {
 
             zlog_fini();
-        //    perror(errordesc[E_LOG_GET_CATEGORY].message);
         }
 
 #ifdef Debugging
@@ -1975,7 +2060,6 @@ int main(int argc, char **argv) {
         if (!category_debug) {
 
             zlog_fini();
-            //   perror(errordesc[E_LOG_GET_CATEGORY].message);
         }
 #endif
     }
@@ -1983,9 +2067,12 @@ int main(int argc, char **argv) {
     /* Load config struct */
     return_value = get_config(&g_config, CONFIG_FILE_NAME);
     if(WORK_SUCCESSFULLY != return_value){
-
-    //    perror(errordesc[E_OPEN_FILE].message);
-    //    zlog_info(category_health_report, errordesc[E_OPEN_FILE].message);
+        zlog_info(category_health_report,
+            "Error openning file");
+#ifdef Debugging
+        zlog_debug(category_debug,
+            "Error openning file");
+#endif
         return E_OPEN_FILE;
     }
 
@@ -2000,18 +2087,29 @@ int main(int argc, char **argv) {
     /* Initialize the memory pool */
     if(mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_IN_MEM_POOL)
             != MEMORY_POOL_SUCCESS){
-
-      //  perror(errordesc[E_MALLOC].message);
-     //   zlog_info(category_health_report, errordesc[E_MALLOC].message);
+        
+        zlog_info(category_health_report,
+            "Error allocating memory");
+#ifdef Debugging
+        zlog_debug(category_debug,
+            "Error allocating memory");
+#endif
     }
 
     /* Initialize the wifi connection to gateway */
     strcpy(udp_config.send_ipv4_addr, g_config.gateway_addr);
     udp_config.send_portno = g_config.gateway_port;
     udp_config.recv_portno = g_config.local_client_port;
+
     return_value = Wifi_init(&udp_config);
     if(WORK_SUCCESSFULLY != return_value){
-    
+
+        zlog_info(category_health_report,
+            "Error initializing network connection to gateway");
+#ifdef Debugging
+        zlog_debug(category_debug,
+            "Error initializing network connection to gateway");
+#endif
     }
 
     /*Initialize the global lists */
@@ -2029,7 +2127,12 @@ int main(int argc, char **argv) {
     sigint_handler.sa_flags = 0;
 
     if (-1 == sigaction(SIGINT, &sigint_handler, NULL)) {
-    // log error here
+        zlog_info(category_health_report,
+            "Error registering signal handler for SIGINT");
+#ifdef Debugging
+        zlog_debug(category_debug,
+            "Error registering signal handler for SIGINT");
+#endif
     }
 
 
@@ -2040,10 +2143,12 @@ int main(int argc, char **argv) {
                                start_br_scanning, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
-
-    //    perror(errordesc[E_START_THREAD].message);
-    //    zlog_info(category_health_report,
-    //              errordesc[E_START_THREAD].message);
+        zlog_info(category_health_report,
+            "Error creating thread");
+#ifdef Debugging
+        zlog_debug(category_debug,
+            "Error creating thread");
+#endif
     }
 
 
@@ -2054,10 +2159,12 @@ int main(int argc, char **argv) {
                                start_ble_scanning, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
-
-    //    perror(errordesc[E_START_THREAD].message);
-    //    zlog_info(category_health_report,
-    //              errordesc[E_START_THREAD].message);
+        zlog_info(category_health_report,
+            "Error creating thread");
+#ifdef Debugging
+        zlog_debug(category_debug,
+            "Error creating thread");
+#endif
     }
 
 
@@ -2068,10 +2175,12 @@ int main(int argc, char **argv) {
                                cleanup_scanned_list, &scanned_list_head);
 
     if(return_value != WORK_SUCCESSFULLY){
-
-    //    perror(errordesc[E_START_THREAD].message);
-    //    zlog_info(category_health_report,
-    //              errordesc[E_START_THREAD].message);
+        zlog_info(category_health_report,
+            "Error creating thread");
+#ifdef Debugging
+        zlog_debug(category_debug,
+            "Error creating thread");
+#endif
     }
 
 
@@ -2082,10 +2191,12 @@ int main(int argc, char **argv) {
                                manage_communication, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
-
-    //    perror(errordesc[E_START_THREAD].message);
-    //    zlog_info(category_health_report,
-    //              errordesc[E_START_THREAD].message);
+        zlog_info(category_health_report,
+            "Error creating thread");
+#ifdef Debugging
+        zlog_debug(category_debug,
+            "Error creating thread");
+#endif
     }
 
 
@@ -2096,17 +2207,21 @@ int main(int argc, char **argv) {
                                timeout_cleanup, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
-
-    //    perror(errordesc[E_START_THREAD].message);
-     //   zlog_info(category_health_report,
-     //             errordesc[E_START_THREAD].message);
+        zlog_info(category_health_report,
+            "Error creating thread");
+#ifdef Debugging
+        zlog_debug(category_debug,
+            "Error creating thread");
+#endif
     }
 
+
+    zlog_info(category_health_report,
+                  "All the threads are created.");
 #ifdef Debugging
     zlog_debug(category_debug, "All the threads are created.");
 #endif
-    zlog_info(category_health_report,
-                  "All the threads are created.");
+
 
     /* Start bluetooth advertising and wait while all threads are
        executing
@@ -2120,25 +2235,24 @@ int main(int argc, char **argv) {
 
     if (WORK_SUCCESSFULLY != return_value){
 
-    #ifdef Debugging
-        zlog_debug(category_debug,
-        "Unable to enable advertising. Please make sure"
-        " all the hardware devices are ready and try again.");
-    #endif
-
         zlog_info(category_health_report,
-        "Unable to enable advertising. Please make sure"
-        "all the hardware devices are ready and try again.");
+            "Unable to enable advertising. Please make sure \
+            all the hardware devices are ready and try again.");
+
+#ifdef Debugging
+        zlog_debug(category_debug,
+            "Unable to enable advertising. Please make sure \
+            all the hardware devices are ready and try again.");
+#endif
+
         cleanup_exit(return_value);
     }
 
-    perror("Hit ctrl-c to stop advertising");
     while (true == ready_to_work) {
         sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
     }
 
     /* When signal is received, disable message advertising */
-    perror("Shutting down");
     disable_advertising();
 
     cleanup_exit(WORK_SUCCESSFULLY);
@@ -2146,8 +2260,6 @@ int main(int argc, char **argv) {
     return WORK_SUCCESSFULLY;
 
 }
-
-
 
 
 /* Follow are functions for communication via BR/EDR path to Bluetooth
@@ -2182,7 +2294,6 @@ void start_classic_pushing(void){
     if (g_push_file_path == NULL) {
 
          /* Error handling */
-    //    perror(errordesc[E_MALLOC].message);
     //    zlog_info(category_health_report, errordesc[E_MALLOC].message);
         cleanup_exit();
         return E_MALLOC;
@@ -2252,7 +2363,6 @@ void start_classic_pushing(void){
 
         if(return_value != WORK_SUCCESSFULLY){
 
-        //    perror(errordesc[E_START_THREAD].message);
          //   zlog_info(category_health_report,
          //             errordesc[E_START_THREAD].message);
             cleanup_exit();
@@ -2276,7 +2386,6 @@ void start_classic_pushing(void){
 
         if (return_value != 0) {
 
-            perror(strerror(errno));
             zlog_info(category_health_report, strerror(errno));
             cleanup_exit();
             return;
@@ -2327,7 +2436,6 @@ char *choose_file(char *message_to_send) {
     }
     else {
         /* Error handling */
-        perror("Directories do not exist");
         return NULL;
     }
 
@@ -2361,7 +2469,6 @@ char *choose_file(char *message_to_send) {
         }
         else {
             /* Error handling */
-            perror("Message files do not exist");
             return NULL;
         }
 
@@ -2370,7 +2477,6 @@ char *choose_file(char *message_to_send) {
     }
 
     /* Error handling */
-    perror("Message files do not exist");
     return NULL;
 }
 
@@ -2414,7 +2520,6 @@ void *send_file(void *id) {
                 if (dongle_device_id < 0 || socket < 0) {
 
                     /* Error handling */
-                //    perror(errordesc[E_SEND_OPEN_SOCKET].message);
                     strncpy(
                             g_idle_handler[device_id].scanned_mac_address,
                             "0",
@@ -2456,7 +2561,6 @@ void *send_file(void *id) {
                 if (client == NULL) {
 
                     /* Error handling */
-                 //   perror(errordesc[E_SEND_OBEXFTP_CLIENT].message);
                     strncpy(
                             g_idle_handler[device_id].scanned_mac_address,
                             "0",
@@ -2478,7 +2582,6 @@ void *send_file(void *id) {
                 if (0 > return_value) {
 
                     /* Error handling */
-                //    perror(errordesc[E_SEND_CONNECT_DEVICE].message);
                     obexftp_close(client);
                     client = NULL;
                     strncpy(
@@ -2499,7 +2602,6 @@ void *send_file(void *id) {
                 if (0 > return_value) {
 
                     /* TODO: Error handling */
-                 //   perror(errordesc[E_SEND_PUSH_FILE].message);
                 }
 
                 /* Disconnect connection */
@@ -2507,7 +2609,6 @@ void *send_file(void *id) {
                 if (0 > return_value) {
 
                     /* TODO: Error handling  */
-                 //   perror(errordesc[E_SEND_DISCONNECT_CLIENT].message);
                     pthread_exit(NULL);
                     return;
 

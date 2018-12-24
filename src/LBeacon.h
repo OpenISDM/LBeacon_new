@@ -479,17 +479,15 @@ void *start_br_scanning(void *param);
 
       bluetooth_device_address - MAC address of a bluetooth device discovered
                                  during inquiry
-      is_ble - the indicator to show whether the input address is that of a
-               BLE device
+      device_type - the indicator to show the device type of the input address 
 
   Return value:
 
       None
 */
 
-void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble);
-
-
+void send_to_push_dongle(bdaddr_t *bluetooth_device_address, 
+				DeviceType device_type);
 
 
 /*
@@ -740,18 +738,15 @@ void free_tracked_list(List_Entry *list_entry, DeviceType device_type);
 
   Parameters:
 
-      list_entry - the head of a specified list.
-      device_type - type of device with data contained in the list
-      is_scanned_list - speicify if the list_entry is part of scanned_list 
-          or not.
+      list - the head of a specified list.
+      is_scanned_list - speicify if the input list is scanned_list_head or not.
 
   Return value:
 
       None
 */
 
-void cleanup_list(List_Entry *list_entry, DeviceType device_type, 
-					bool is_scanned_list);
+void cleanup_list(ObjectListHead *list, bool is_scanned_list_head);
 
 /*
   cleanup_exit:
