@@ -207,36 +207,8 @@ ErrorCode get_config(Config *config, char *file_name) {
     return WORK_SUCCESSFULLY;
 }
 
-
-void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
-    int rssi) {
-
-    /* Scanned MAC address */
-    char address[LENGTH_OF_MAC_ADDRESS];
-    char buf[BUFFER_LENGTH];
-    
-    memset(buf, 0, sizeof(buf));
-
-    /* Converts the bluetooth device address to string */
-    ba2str(bluetooth_device_address, address);
-    strcat(address, "\0");
-
-    /* Print bluetooth device's RSSI value */
-    if (has_rssi) {
-        sprintf(buf, "BR: %17s RSSI:%d", address, rssi);      
-    }else{
-        sprintf(buf, "BR: %17s RSSI:n/a", address);      
-    }
-#ifdef Debugging
-        zlog_debug(category_debug,
-                    "BR data: %s", buf);
-#endif
-    
-}
-
-
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address, 
-					DeviceType device_type) {
+					DeviceType device_type, char *name, int rssi) {
 
     /* Stores the MAC address as a string */
     char address[LENGTH_OF_MAC_ADDRESS];
@@ -279,7 +251,9 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
 
 #ifdef Debugging
         zlog_debug(category_debug,
-                    "******Get the memory from the pool. ****** ");
+            "******Get the memory from the pool. ****** ");
+        zlog_debug(category_debug,
+            "device_type[%d]: %17s - %20s - RSSI %4d", device_type, address, name, rssi);
 #endif
 
         temp_node = (struct ScannedDevice*) mp_alloc(&mempool);
@@ -1010,6 +984,10 @@ void *manage_communication(void* param){
 	        pthread_mutex_unlock(&list_lock);
 
 	        if(is_br_empty && is_ble_empty){
+#ifdef Debugging
+        	zlog_debug(category_debug,
+	    	    "Both BR and BLE lists are empty.");
+#endif
 		    continue;
 		}
 
@@ -1565,7 +1543,6 @@ failed:
 
 
 void *start_ble_scanning(void *param){
-
     uint8_t ble_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the
                                             callback event */
     int socket = 0; /*Number of the socket */
@@ -1583,6 +1560,7 @@ void *start_ble_scanning(void *param){
     int i=0;
     uint8_t reports_count;
     void * offset = NULL;
+    char name[30];
     int rssi;
     bool keep_scanning;
 
@@ -1728,18 +1706,14 @@ void *start_ble_scanning(void *param){
                 /* If the rssi vaule is within the threshold */
                 if(rssi > RSSI_RANGE){
 
-                    char name[30];
+		    memset(name, 0, sizeof(name));
                     eir_parse_name(info->data, info->length, name,
                                    sizeof(name) - 1);
                     /* If the name of the BLE device is not unknown */
                     if(strcmp(name, "")!= 0){
 
 			ba2str(&(info->bdaddr), addr);
-#ifdef Debugging
-	                zlog_debug(category_debug,
-                	    "BLE: %s - %s - RSSI %d", addr, name, rssi);
-#endif
-                        send_to_push_dongle(&info->bdaddr, true);
+                        send_to_push_dongle(&info->bdaddr, BLE, name, rssi);
 
                     }
                 }
@@ -1810,6 +1784,8 @@ void *start_br_scanning(void* param) {
     int results_id; /*ID of the result */
     int retry_time = 0;
     bool keep_scanning;
+    char name[30];
+    int rssi;
 
 #ifdef Debugging
     zlog_debug(category_debug,
@@ -1962,15 +1938,13 @@ void *start_br_scanning(void* param) {
 
                 /* Scanned device with no RSSI value */
                 case EVT_INQUIRY_RESULT: {
-
+		    
                     for (results_id = 0; results_id < results; results_id++) {
 
                         info = (void *)event_buffer_pointer +
                                (sizeof(*info) * results_id) + 1;
 
-                        print_RSSI_value(&info->bdaddr, false, 0);
                     }
-
                 } break;
 
                 /* Scanned device with RSSI value; when within rangle, send
@@ -1982,13 +1956,11 @@ void *start_br_scanning(void* param) {
                         info_rssi = (void *)event_buffer_pointer +
                             (sizeof(*info_rssi) * results_id) + 1;
 
-
                         if (info_rssi->rssi > RSSI_RANGE) {
 
-                            print_RSSI_value(&info_rssi->bdaddr, true,
-                            info_rssi->rssi);
-
-                            send_to_push_dongle(&info_rssi->bdaddr, false);
+			    memset(name, 0, sizeof(name));
+                            send_to_push_dongle(&info_rssi->bdaddr, 
+						BR_EDR, name, info_rssi->rssi);
                         }
 
                     }

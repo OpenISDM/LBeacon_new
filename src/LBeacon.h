@@ -404,31 +404,6 @@ extern int errno;
 
 ErrorCode get_config(Config *config, char *file_name);
 
-
-
-
-/*
-  print_RSSI_value:
-
-      This function prints the RSSI value along with the MAC address of the
-      user's scanned bluetooth device.
-
-  Parameters:
-
-      bluetooth_device_address - MAC address of a bluetooth device
-      has_rssi - a flag indicating whether the bluetooth device has an RSSI
-                 value
-      rssi - RSSI value of bluetooth device
-
-  Return value:
-
-      None
-*/
-
-void print_RSSI_value(bdaddr_t *bluetooth_device_address, bool has_rssi,
-    int rssi);
-
-
 /*
   start_ble_scanning:
 
@@ -499,6 +474,8 @@ void *start_br_scanning(void *param);
       bluetooth_device_address - MAC address of a bluetooth device discovered
                                  during inquiry
       device_type - the indicator to show the device type of the input address 
+      name - the name of the BR_EDR / BLE devices
+      rssi - the RSSI value of this device
 
   Return value:
 
@@ -506,7 +483,7 @@ void *start_br_scanning(void *param);
 */
 
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address, 
-				DeviceType device_type);
+				DeviceType device_type, char* name, int rssi);
 
 
 /*
