@@ -340,11 +340,6 @@ ObjectListHead BLE_object_list_head;
 
 /* Global flags for communication among threads */
 
-/* A global flag that is initially set to false by the main thread. When there
-is any error of the network connection */
-bool network_is_down;
-
-
 /* The memory pool for the allocation of all nodes in scanned device list and
    tracked object lists. */
 Memory_Pool mempool;
@@ -572,6 +567,34 @@ ErrorCode disable_advertising();
 
 
 /*
+  beacon_basic_info
+
+      This function prepares the basic information about the LBeacon, and the 
+      information helps BeDIS server identify the LBeacons packets received 
+      from vairous of gateways. The resulted message will be in the format of 
+      "Packet type(one byte)B:<LBeacon information>G:<Gateway information>".
+
+      Once the basic information is produced, the caller of this function can
+      append more response content at the end of message.
+
+  Parameters:
+
+      message - the message buffer to contain the resulted basic information
+      message_size - the size of message parameter
+      polled_type - one of the packet types (also called communication protocols
+         between LBeacon and gateway). This function needs this information to 
+         prepare the first byte of the resulted message which will be parsed 
+	 and utilized while gateway receives the packet.
+
+  Return value:
+
+      int: 0 means successful, and other values means corrsponding failures     
+*/
+
+int beacon_basic_info(char *message, size_t message_size, int polled_type);
+
+
+/*
   cleanup_scanned_list:
 
       This function checks each ScannedDevice node in the scanned list to
@@ -685,10 +708,11 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list);
                   fails or WORK SUCCESSFULLY otherwise
 */
 
-ErrorCode consolidate_tracked_data(ObjectListHead *list, char *msg_buf, size_t msg_size);
+ErrorCode consolidate_tracked_data(ObjectListHead *list, 
+					char *msg_buf, size_t msg_size);
 
 /*
-  free_list:
+  free_tracked_list:
 
       This function removes nodes from the specified list and if the removed
       node is not in any list, calls memory pool to release memory used by
@@ -704,7 +728,30 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list, char *msg_buf, size_t m
       None
 */
 
-void free_list(List_Entry *list_entry, DeviceType device_type);
+void free_tracked_list(List_Entry *list_entry, DeviceType device_type);
+
+/*
+  cleanup_list:
+
+      This function first removes nodes from the speicified list. If the node
+      is also linked by other lists, this function will remove the node from
+      the lists as well. Once the node is isolated, this function calls memory 
+      pool to release memory used by the node.
+
+  Parameters:
+
+      list_entry - the head of a specified list.
+      device_type - type of device with data contained in the list
+      is_scanned_list - speicify if the list_entry is part of scanned_list 
+          or not.
+
+  Return value:
+
+      None
+*/
+
+void cleanup_list(List_Entry *list_entry, DeviceType device_type, 
+					bool is_scanned_list);
 
 /*
   cleanup_exit:

@@ -5,7 +5,7 @@ OBJS = LinkedList.o Mempool.o thpool.o Communication.o UDP_API.o pkt_Queue.o BeD
 LIB = -L /usr/local/lib
 
 #---------------------------------------------------------------------------
-all: clean LBeacon
+all: LBeacon
 LBeacon: $(OBJS)
 	$(CC) $(OBJS) $(CFLAGS) -o LBeacon $(LIB) -lrt -lpthread -lmulticobex -lbfb -lbluetooth -lobexftp -lopenobex -lxbee -lwiringPi -lzlog
 LBeacon.o: LBeacon.c LBeacon.h

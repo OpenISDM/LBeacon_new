@@ -260,10 +260,10 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
     /* The address is new. */
 
         /* Allocate memory from memory pool for a new node, initialize the
-        node, and insert the new node to the scanned list and
-        tracked_BR_object_list if the address is that of a BR/EDR device,
+        node, and insert the new node to the scanned_list_head and
+        BR_object_list_head if the address is that of a BR/EDR device,
         else if it is a BLE device, insert the new node into the
-        tracked_BLE_object_list. */
+        BLE_object_list_head. */
 
 #ifdef Debugging
 
@@ -293,7 +293,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
 
         if(true == is_ble){
 
-            /* Insert the new node to the tracked_BLE_object_list */
+            /* Insert the new node to the BLE_object_list_head */
             insert_list_first(&temp_node->tr_list_entry,
                             &BLE_object_list_head.list_entry);
 
@@ -304,7 +304,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address, bool is_ble) {
             insert_list_first(&temp_node->sc_list_entry,
                             &scanned_list_head.list_entry);
 
-            /* Insert the new node to the track_BR_object_list  */
+            /* Insert the new node to the BR_object_list_head  */
             insert_list_first(&temp_node->tr_list_entry,
                             &BR_object_list_head.list_entry);
 
@@ -753,49 +753,38 @@ void *cleanup_scanned_list(void* param) {
     #endif
 
     while (true == ready_to_work) {
-        /*Check whether the list is empty */
-        while(true == ready_to_work){
-	    pthread_mutex_lock(&list_lock);
+        
+	pthread_mutex_lock(&list_lock);
 
-            is_empty = is_entry_list_empty(&scanned_list_head.list_entry);
-
-            pthread_mutex_unlock(&list_lock);
-
-            if(false == is_empty){
-		break;
-	    }
-
-            sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_CLEANUP_SCANNED_LIST_IN_SEC);
-        }
-
-        /* Go through list */
-        pthread_mutex_lock(&list_lock);
-
-        list_for_each_safe(list_pointers,
+        if(false == is_entry_list_empty(&scanned_list_head.list_entry)){
+   
+            list_for_each_safe(list_pointers,
                            save_list_pointers,
                            &scanned_list_head.list_entry){
 
+                temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
 
-            temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
-            /* If the device has been in the scanned list for at least 30
-            seconds, remove its struct node from the scanned list */
-            if (get_system_time() - temp->initial_scanned_time >
-            INTERVAL_HANDLE_SCANNED_LIST_IN_SEC){
+                /* If the device has been in the scanned list for at least 30
+                seconds, remove its struct node from the scanned list 
+                */
+                if (get_system_time() - temp->initial_scanned_time >
+                    INTERVAL_HANDLE_SCANNED_LIST_IN_SEC){
 
-                remove_list_node(&temp->sc_list_entry);
+                    remove_list_node(&temp->sc_list_entry);
 
-                /* If the node no longer is in the tracked_BR_object_lists,
-                free the space back to the memory pool. */
-
-                if(is_isolated_node(&temp->tr_list_entry)){
-            	    mp_free(&mempool, temp);
-
+                    /* If the node no longer is in the BR_object_list_head,
+                    free the space back to the memory pool. 
+                    */
+                    if(is_isolated_node(&temp->tr_list_entry)){
+            	        mp_free(&mempool, temp);
+                    }
                 }
-
-            }
+	    }
         }
 
         pthread_mutex_unlock(&list_lock);
+
+        sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_CLEANUP_SCANNED_LIST_IN_SEC);
 
     }//#end while
 
@@ -1057,9 +1046,6 @@ void *manage_communication(void* param){
 
             default:
 
-                /* Error happened. set network_is_down to true */
-                network_is_down = true;
-
                 break;
 
         }
@@ -1260,7 +1246,7 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list) {
 
     /* Remove nodes from the local list and release memory allocated to
        nodes that are also not in scanned_device_list */
-    free_list(&local_list_entry, device_type);
+    free_tracked_list(&local_list_entry, device_type);
 
     /* Close the file for storing data in the input list */
     fclose(track_file);
@@ -1314,7 +1300,7 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list, char *msg_buf, size_t m
         return WORK_SUCCESSFULLY;
 }
 
-void free_list(List_Entry *list_entry, DeviceType device_type){
+void free_tracked_list(List_Entry *list_entry, DeviceType device_type){
 
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp;
@@ -1322,26 +1308,28 @@ void free_list(List_Entry *list_entry, DeviceType device_type){
 
     pthread_mutex_lock(&list_lock);
 
-    list_for_each_safe(list_pointers,
-                       save_list_pointers,
-                       list_entry){
+    if(false == is_entry_list_empty(list_entry)){
+        list_for_each_safe(list_pointers,
+                           save_list_pointers,
+                           list_entry){
 
-	temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+    	    temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
 
-        remove_list_node(list_pointers);
+            remove_list_node(&temp->tr_list_entry);
 
-        if(BLE == device_type){
+            if(BLE == device_type){
 
-            mp_free(&mempool, temp);
-
-        }else{
-
-            /* If the node is no longer in scanned list, return the space
-             back to the memory pool. */
-	    if(is_isolated_node(&temp->sc_list_entry)){
                 mp_free(&mempool, temp);
-            }
 
+            }else{
+
+                /* If the node is no longer in scanned list, return the space
+                 back to the memory pool. */
+	        if(is_isolated_node(&temp->sc_list_entry)){
+                    mp_free(&mempool, temp);
+                }
+
+            }
         }
     }
 
@@ -1349,6 +1337,62 @@ void free_list(List_Entry *list_entry, DeviceType device_type){
 
     return;
 }
+
+void cleanup_list(List_Entry *list_entry, DeviceType device_type,
+                                        bool is_scanned_list){
+
+    struct List_Entry *list_pointers, *save_list_pointers;
+    ScannedDevice *temp;
+
+    pthread_mutex_lock(&list_lock);
+
+    /*Check whether the list is empty */
+    if(false == is_entry_list_empty(list_entry)){
+        /* Go throgth lists to release all memory allocated to the
+        nodes */
+
+        list_for_each_safe(list_pointers,
+                           save_list_pointers,
+                           list_entry){
+
+        /* If the input list_entry is used for scanned list, we should 
+           remove the node from sc_list_entry first. Otherwise, we remove 
+           the node from tr_list_entry.
+        */
+        if(is_scanned_list){
+            temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
+            remove_list_node(&temp->sc_list_entry);
+        }
+            temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+            remove_list_node(&temp->tr_list_entry);
+        }
+   
+        /* Because both scanned_list_head and BR_object_list_head use the 
+	   same node for two list_entry (sc_list_entry and tr_list_entry), 
+           if the device_type is BR_EDR, we should make sure the node is 
+           removed from the other list as well. 
+        */
+        if(BR_EDR == device_type){
+	    if(is_scanned_list){
+		if(false == is_isolated_node(&temp->tr_list_entry)){
+		    remove_list_node(&temp->tr_list_entry);
+		}
+            }else{
+		if(false == is_isolated_node(&temp->sc_list_entry)){
+		    remove_list_node(&temp->sc_list_entry);
+		}
+            }
+	}	
+
+	mp_free(&mempool, temp);
+
+    }
+    pthread_mutex_unlock(&list_lock);
+
+
+    return;
+}
+
 
 /* A static struct function that returns specific bluetooth BLE request. */
 const struct hci_request ble_hci_request(uint16_t ocf, int clen,
@@ -1850,79 +1894,14 @@ void *timeout_cleanup(void* param){
         be executed. */
         sleep(INTERVAL_FOR_CLEANUP_LISTS_IN_SEC);
 
-        /* If the network is down, set a timer to count down the specific time.
-        When timer expires, clean up and remove all the node. */
-        while(true == network_is_down){
+        if(get_system_time() - start_time >= INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_SEC){
 
-          if(get_system_time() - start_time >= INTERVAL_WATCHDOG_FOR_NETWORK_DOWN_IN_SEC){
-
-              pthread_mutex_lock(&list_lock);
-
-	      /*Check whether the list is empty */
-	      if(false == is_entry_list_empty(&scanned_list_head.list_entry)){
-                  /* Go throgth lists to release all memory allocated to the
-                  nodes */
-
-           	  list_for_each_safe(list_pointers,
-                                     save_list_pointers,
-                                     &scanned_list_head.list_entry){
-
-              	      temp = ListEntry(list_pointers, ScannedDevice,
-                                       sc_list_entry);
-                      remove_list_node(&temp->sc_list_entry);
-
-                      if(is_isolated_node(&temp->tr_list_entry)){
-		         mp_free(&mempool, temp);
-                      }
-                  }
-
-              }
-
-	      if(false == is_entry_list_empty(&BR_object_list_head.list_entry)){
-
-          	  list_for_each_safe(list_pointers,
-                                     save_list_pointers,
-                                     &BR_object_list_head.list_entry){
-
-                      temp = ListEntry(list_pointers, ScannedDevice,
-                                       tr_list_entry);
-
-                      remove_list_node(&temp->sc_list_entry);
-
-		      remove_list_node(list_pointers);
-
-                      if(is_isolated_node(&temp->sc_list_entry)){
-		           mp_free(&mempool, temp);
-                      }
-                  }
-
-              }
-
-	      if(false == is_entry_list_empty(&BLE_object_list_head.list_entry)){
-
-          	    list_for_each_safe(list_pointers,
-                                     save_list_pointers,
-                                     &BLE_object_list_head.list_entry){
-
-                      	temp = ListEntry(list_pointers, ScannedDevice,
-                                       tr_list_entry);
-
-              		remove_list_node(list_pointers);
-
-                      	mp_free(&mempool, temp);
-                  }
-
-              }
-
-	      pthread_mutex_unlock(&list_lock);
+	      cleanup_list(&scanned_list_head.list_entry, BR_EDR, true);
+	      cleanup_list(&BR_object_list_head.list_entry, BR_EDR, false);
+	      cleanup_list(&BLE_object_list_head.list_entry, BLE, false);
 
   	      start_time = get_system_time();
-
-          }
-
-
         }
-
     }
 
 #ifdef Debugging
@@ -1951,64 +1930,10 @@ void cleanup_exit(ErrorCode err_code){
         /* Go throgth all three lists to release all memory allocated
            to the nodes */
 
-        pthread_mutex_lock(&list_lock);
-
-        if(false == is_entry_list_empty(&scanned_list_head.list_entry)){
-
-	    list_for_each_safe(list_pointers,
-                       save_list_pointers,
-                       &scanned_list_head.list_entry){
-
-                temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
-
-                remove_list_node(list_pointers);
-
-            /* Make sure that the node is removed from the
-            tracked_BR_object_list. */
-                if(false == is_isolated_node(&temp->tr_list_entry)){
-		    remove_list_node(&temp->tr_list_entry);
-                }
-
-                mp_free(&mempool, temp);
-            }
-        }
-
-        if(false == is_entry_list_empty(&BR_object_list_head.list_entry)){
-
- 	    list_for_each_safe(list_pointers,
-                      save_list_pointers,
-                      &BR_object_list_head.list_entry){
-
-
-               temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
-
-               remove_list_node(list_pointers);
-
-            /* Make sure that the node is removed from the
-            scanned_list. */
-               if(false == is_isolated_node(&temp->sc_list_entry)){
-		     remove_list_node(&temp->sc_list_entry);
-               }
-
-               mp_free(&mempool, temp);
-           }
-        }
-
-        if(false == is_entry_list_empty(&BLE_object_list_head.list_entry)){
-            list_for_each_safe(list_pointers,
-                      save_list_pointers,
-                      &BLE_object_list_head.list_entry){
-
-                temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
-
-                remove_list_node(list_pointers);
-
-                mp_free(&mempool, temp);
-            }
-        }
-
-        pthread_mutex_unlock(&list_lock);
-
+	cleanup_list(&scanned_list_head.list_entry, BR_EDR, true);
+	cleanup_list(&BR_object_list_head.list_entry, BR_EDR, false);
+	cleanup_list(&BLE_object_list_head.list_entry, BLE, false);
+        
         mp_destroy(&mempool);
     }
 
@@ -2067,7 +1992,6 @@ int main(int argc, char **argv) {
 
     /*Initialize the global flag */
     ready_to_work = true;
-    network_is_down = false;
 
     /* Initialize the lock for accessing the lists */
     pthread_mutex_init(&list_lock,NULL);
