@@ -121,12 +121,6 @@ Authors:
 #define FILE_NAME_BUFFER 64
 
 
-/* Time interval in seconds of a bluetooth device stays in the
-   scanned device list. This time interval is for
-   cleanup_scanned_list function
-*/
-#define INTERVAL_HANDLE_SCANNED_LIST_IN_SEC 30
-
 /* Timeout in milliseconds of hci_send_req funtion */
 #define HCI_SEND_REQUEST_TIMEOUT_IN_MS 1000
 
@@ -134,14 +128,17 @@ Authors:
 #define INTERVAL_ADVERTISING_IN_MS 3000
 
 /* Time interval in seconds for cleanup scanned_list_head. The decision 
-is made by manage_communication thread and it will notify 
-cleanup_scanned_list thread to do the taks.
+is made by main thread and it will notify cleanup_scanned_list thread 
+to do the cleanup task.
 */
 #define INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC 30
 
 /* Time interval in seconds for idle status in Wifi connection between
-LBeacon and gateway. When this situation happens, LBeacon will send
-join requset to gateway again. */
+LBeacon and gateway. Usually, it situation is impossible in BeDIS Object
+tracker solution, so we treat it as network connetion failure scenario 
+right now. In this situation, LBeacon sends UDP join_requset to gateway 
+again to receive gateway's packets and notifies timeout_cleanup thread 
+to do the cleanup task. */
 #define INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC 180
 
 
@@ -151,6 +148,9 @@ join requset to gateway again. */
 
 /* RSSI value of TX power for calibration and broadcast  */
 #define RSSI_VALUE -50
+
+/* Number of characters in a Bluetooth device */
+#define LENGTH_OF_DEVICE_NAME 30
 
 /* Number of characters in a Bluetooth MAC address */
 #define LENGTH_OF_MAC_ADDRESS 18

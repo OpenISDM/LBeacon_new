@@ -776,11 +776,11 @@ void *cleanup_scanned_list(void* param) {
                 temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
 
                 /* If the device has been in the scanned list for at least
- 		INTERVAL_HANDLE_SCANNED_LIST_IN_SEC
+		INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC
                 seconds, remove its struct node from the scanned list 
                 */
                 if (get_system_time() - temp->initial_scanned_time >
-                    INTERVAL_HANDLE_SCANNED_LIST_IN_SEC){
+                    INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC){
 
                     remove_list_node(&temp->sc_list_entry);
 
@@ -1664,7 +1664,7 @@ void *start_ble_scanning(void *param){
     int i=0;
     uint8_t reports_count;
     void * offset = NULL;
-    char name[30];
+    char name[LENGTH_OF_DEVICE_NAME];
     int rssi;
     bool keep_scanning;
 
@@ -1893,7 +1893,7 @@ void *start_br_scanning(void* param) {
     int results_id; /*ID of the result */
     int retry_time = 0;
     bool keep_scanning;
-    char name[30];
+    char name[LENGTH_OF_DEVICE_NAME];
     int rssi;
 
 #ifdef Debugging
@@ -2428,12 +2428,11 @@ int main(int argc, char **argv) {
 
            In this way, the appearance of a single node (used by both
 	   scanned device and BR_EDR device at the same time) in 
-	   scanned_list_head list will not be longer than the time below, 
-           and this prevents blocking BR_EDR devices from being inserted 
-	   into BR_object_list_head.
-
-	   INTERVAL_FOR_CLEANUP_SCANEED_LIST_IN_SEC + 
-	   INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC
+	   scanned_list_head list will not be longer than the time
+           (2 * INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC) and this is 
+	   also the worse case in which the existing node in 
+	   scanned_list_head blocks the BR_EDR devices from being 
+	   inserted into BR_object_list_head.
 	*/
 	if(get_system_time() - cln_scanned_list_last_time > 
 		INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC){
