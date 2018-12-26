@@ -120,9 +120,6 @@ Authors:
 /* Maximum number of characters in message file name */
 #define FILE_NAME_BUFFER 64
 
-/* Length in number of chars used for basic information */
-#define LENGTH_OF_INFO 128
-
 
 /* Time interval in seconds of a bluetooth device stays in the
    scanned device list. This time interval is for
@@ -164,9 +161,15 @@ join requset to gateway again. */
 /* Number of worker threads in the thread pool used by communication unit */
 #define NUM_WORK_THREADS 4
 
-/* Location data of the maximum number of each type of objects (BR or BLE)
-   to be transmitted at one time over wife network link */
-#define MAX_NUM_OBJECTS 10
+/* Maximum length of basic info of each response to gateway via wifi 
+network link.*/
+
+#define MAX_LENGTH_RESP_BASIC_INFO 128
+
+/* Maximum length of device information of each response to gateway via wifi 
+network link.*/
+
+#define MAX_LENGTH_RESP_DEVICE_INFO 50
 
 
 /* The macro of comparing two integer for minimum */
@@ -665,6 +668,10 @@ void *manage_communication(void *param);
                   list.
       list - head of the tracked object list from which data is to be
              copied.
+      max_num_objects - the maximum number of objects to be consolidated at
+		one time
+      used_objects - used for return value to let caller know how many 
+		objects were consolidated in this function.
 
   Return value:
 
@@ -672,7 +679,9 @@ void *manage_communication(void *param);
                   fails or WORK SUCCESSFULLY otherwise
 */
 
-ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list);
+ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list,
+					const int max_num_objects,
+					int *used_objects);
 
 
 /*
@@ -691,6 +700,11 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list);
       msg_buf - message buffer to contain the consolidated data
 
       msg_size - size of bytes of msg_buf
+     
+      max_num_objects - the maximum number of objects to be consolidated at
+		one time
+      used_objects - used for return value to let caller know how many 
+		objects were consolidated in this function.
 
   Return value:
 
@@ -699,7 +713,9 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list);
 */
 
 ErrorCode consolidate_tracked_data(ObjectListHead *list, 
-					char *msg_buf, size_t msg_size);
+					char *msg_buf, size_t msg_size,
+					const int max_num_objects,
+					int *used_objects);
 
 /*
   free_tracked_list:

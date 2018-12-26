@@ -112,9 +112,6 @@ is possibily transient failed.*/
 /* The maxinum length in bytes of the message to be sent over zigbee link */
 #define ZIG_MESSAGE_LENGTH 104
 
-/* Maximum length of message to be sent over WiFi in bytes */
-#define WIFI_MESSAGE_LENGTH 4096
-
 /* define the size of array to store Wi-Fi SSID */
 #define WIFI_SSID_LENGTH 10
 
