@@ -142,16 +142,10 @@ cleanup_scanned_list thread to do the taks.
 */
 #define INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC 30
 
-/* Time interval in seconds for cleanup all lists. The decision 
-is made by manage_communication thread and it will notify 
-timeout_cleanup thread to do the taks.
-*/
-#define INTERVAL_FOR_CLEANUP_ALL_LISTS_IN_SEC 600
-
 /* Time interval in seconds for idle status in Wifi connection between
 LBeacon and gateway. When this situation happens, LBeacon will send
 join requset to gateway again. */
-#define INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC 300
+#define INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC 180
 
 
 /* Nominal transmission range limit. Only devices in this RSSI range are
@@ -363,6 +357,8 @@ we should clean up all lists to have more free memory space.
 */
 bool reach_cln_all_lists;
 
+/* The latest time on which LBeacon cleanup nodes inside scanned list */
+long long cln_scanned_list_last_time;
 #ifdef Bluetooth_classic
 
 /* Path of the object push file */

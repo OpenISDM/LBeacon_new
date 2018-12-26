@@ -788,6 +788,8 @@ void *cleanup_scanned_list(void* param) {
         }
 
         pthread_mutex_unlock(&list_lock);
+        
+        cln_scanned_list_last_time = get_system_time();
 
     }//#end while
 
@@ -912,33 +914,15 @@ void *manage_communication(void* param){
 #endif
 	    }
 
-	    /* If network connection to gateway has failed for long time, we should 
-		notify cleanup_scanned_list thread to remove old nodes from 
-	        scanned_list_head.
-	    */
-
-	    if(get_system_time() - gateway_latest_time > 
-		INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC){
-		
-		pthread_mutex_lock(&exec_lock);
-		reach_cln_scanned_list = true;
-		pthread_cond_signal(&cond_cln_scanned_list);
-		pthread_mutex_unlock(&exec_lock);
-	    }
-
-	    /* If network connection to gateway has failed for very long time, we should 
+	    /* Because network connection has failed for long time, we should 
 		notify timeout_cleanup thread to remove nodes from all lists.
 	    */
+	    pthread_mutex_lock(&exec_lock);
 
-	    if(get_system_time() - gateway_latest_time > 
-		INTERVAL_FOR_CLEANUP_ALL_LISTS_IN_SEC){
-		
-		pthread_mutex_lock(&exec_lock);
-		reach_cln_all_lists = true;
-		pthread_cond_signal(&cond_cln_all_lists);
-		pthread_mutex_unlock(&exec_lock);
-	    }
+	    reach_cln_all_lists = true;
+	    pthread_cond_signal(&cond_cln_all_lists);
 
+	    pthread_mutex_unlock(&exec_lock);
 	}
 
 	/* sleep a short time to prevent occupying CPU in this busy while loop.
@@ -2302,8 +2286,33 @@ int main(int argc, char **argv) {
         cleanup_exit(return_value);
     }
 
+    cln_scanned_list_last_time = get_system_time();
     while (true == ready_to_work) {
         sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
+	
+	/* If it reaches the time interval of cleaning up scanned list, 
+           we should notify cleanup_scanned_list thread to remove old 
+           nodes from scanned_list_head.
+
+           In this way, the appearance of a single node (used by both
+	   scanned device and BR_EDR device at the same time) in 
+	   scanned_list_head list will not be longer than the time below, 
+           and this prevents blocking BR_EDR devices from being inserted 
+	   into BR_object_list_head.
+
+	   INTERVAL_FOR_CLEANUP_SCANEED_LIST_IN_SEC + 
+	   INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC
+	*/
+	if(get_system_time() - cln_scanned_list_last_time > 
+		INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC){
+		
+	    pthread_mutex_lock(&exec_lock);
+
+	    reach_cln_scanned_list = true;
+	    pthread_cond_signal(&cond_cln_scanned_list);
+
+	    pthread_mutex_unlock(&exec_lock);
+	}
     }
 
     /* When signal is received, disable message advertising */
