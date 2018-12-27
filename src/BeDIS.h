@@ -222,7 +222,6 @@ union {
 
     float f;
     unsigned char b[sizeof(float)];
-    int d[2];
 
 } coordinate_X;
 
