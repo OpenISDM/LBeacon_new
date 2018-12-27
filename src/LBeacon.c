@@ -77,10 +77,10 @@ ErrorCode get_config(Config *config, char *file_name) {
 	}
     }
     if (NULL == file) {
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
                     "Error openning file");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
                     "Error openning file");
 #endif
         return E_OPEN_FILE;
@@ -169,7 +169,7 @@ ErrorCode get_config(Config *config, char *file_name) {
             coordinate_Y.b[1], coordinate_Y.b[2], coordinate_Y.b[3]);
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_info(category_debug,
                     "Generated UUID: [%s]", config->uuid);
 #endif
 
@@ -201,7 +201,7 @@ ErrorCode get_config(Config *config, char *file_name) {
     config->local_client_port = atoi(config_message);
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_info(category_debug,
                     "Gateway conn: addr=[%s], port=[%d], client_port=[%d]", 
 			config->gateway_addr, config->gateway_port, 
 			config->local_client_port);
@@ -238,7 +238,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
 
     }else{
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
                     "Unknown device_type=[%d]", device_type);
 #endif
         return;
@@ -415,10 +415,10 @@ ErrorCode enable_advertising(int advertising_interval,
 	}
     }
     if (dongle_device_id < 0){
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
 		"Error openning the device");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
 		"Error openning the device");
 #endif
         return E_OPEN_DEVICE;
@@ -434,10 +434,10 @@ ErrorCode enable_advertising(int advertising_interval,
 	}
     }
     if (device_handle < 0) {
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
 		"Error openning socket");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
 		"Error openning socket");
 #endif
         return E_OPEN_DEVICE;
@@ -468,12 +468,12 @@ ErrorCode enable_advertising(int advertising_interval,
 
 #ifdef Debugging
 
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
                    "Can't send request %s (%d)", strerror(errno),
                    errno);
 
 #endif
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
                   "Can't send request %s (%d)", strerror(errno),
                   errno);
 
@@ -502,11 +502,11 @@ ErrorCode enable_advertising(int advertising_interval,
         hci_close_dev(device_handle);
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
                    "Can't send request %s (%d)", strerror(errno),
                    errno);
 #endif
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
                   "Can't send request %s (%d)", strerror(errno),
                   errno);
         return E_SEND_REQUEST_TIMEOUT;
@@ -606,11 +606,11 @@ ErrorCode enable_advertising(int advertising_interval,
         /* Error handling */
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
                    "Can't send request %s (%d)", strerror(errno),
                    errno);
 #endif
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
                   "Can't send request %s (%d)", strerror(errno),
                   errno);
 
@@ -621,10 +621,10 @@ ErrorCode enable_advertising(int advertising_interval,
         /* Error handling */
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
                    "LE set advertise returned status %d", status);
 #endif
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
                   "LE set advertise returned status %d", status);
 
         return E_ADVERTISE_STATUS;
@@ -655,10 +655,10 @@ ErrorCode disable_advertising() {
     }
 
     if (dongle_device_id < 0) {
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
 		"Error openning the device");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
 		"Error openning the device");
 #endif
         return E_OPEN_DEVICE;
@@ -674,10 +674,10 @@ ErrorCode disable_advertising() {
     }
 
     if (device_handle < 0) {
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
 		"Error openning socket");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
 		"Error openning socket");
 #endif
         return E_OPEN_DEVICE;
@@ -704,11 +704,11 @@ ErrorCode disable_advertising() {
 
         /* Error handling */
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
                    "Can't set advertise mode: %s (%d)",
                    strerror(errno), errno);
 #endif
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
                   "Can't set advertise mode: %s (%d)",
                   strerror(errno), errno);
 
@@ -719,11 +719,11 @@ ErrorCode disable_advertising() {
 
         /* Error handling */
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
                    "LE set advertise enable on returned status %d",
                    status);
 #endif
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
                   "LE set advertise enable on returned status %d",
                   status);
 
@@ -760,7 +760,7 @@ void *cleanup_scanned_list(void* param) {
 
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_info(category_debug,
             "cleanup scanned list in cleanup_scanned_list function");
 #endif	
 
@@ -838,8 +838,12 @@ int beacon_basic_info(char *message, size_t message_size, int polled_type){
 	exceed our expected length
     */
     if(strlen(message) > MAX_LENGTH_RESP_BASIC_INFO){
+        zlog_error(category_health_report,
+            "Error in beacon_basic_info(), the length of basic information "
+            "is [%d], and limitation is [%d].",
+	    strlen(message), MAX_LENGTH_RESP_BASIC_INFO);
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
             "Error in beacon_basic_info(), the length of basic information "
             "is [%d], and limitation is [%d].",
 	    strlen(message), MAX_LENGTH_RESP_BASIC_INFO);
@@ -895,10 +899,10 @@ void *manage_communication(void* param){
 	    }
         }
     }else{
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
 	    "Unable to initialize thread pool in manage_communication");	
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
 	    "Unable to initialize thread pool in manage_communication");	
 #endif
 	return;
@@ -920,17 +924,21 @@ void *manage_communication(void* param){
 	if(get_system_time() - gateway_latest_time > 
 		INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC){
 #ifdef Debugging
-            zlog_debug(category_debug,
+            zlog_info(category_debug,
 	        "Send requets_to_join to gateway again");	
 #endif
 
             memset(message, 0, sizeof(message)); 
 	    if(0 != beacon_basic_info(message, sizeof(message), 
 			request_to_join)){
+
+                zlog_error(category_health_report,
+	            "Unable to prepare basic information for response. "
+		    "Abort sending this response to gateway.");	
 #ifdef Debugging
-            zlog_debug(category_debug,
-	        "Unable to prepare basic information for response. "
-		"Abort sending this response to gateway.");	
+                zlog_error(category_debug,
+	            "Unable to prepare basic information for response. "
+		    "Abort sending this response to gateway.");	
 #endif	
 		continue;	
 	    }
@@ -941,11 +949,11 @@ void *manage_communication(void* param){
 
 	    if(pkt_Queue_SUCCESS != ret_val)
 	    {
-        	zlog_info(category_health_report,
+        	zlog_error(category_health_report,
 	    	    "Unable to add packet to queue, error=[%d]", 
 		    ret_val);
 #ifdef Debugging
-        	zlog_debug(category_debug,
+        	zlog_error(category_debug,
 	    	    "Unable to add packet to queue, error=[%d]", 
 		    ret_val);
 #endif
@@ -988,14 +996,14 @@ void *manage_communication(void* param){
         switch(polled_type){
 	    case join_request_ack:
 #ifdef Debugging
-        	zlog_debug(category_debug,
+        	zlog_info(category_debug,
 	    	    "Receive join_request_ack from gateway");
 #endif
 		break;
 
             case tracked_object_data:
 #ifdef Debugging
-        	zlog_debug(category_debug,
+        	zlog_info(category_debug,
 	    	    "Receive tracked_object_data from gateway");
 #endif
   		/* return directly, if both BR and BLE tracked list is 
@@ -1037,8 +1045,11 @@ void *manage_communication(void* param){
 						max_objects,
 						&used_objects)){
 
+        	zlog_error(category_health_report,
+	    	    "Unable to consolidate BR_EDR devices, abort BR_EDR "
+		    "devices this time.");
 #ifdef Debugging
-        	zlog_debug(category_debug,
+        	zlog_error(category_debug,
 	    	    "Unable to consolidate BR_EDR devices, abort BR_EDR "
 		    "devices this time.");
 #endif	
@@ -1058,8 +1069,12 @@ void *manage_communication(void* param){
 						sizeof(msg_temp_two),
 						max_objects,
 						&used_objects)){
+
+        	zlog_error(category_health_report,
+	    	    "Unable to consolidate BLE devices, abort BR_EDR "
+		    "devices this time.");
 #ifdef Debugging
-        	zlog_debug(category_debug,
+        	zlog_error(category_debug,
 	    	    "Unable to consolidate BLE devices, abort BR_EDR "
 		    "devices this time.");
 #endif	
@@ -1069,8 +1084,12 @@ void *manage_communication(void* param){
 
 	        if(0 != beacon_basic_info(message, sizeof(message), 
 				tracked_object_data)){
+
+                    zlog_error(category_health_report,
+	        	"Unable to prepare basic information for response. "
+			"Abort sending this response to gateway.");	
 #ifdef Debugging
-                    zlog_debug(category_debug,
+                    zlog_error(category_debug,
 	        	"Unable to prepare basic information for response. "
 			"Abort sending this response to gateway.");	
 #endif	
@@ -1089,25 +1108,25 @@ void *manage_communication(void* param){
 
 	    	    if(pkt_Queue_SUCCESS != ret_val)
 	    	    {
-        		zlog_info(category_health_report,
+        		zlog_error(category_health_report,
 	    	    	    "Unable to add packet to queue, error=[%d]", 
 			    ret_val);
 #ifdef Debugging
-        		zlog_debug(category_debug,
+        		zlog_error(category_debug,
 	    	    	    "Unable to add packet to queue, error=[%d]", 
 			    ret_val);
 #endif
 	    	    }
 
 		}else{
-        		zlog_info(category_health_report,
+        		zlog_error(category_health_report,
 	    	    	    "Abort BR/BLE tracked data, because there is "
 			    "potential buffer overflow. strlen(message)=%d, "
 			    "strlen(msg_temp_one)=%d,strlen(msg_temp_two)=%d",
 			     strlen(message), strlen(msg_temp_one), 
 			     strlen(msg_temp_two));
 #ifdef Debugging
-        		zlog_debug(category_debug,
+        		zlog_error(category_debug,
 	    	    	    "Abort BR/BLE tracked data, because there is "
 			    "potential buffer overflow. strlen(message)=%d, "
 			    "strlen(msg_temp_one)=%d,strlen(msg_temp_two)=%d",
@@ -1120,7 +1139,7 @@ void *manage_communication(void* param){
 
             case health_report:
 #ifdef Debugging
-        	zlog_debug(category_debug,
+        	zlog_info(category_debug,
 	    	    "Receive health_report from gateway");
 #endif
 
@@ -1135,10 +1154,10 @@ void *manage_communication(void* param){
     		}
 
 		if(NULL == health_file){
-       		    zlog_info(category_health_report,
+       		    zlog_error(category_health_report,
 	    	    	"Error openning file");
 #ifdef Debugging
-        	    zlog_debug(category_debug,
+        	    zlog_error(category_debug,
 	    	    	"Error openning file");
 #endif
 			
@@ -1147,9 +1166,14 @@ void *manage_communication(void* param){
                     memset(message, 0, sizeof(message));
 	            
 		    if(0!=beacon_basic_info(message, sizeof(message), 
-				health_report)){		
+				health_report)){	
+	
+	                zlog_error(category_health_report,
+	        	    "Unable to prepare basic information for "
+			    "response. Abort sending this response to "
+			    "gateway.");	
 #ifdef Debugging
-	                zlog_debug(category_debug,
+	                zlog_error(category_debug,
 	        	    "Unable to prepare basic information for "
 			    "response. Abort sending this response to "
 			    "gateway.");	
@@ -1177,11 +1201,11 @@ void *manage_communication(void* param){
 
 	    	        if(pkt_Queue_SUCCESS != ret_val)
 	    	        {
-        		    zlog_info(category_health_report,
+        		    zlog_error(category_health_report,
 	    	    	        "Unable to add packet to queue, error=[%d]", 
 				ret_val);
 #ifdef Debugging
-        		    zlog_debug(category_debug,
+        		    zlog_error(category_debug,
 	    	    	        "Unable to add packet to queue, error=[%d]", 
 				ret_val);
 #endif
@@ -1189,14 +1213,14 @@ void *manage_communication(void* param){
 
 		    }else{
 
-        		zlog_info(category_health_report,
+        		zlog_error(category_health_report,
 	    	    	    "Abort health report data, because there is "
 			    "potential buffer overflow. strlen(message)=%d, "
 			    "strlen(msg_temp_one)=%d", 
 			    strlen(message), strlen(msg_temp_one));
 
 #ifdef Debugging
-        		zlog_debug(category_debug,
+        		zlog_error(category_debug,
 	    	    	    "Abort health report data, because there is "
 			    "potential buffer overflow. strlen(message)=%d, "
 			    "strlen(msg_temp_one)=%d",
@@ -1209,7 +1233,7 @@ void *manage_communication(void* param){
 
             default:
 #ifdef Debugging
-        	zlog_debug(category_debug,
+        	zlog_warn(category_debug,
 	    	    "Receive unknown packet type=[%d] from gateway", 
 			polled_type);
 #endif
@@ -1283,10 +1307,10 @@ ErrorCode copy_object_data_to_file(char *file_name,
         }
     }
     if(NULL == track_file){
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
             "Error openning file");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
             "Error openning file");
 #endif
         return E_OPEN_FILE;
@@ -1438,8 +1462,12 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list,
     /* Check the input parameter if is valid */
     if(list != &BR_object_list_head &&
         list != &BLE_object_list_head){
+
+        zlog_error(category_health_report, 
+	    "Error of invalid input parameter, list is neither BR "
+	    "nor BLE list");
 #ifdef Debugging
-        zlog_debug(category_debug, 
+        zlog_error(category_debug, 
 	    "Error of invalid input parameter, list is neither BR "
 	    "nor BLE list");
 #endif
@@ -1452,8 +1480,11 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list,
     else if(BLE == list->device_type)
 	file_name = TRACKED_BLE_TXT_FILE_NAME;
     else{
+        zlog_error(category_health_report, 
+	    "Error of invalid input parameter, list device_type=[%d]",
+	    list->device_type);
 #ifdef Debugging
-        zlog_debug(category_debug, 
+        zlog_error(category_debug, 
 	    "Error of invalid input parameter, list device_type=[%d]",
 	    list->device_type);
 #endif
@@ -1477,11 +1508,11 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list,
 	    }
         }
         if (NULL == file_fd){
-            zlog_info(category_health_report, 
-	    "Error openning file");
+            zlog_error(category_health_report, 
+	        "Error openning file");
 #ifdef Debugging
-            zlog_debug(category_debug, 
-	    "Error openning file");
+            zlog_error(category_debug, 
+	        "Error openning file");
 #endif
 	    return E_OPEN_FILE;
 	}
@@ -1685,10 +1716,10 @@ void *start_ble_scanning(void *param){
 	    }
         }
         if (dongle_device_id < 0) {
-            zlog_info(category_health_report,
+            zlog_error(category_health_report,
                 "Error openning the device");
 #ifdef Debugging
-            zlog_debug(category_debug,
+            zlog_error(category_debug,
                 "Error openning the device");
 #endif
             return;
@@ -1704,10 +1735,10 @@ void *start_ble_scanning(void *param){
 	    }
         }
         if (socket < 0) {
-            zlog_info(category_health_report,
+            zlog_error(category_health_report,
                 "Error openning socket");
 #ifdef Debugging
-            zlog_debug(category_debug,
+            zlog_error(category_debug,
                 "Error openning socket");
 #endif
              return;
@@ -1788,10 +1819,10 @@ void *start_ble_scanning(void *param){
           /* Error handling */
             hci_close_dev(socket);
             
-	    zlog_info(category_health_report,
+	    zlog_error(category_health_report,
                 "Error setting HCI filter");
 #ifdef Debugging
-            zlog_debug(category_debug,
+            zlog_error(category_debug,
                 "Error setting HCI filter");
 #endif
         }
@@ -1848,10 +1879,10 @@ void *start_ble_scanning(void *param){
         if ( ret < 0 ) {
             hci_close_dev(socket);
 
-	    zlog_info(category_health_report,
+	    zlog_error(category_health_report,
             	"Error sending HCI request");
 #ifdef Debugging
-	    zlog_debug(category_debug,
+	    zlog_error(category_debug,
             	"Error sending HCI request");
 #endif
             return 0;
@@ -1913,10 +1944,10 @@ void *start_br_scanning(void* param) {
         }
         if(dongle_device_id < 0){
 
-            zlog_info(category_health_report,
+            zlog_error(category_health_report,
                 "Error openning the device");
 #ifdef Debugging
-            zlog_debug(category_debug,
+            zlog_error(category_debug,
                 "Error openning the device");
 #endif
             return;
@@ -1932,10 +1963,10 @@ void *start_br_scanning(void* param) {
         }
 
         if (socket < 0 ){
-            zlog_info(category_health_report,
+            zlog_error(category_health_report,
                 "Error openning socket");
 #ifdef Debugging
-            zlog_debug(category_debug,
+            zlog_error(category_debug,
                 "Error openning socket");
 #endif
             return;
@@ -1951,10 +1982,10 @@ void *start_br_scanning(void* param) {
 
         if (0 > setsockopt(socket, SOL_HCI, HCI_FILTER, &filter,
                         sizeof(filter))) {
-            zlog_info(category_health_report,
+            zlog_error(category_health_report,
                 "Error setting HCI filter");
 #ifdef Debugging
-            zlog_debug(category_debug,
+            zlog_error(category_debug,
                 "Error setting HCI filter");
 #endif
 
@@ -1969,10 +2000,10 @@ void *start_br_scanning(void* param) {
             		WRITE_INQUIRY_MODE_RP_SIZE, &inquiry_copy)) {
 
             /* Error handling */
-            zlog_info(category_health_report,
+            zlog_error(category_health_report,
                 "Error setting inquiry mode");
 #ifdef Debugging
-            zlog_debug(category_debug,
+            zlog_error(category_debug,
                 "Error setting inquiry mode");
 #endif
             hci_close_dev(socket);
@@ -2001,10 +2032,10 @@ void *start_br_scanning(void* param) {
 			INQUIRY_CP_SIZE, &inquiry_copy)) {
 
             /* Error handling */
-            zlog_info(category_health_report,
+            zlog_error(category_health_report,
                 "Error starting inquiry");
 #ifdef Debugging
-            zlog_debug(category_debug,
+            zlog_error(category_debug,
                 "Error starting inquiry");
 #endif
 
@@ -2139,7 +2170,7 @@ void *timeout_cleanup(void* param){
 	pthread_mutex_unlock(&exec_lock);
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_info(category_debug,
             "cleanup all lists in timeout_cleanup function");
 #endif	
 	cleanup_list(&scanned_list_head, true);
@@ -2171,6 +2202,10 @@ void cleanup_exit(ErrorCode err_code){
 
         /* Go throgth all three lists to release all memory allocated
            to the nodes */
+#ifdef Debugging
+        zlog_info(category_debug,
+            "cleanup all lists in cleanup_exit function");
+#endif	
 
 	cleanup_list(&scanned_list_head, true);
 	cleanup_list(&BR_object_list_head, false);
@@ -2230,10 +2265,10 @@ int main(int argc, char **argv) {
     /* Load config struct */
     return_value = get_config(&g_config, CONFIG_FILE_NAME);
     if(WORK_SUCCESSFULLY != return_value){
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
             "Error openning file");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
             "Error openning file");
 #endif
         return E_OPEN_FILE;
@@ -2258,10 +2293,10 @@ int main(int argc, char **argv) {
     if(mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_IN_MEM_POOL)
             != MEMORY_POOL_SUCCESS){
         
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
             "Error allocating memory");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
             "Error allocating memory");
 #endif
     }
@@ -2274,10 +2309,10 @@ int main(int argc, char **argv) {
     return_value = Wifi_init(&udp_config);
     if(WORK_SUCCESSFULLY != return_value){
 
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
             "Error initializing network connection to gateway");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
             "Error initializing network connection to gateway");
 #endif
     }
@@ -2297,10 +2332,10 @@ int main(int argc, char **argv) {
     sigint_handler.sa_flags = 0;
 
     if (-1 == sigaction(SIGINT, &sigint_handler, NULL)) {
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
             "Error registering signal handler for SIGINT");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
             "Error registering signal handler for SIGINT");
 #endif
     }
@@ -2313,10 +2348,10 @@ int main(int argc, char **argv) {
                                start_br_scanning, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
             "Error creating thread");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
             "Error creating thread");
 #endif
     }
@@ -2329,10 +2364,10 @@ int main(int argc, char **argv) {
                                start_ble_scanning, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
             "Error creating thread");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
             "Error creating thread");
 #endif
     }
@@ -2345,10 +2380,10 @@ int main(int argc, char **argv) {
                                cleanup_scanned_list, &scanned_list_head);
 
     if(return_value != WORK_SUCCESSFULLY){
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
             "Error creating thread");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
             "Error creating thread");
 #endif
     }
@@ -2361,10 +2396,10 @@ int main(int argc, char **argv) {
                                manage_communication, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
             "Error creating thread");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
             "Error creating thread");
 #endif
     }
@@ -2377,10 +2412,10 @@ int main(int argc, char **argv) {
                                timeout_cleanup, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
             "Error creating thread");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
             "Error creating thread");
 #endif
     }
@@ -2389,7 +2424,7 @@ int main(int argc, char **argv) {
     zlog_info(category_health_report,
                   "All the threads are created.");
 #ifdef Debugging
-    zlog_debug(category_debug, "All the threads are created.");
+    zlog_info(category_debug, "All the threads are created.");
 #endif
 
 
@@ -2405,12 +2440,12 @@ int main(int argc, char **argv) {
 
     if (WORK_SUCCESSFULLY != return_value){
 
-        zlog_info(category_health_report,
+        zlog_error(category_health_report,
             "Unable to enable advertising. Please make sure "
             "all the hardware devices are ready and try again.");
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
             "Unable to enable advertising. Please make sure "
             "all the hardware devices are ready and try again.");
 #endif
