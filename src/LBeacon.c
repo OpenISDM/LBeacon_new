@@ -313,10 +313,6 @@ struct ScannedDevice *check_is_in_list(char address[],
     /* Create a temporary list pointer and set as the head */
     struct List_Entry *list_pointers;
     ScannedDevice *temp = NULL;
-    int number_in_list = get_list_length(&list->list_entry);
-    int len = 0;
-    char *addr_last_digits = NULL;
-    char *temp_last_digits = NULL;
     bool temp_is_null = true;
     bool is_empty = false;
 
@@ -358,17 +354,13 @@ struct ScannedDevice *check_is_in_list(char address[],
 		break;
         }
 
-        len = strlen(address);
-
-        addr_last_digits = &address[len - NUM_DIGITS_TO_COMPARE];
-        temp_last_digits =
-                     &temp->scanned_mac_address[len - NUM_DIGITS_TO_COMPARE];
-
-        /* Compare the first and the last digits of the MAC address */
-        if ((false == strncmp(address, temp->scanned_mac_address,
+        /* Compare the first NUM_DIGITS_TO_COMPARE characters and only
+	   compare the whole MAC address if it matches the first part.
+	*/
+        if ((0 == strncmp(address, temp->scanned_mac_address,
                       NUM_DIGITS_TO_COMPARE))&&
-            (false == strncmp(addr_last_digits, temp_last_digits,
-                      NUM_DIGITS_TO_COMPARE))) {
+            (0 == strncmp(address, temp->scanned_mac_address,
+		      strlen(address)))) {
 
             /* Update the final scan time */
             temp->final_scanned_time = get_system_time();

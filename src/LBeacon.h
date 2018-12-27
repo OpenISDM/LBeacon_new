@@ -156,7 +156,7 @@ to do the cleanup task. */
 #define LENGTH_OF_MAC_ADDRESS 18
 
 /* Number of digits of MAC address to compare */
-#define NUM_DIGITS_TO_COMPARE 2
+#define NUM_DIGITS_TO_COMPARE 4
 
 /* Number of worker threads in the thread pool used by communication unit */
 #define NUM_WORK_THREADS 4
