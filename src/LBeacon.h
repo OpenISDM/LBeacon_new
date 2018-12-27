@@ -341,27 +341,15 @@ pthread_mutex_t  list_lock;
 pthread_mutex_t  exec_lock;
 
 /* The pthread condition variable identifing that the network connection has 
-been failed for too long, and we should cleanup the scanned list 
-*/
-pthread_cond_t  cond_cln_scanned_list;
-
-/* The pthread condition variable identifing that the network connection has 
 been failed for too long, and we should cleanup all lists 
 */
 pthread_cond_t  cond_cln_all_lists;
-
-/* The flag used to identify the LBeacon has reaches the condition in which 
-we should clean up scanned_list_head to have more free memory space.
-*/
-bool reach_cln_scanned_list;
 
 /* The flag used to identify the LBeacon has reaches the condition in which 
 we should clean up all lists to have more free memory space.
 */
 bool reach_cln_all_lists;
 
-/* The latest time on which LBeacon cleanup nodes inside scanned list */
-long long cln_scanned_list_last_time;
 #ifdef Bluetooth_classic
 
 /* Path of the object push file */
@@ -585,29 +573,6 @@ ErrorCode disable_advertising();
 */
 
 int beacon_basic_info(char *message, size_t message_size, int polled_type);
-
-
-/*
-  cleanup_scanned_list:
-
-      This function checks each ScannedDevice node in the scanned list to
-      determine whether the node has been in the list for over TIMEOUT unit
-      of time. If yes, the function removes the ScannedDevice struct from
-      the list. If the struct is no longer in the tracked_object_list also,
-      the function calls the memory pool to release the memory space used by
-      the struct.
-
-  Parameters:
-
-      param - not used. This parameter is defined to meet the definition of
-              pthread_create() function
-
-  Return value:
-
-      None
-*/
-
-void *cleanup_scanned_list(void *param);
 
 
 /*

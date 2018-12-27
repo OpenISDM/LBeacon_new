@@ -233,7 +233,11 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
         temp_node = check_is_in_list(address, &BLE_object_list_head);
 
     }else if(BR_EDR == device_type){
-
+	/* BR_EDR device (BR_object_list_head) and BR_EDR phone (feature phone)
+           (scanned_list_head) are using the same memory node currently and we 
+           guarantee that scanned_list_head has distinct nodes, so we use 
+           scanned_list_head for checking the existance of MAC address here.
+        */
         temp_node = check_is_in_list(address, &scanned_list_head);
 
     }else{
@@ -311,10 +315,11 @@ struct ScannedDevice *check_is_in_list(char address[],
                                        ObjectListHead *list) {
 
     /* Create a temporary list pointer and set as the head */
-    struct List_Entry *list_pointers;
+    struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp = NULL;
     bool temp_is_null = true;
     bool is_empty = false;
+    bool is_expired_scanned_list = false;
 
     /* If there is no node in the list, reutrn NULL directly. */
     pthread_mutex_lock(&list_lock);
@@ -333,15 +338,49 @@ struct ScannedDevice *check_is_in_list(char address[],
 
     pthread_mutex_lock(&list_lock);
 
-    list_for_each(list_pointers, &list->list_entry) {
+    list_for_each_safe(list_pointers, save_list_pointers, &list->list_entry) {
         /* According to the device type stored in the list, get the 
-	specific data */
+	specific data 
+        */
+
+        is_expired_scanned_list = false;
         switch(list->device_type){
 
             case BR_EDR:
-
+	        /* BR_EDR device (BR_object_list_head) and BR_EDR phone 
+                   (feature phone)(scanned_list_head) are using the same 
+		   memory node currently and we guarantee that 
+		   scanned_list_head has distinct nodes, so we use 
+           	   scanned_list_head for checking the existance of MAC address 
+		   here.
+                */
                 temp = ListEntry(list_pointers, ScannedDevice,
                                  sc_list_entry);
+
+                /* If the device has been in the scanned list for at least
+		INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC
+                seconds, remove its struct node from the scanned list here. 
+                */
+                if (get_system_time() - temp->initial_scanned_time >
+                    INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC){
+
+                    remove_list_node(&temp->sc_list_entry);
+
+                    /* If the node no longer is in the BR_object_list_head,
+                    free the space back to the memory pool. 
+                    */
+                    if(is_isolated_node(&temp->tr_list_entry)){
+            	        mp_free(&mempool, temp);
+                    }
+        	    is_expired_scanned_list = true;
+
+#ifdef Debugging
+        	    zlog_debug(category_debug,
+            	    	"Remove scanned list [%s] from scanned_list_head", 
+			temp->scanned_mac_address);
+#endif
+                }
+
                 break;
 
             case BLE:
@@ -353,6 +392,10 @@ struct ScannedDevice *check_is_in_list(char address[],
             default:
 		break;
         }
+	
+	if(true == is_expired_scanned_list){
+	    continue;
+	}
 
         /* Compare the first NUM_DIGITS_TO_COMPARE characters and only
 	   compare the whole MAC address if it matches the first part.
@@ -371,7 +414,7 @@ struct ScannedDevice *check_is_in_list(char address[],
 
     pthread_mutex_unlock(&list_lock);
 
-    if(temp_is_null == true){
+    if(true == temp_is_null){
         return NULL;
     }
 
@@ -725,79 +768,6 @@ ErrorCode disable_advertising() {
     return WORK_SUCCESSFULLY;
 
 }
-
-void *cleanup_scanned_list(void* param) {
-    struct List_Entry *list_pointers, *save_list_pointers;
-    ScannedDevice *temp;
-    bool is_empty = false;
-
-#ifdef Debugging
-    zlog_debug(category_debug,
-        ">> cleanup_scanned_list ");
-#endif
-
-    while (true == ready_to_work) {
-	/* Use pthread mutex, cond and signal to control the flow, 
-	instead of using busy while loop and sleep mechanism.
-	*/
-	pthread_mutex_lock(&exec_lock);
-
-	while(true != reach_cln_scanned_list)
-	{
-	    pthread_cond_wait(&cond_cln_scanned_list, &exec_lock);
-	}
-	reach_cln_scanned_list = false;
-
-	pthread_mutex_unlock(&exec_lock);
-
-
-#ifdef Debugging
-        zlog_info(category_debug,
-            "cleanup scanned list in cleanup_scanned_list function");
-#endif	
-
-
-	pthread_mutex_lock(&list_lock);
-        
-        if(false == is_entry_list_empty(&scanned_list_head.list_entry)){
-   
-            list_for_each_safe(list_pointers,
-                           save_list_pointers,
-                           &scanned_list_head.list_entry){
-
-                temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
-
-                /* If the device has been in the scanned list for at least
-		INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC
-                seconds, remove its struct node from the scanned list 
-                */
-                if (get_system_time() - temp->initial_scanned_time >
-                    INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC){
-
-                    remove_list_node(&temp->sc_list_entry);
-
-                    /* If the node no longer is in the BR_object_list_head,
-                    free the space back to the memory pool. 
-                    */
-                    if(is_isolated_node(&temp->tr_list_entry)){
-            	        mp_free(&mempool, temp);
-                    }
-                }
-	    }
-        }
-
-        pthread_mutex_unlock(&list_lock);
-        
-        cln_scanned_list_last_time = get_system_time();
-
-    }//#end while
-
-#ifdef Debugging
-    zlog_debug(category_debug,
-        "<< cleanup_scanned_list ");
-#endif
-
-}// cleanup_scanned_list
 
 
 int beacon_basic_info(char *message, size_t message_size, int polled_type){
@@ -2208,7 +2178,6 @@ void cleanup_exit(ErrorCode err_code){
 
     pthread_mutex_destroy(&list_lock);
     pthread_mutex_destroy(&exec_lock);
-    pthread_cond_destroy(&cond_cln_scanned_list);
     pthread_cond_destroy(&cond_cln_all_lists);
 
     Wifi_free(&udp_config);
@@ -2274,10 +2243,8 @@ int main(int argc, char **argv) {
     pthread_mutex_init(&list_lock,NULL);
 
     /* Initialize the lock for execution flows between threads */
-    reach_cln_scanned_list = false;
     reach_cln_all_lists = false;
     pthread_mutex_init(&exec_lock, NULL);
-    pthread_cond_init(&cond_cln_scanned_list, NULL);
     pthread_cond_init(&cond_cln_all_lists, NULL);
 
 
@@ -2365,22 +2332,6 @@ int main(int argc, char **argv) {
     }
 
 
-    /* Create the the cleanup_scanned_list thread */
-    pthread_t cleanup_scanned_list_thread;
-
-    return_value = startThread(&cleanup_scanned_list_thread,
-                               cleanup_scanned_list, &scanned_list_head);
-
-    if(return_value != WORK_SUCCESSFULLY){
-        zlog_error(category_health_report,
-            "Error creating thread");
-#ifdef Debugging
-        zlog_error(category_debug,
-            "Error creating thread");
-#endif
-    }
-
-
     /* Create the thread for track device */
     pthread_t manage_communication_thread;
 
@@ -2445,32 +2396,9 @@ int main(int argc, char **argv) {
         cleanup_exit(return_value);
     }
 
-    cln_scanned_list_last_time = get_system_time();
     while (true == ready_to_work) {
         sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
 	
-	/* If it reaches the time interval of cleaning up scanned list, 
-           we should notify cleanup_scanned_list thread to remove old 
-           nodes from scanned_list_head.
-
-           In this way, the appearance of a single node (used by both
-	   scanned device and BR_EDR device at the same time) in 
-	   scanned_list_head list will not be longer than the time
-           (2 * INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC) and this is 
-	   also the worse case in which the existing node in 
-	   scanned_list_head blocks the BR_EDR devices from being 
-	   inserted into BR_object_list_head.
-	*/
-	if(get_system_time() - cln_scanned_list_last_time > 
-		INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC){
-		
-	    pthread_mutex_lock(&exec_lock);
-
-	    reach_cln_scanned_list = true;
-	    pthread_cond_signal(&cond_cln_scanned_list);
-
-	    pthread_mutex_unlock(&exec_lock);
-	}
     }
 
     /* When signal is received, disable message advertising */
