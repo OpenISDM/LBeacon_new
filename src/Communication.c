@@ -116,7 +116,7 @@ int receive_data(void *udp_config){
     int numbytes = 0;
     int clientlen;
     struct sockaddr_in clientaddr;
-    char recv_buf[MESSAGE_LENGTH];
+    char recv_buf[WIFI_MESSAGE_LENGTH];
     int ret_val = 0;
 
     udp_config_ptr = (sudp_config_beacon *) udp_config;

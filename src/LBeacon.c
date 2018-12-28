@@ -823,14 +823,14 @@ void *manage_communication(void* param){
 
     long long gateway_latest_time = 0;
     int polled_type;
-    char message[MESSAGE_LENGTH];
+    char message[WIFI_MESSAGE_LENGTH];
     
     FILE *br_object_file = NULL;
     FILE *ble_object_file = NULL;
     bool is_br_empty = false;
     bool is_ble_empty = false;
-    char msg_temp_one[MESSAGE_LENGTH];
-    char msg_temp_two[MESSAGE_LENGTH];
+    char msg_temp_one[WIFI_MESSAGE_LENGTH];
+    char msg_temp_two[WIFI_MESSAGE_LENGTH];
     int max_objects = 0;
     int used_objects = 0;
 
