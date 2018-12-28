@@ -1,15 +1,25 @@
 /*
   Copyright (c) 2016 Academia Sinica, Institute of Information Science
+
   License:
+
      GPL 3.0 : The content of this file is subject to the terms and conditions
      defined in file 'COPYING.txt', which is part of this source code package.
+
   Project Name:
+
      BeDIS
+
   File Description:
+
      This file contains functions for the waiting queue.
+
   File Name:
+
      pkt_Queue.c
+
   Abstract:
+
      BeDIS uses LBeacons to deliver 3D coordinates and textual descriptions of
      their locations to users' devices. Basically, a LBeacon is an inexpensive,
      Bluetooth Smart Ready device. The 3D coordinates and location description
@@ -18,8 +28,9 @@
      times. Once initialized, each LBeacon broadcasts its coordinates and
      location description to Bluetooth enabled user devices within its coverage
      area.
+
   Authors:
-     Gary Xiao      , garyh0205@hotmail.com
+     Gary Xiao		, garyh0205@hotmail.com
  */
 
 #include "pkt_Queue.h"
@@ -112,23 +123,23 @@ int addpkt(pkt_ptr pkt_queue, unsigned int type, char *raw_addr, char *content
         pkt_queue -> rear ++;
     }
 
-    int current_pkt = pkt_queue -> rear;
+    int current_idx = pkt_queue -> rear;
 
-    pkt_queue -> Queue[current_pkt].type = type;
+    pkt_queue -> Queue[current_idx].type = type;
 
-    char_to_hex(raw_addr, pkt_queue -> Queue[current_pkt].address,
+    char_to_hex(raw_addr, pkt_queue -> Queue[current_idx].address,
                 NETWORK_ADDR_LENGTH);
 
-    memset(pkt_queue -> Queue[current_pkt].content, 0
+    memset(pkt_queue -> Queue[current_idx].content, 0
          , MESSAGE_LENGTH * sizeof(char));
 
-    strncpy(pkt_queue -> Queue[current_pkt].content, content
+    strncpy(pkt_queue -> Queue[current_idx].content, content
           , content_size);
 
-    pkt_queue -> Queue[current_pkt].content_size = content_size;
+    pkt_queue -> Queue[current_idx].content_size = content_size;
 
 #ifdef debugging
-    display_pkt("addedpkt", pkt_queue, current_pkt);
+    display_pkt("addedpkt", pkt_queue, current_idx);
 
     printf("= pkt_queue len  =\n");
 
@@ -180,25 +191,25 @@ int delpkt(pkt_ptr pkt_queue) {
         return pkt_Queue_SUCCESS;
     }
 
-    int current_pkt = pkt_queue -> front;
+    int current_idx = pkt_queue -> front;
 
 #ifdef debugging
-    display_pkt("deledpkt", pkt_queue, current_pkt);
+    display_pkt("deledpkt", pkt_queue, current_idx);
 #endif
 
-    memset(pkt_queue -> Queue[current_pkt].content, 0
+    memset(pkt_queue -> Queue[current_idx].content, 0
          , MESSAGE_LENGTH * sizeof(char));
 
-    pkt_queue -> Queue[current_pkt].type = NONE;
+    pkt_queue -> Queue[current_idx].type = NONE;
 
-    if(current_pkt == pkt_queue -> rear){
+    if(current_idx == pkt_queue -> rear){
 
         pkt_queue -> front = -1;
 
         pkt_queue -> rear  = -1;
 
     }
-    else if(current_pkt == MAX_QUEUE_LENGTH - 1)
+    else if(current_idx == MAX_QUEUE_LENGTH - 1)
         pkt_queue -> front = 0;
     else
         pkt_queue -> front += 1;
@@ -311,7 +322,7 @@ void char_to_hex(char *raw, unsigned char *raw_hex, int size){
 char *hex_to_char(unsigned char *hex, int size){
 
     int char_size = size * 2;
-    char *char_addr = malloc(sizeof(char) * ((char_size * 2) + 1));
+    char *char_addr = malloc(sizeof(char) * (char_size + 1));
 
     memset(char_addr, 0, sizeof(char) * (char_size + 1));
 
