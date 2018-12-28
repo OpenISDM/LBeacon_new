@@ -54,6 +54,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <dirent.h>
 #include <pthread.h>
 #include <signal.h>
@@ -109,8 +110,8 @@ is possibily transient failed.*/
 /* Length of address of the network in Hex */
 #define NETWORK_ADDR_LENGTH_HEX 8
 
-/* The maxinum length in bytes of the message to be sent over zigbee link */
-#define ZIG_MESSAGE_LENGTH 104
+/* Maximum length of message to be sent over WiFi in bytes */
+#define WIFI_MESSAGE_LENGTH 4096
 
 /* define the size of array to store Wi-Fi SSID */
 #define WIFI_SSID_LENGTH 10
@@ -121,7 +122,7 @@ is possibily transient failed.*/
 /* Length of the Lbeacon's UUID in a number of characters */
 #define UUID_LENGTH 32
 
-// Legnth of temporary buffer 
+// Legnth of temporary buffer
 #define BUFFER_LENGTH 1024
 
 // Length of coordinates in number of bits
@@ -137,8 +138,8 @@ is possibily transient failed.*/
 #define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC 3
 
 /* Timeout interval in seconds */
-#define A_LONG_TIME 36000
-#define A_SHORT_TIME 6000
+#define WAITING_TIME 3
+#define A_SHORT_TIME 10
 
 typedef enum _ErrorCode{
 
@@ -184,19 +185,6 @@ typedef enum _ErrorCode{
 
 } ErrorCode;
 
-typedef enum pkt_types {
-    undefined = 0,
-    request_to_join = 1,
-    join_request_ack = 2,
-    join_request_deny = 3,
-    tracked_object_data = 8,
-    health_report = 9,
-    data_for_LBeacon = 10,
-    poll_for_tracked_object_data = 11,
-    RFHR_to_Lbeacons = 12,
-    poll_for_RFHR_from_sever = 13
-
-} PktType;
 
 typedef struct _errordesc {
     ErrorCode code;
@@ -257,6 +245,29 @@ typedef enum DeviceType {
 
 /* The pointer to the category of the log file */
 zlog_category_t *category_health_report, *category_debug;
+
+typedef enum pkt_types {
+
+    undefined = 0,
+    request_to_join = 1,
+    join_request_ack = 2,
+    join_request_deny = 3,
+    tracked_object_data = 8,
+    health_report = 9,
+    data_for_LBeacon = 10,
+    poll_for_tracked_object_data = 11,
+    RFHR_to_Lbeacons = 12,
+    poll_for_RFHR_from_sever = 13
+
+} PktType;
+
+typedef enum pkt_direction {
+
+    from_gateway = 10,
+    from_server = 8,
+    from_beacon = 0
+
+} PktDirection;
 
 // FUNCTIONS
 
@@ -344,7 +355,7 @@ ErrorCode startThread(pthread_t *threads, void *( *thfunct)(void *), void *arg);
      system_time - system time in seconds
 */
 
-long long get_system_time();
+long long unsigned get_system_time();
 
 /*
   memset:
