@@ -92,7 +92,7 @@ int mp_init(Memory_Pool *mp, size_t size, size_t slots)
             void *temp = mp->head;
 
             //link the new node
-            mp->head = ite;
+            mp->head = (void *)ite;
 
             //link to the list from new node
             *mp->head = temp;
@@ -135,8 +135,7 @@ int mp_expand(Memory_Pool *mp, size_t slots)
         void *temp = mp->head;
 
         //link the new node
-        mp->head = ite;
-
+        mp->head = (void *)ite;
         //link to the list from new node
         *mp->head = temp;
 
