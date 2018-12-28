@@ -66,6 +66,7 @@ ErrorCode get_config(Config *config, char *file_name) {
     /* Create spaces for storing the string of the current line being read */
     char config_setting[CONFIG_BUFFER_SIZE];
     char *config_message = NULL;
+    int idx = 0;
 
 
     retry_time = FILE_OPEN_RETRY;
@@ -177,13 +178,20 @@ ErrorCode get_config(Config *config, char *file_name) {
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
-    // discard the newline character at the end
-    if(strlen(config_message) >= 1 && 
-	config_message[strlen(config_message)-1] == '\n'){
+    memset(config->gateway_addr, 0, sizeof(config->gateway_addr));
 
-        memcpy(config->gateway_addr, config_message, 
-		strlen(config_message) - 1);
-    }else{   
+    // discard the whitespace, newline, carry-return characters at the end
+    if(strlen(config_message) > 0){
+  
+        idx = strlen(config_message) - 1; 
+	while(10 == config_message[idx] || 
+		13 == config_message[idx] || 
+		32 == config_message[idx]){
+
+	   config_message[idx] = '\0';
+           idx--;
+	}
+	    
         memcpy(config->gateway_addr, config_message, 
 		strlen(config_message));
     }
