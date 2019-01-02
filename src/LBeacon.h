@@ -89,12 +89,6 @@ Authors:
 /* The category defined for the printf during debugging */
 #define LOG_CATEGORY_DEBUG "LBeacon_Debug"
 
-/* The prefix for Beacon basic information */
-#define BEACON_BASIC_PREFIX "B:" 
-
-/* The prefix for Gateway basic information */
-#define GATEWAY_BASIC_PREFIX "G:" 
-
 /* The temporary file for uploading tracked BR data */
 #define TRACKED_BR_TXT_FILE_NAME "tracked_br_txt.txt"
 

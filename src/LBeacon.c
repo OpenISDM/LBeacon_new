@@ -755,29 +755,17 @@ int beacon_basic_info(char *message, size_t message_size, int polled_type){
 
     char basic_info[MAX_LENGTH_RESP_BASIC_INFO]; 
     
-    // 1. packet type 
+    // packet type 
     message[0] = 0x0F & polled_type;
     message[1] = '\0';
 
-    // 2. LBeacon part
-    strcat(message, BEACON_BASIC_PREFIX);
-    
     // LBeacon UUID
     strcat(message, g_config.uuid);
-    strcat(message, ";");
 
-    // LBeacon major and minor version
-    memset(basic_info, 0, sizeof(basic_info));
-    sprintf(basic_info, "%d.%d;", LBEACON_MAJOR_VER, LBEACON_MINOR_VER);
-    strcat(message, basic_info);
-    
-    // 3. Gateway part
-    strcat(message, GATEWAY_BASIC_PREFIX);
     // Gateway IP address
     strcat(message, g_config.gateway_addr);
-    strcat(message, ";");
    
-    /* 4. Make sure the resulted message (basic information) does not 
+    /* Make sure the resulted message (basic information) does not 
 	exceed our expected length
     */
     if(strlen(message) > MAX_LENGTH_RESP_BASIC_INFO){
