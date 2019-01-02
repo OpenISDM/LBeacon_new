@@ -59,9 +59,10 @@ int Wifi_init(sudp_config_beacon *udp_config){
 	    break;
     }
     if(udp_config->recv_socket < 0){
-
+        zlog_error(category_health_report,
+    		"Unable to intitialize receive socket"); 
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
     		"Unable to intitialize receive socket"); 
 #endif
 
@@ -82,15 +83,26 @@ int Wifi_init(sudp_config_beacon *udp_config){
     udp_config->si_recv.sin_addr.s_addr = htonl(INADDR_ANY);
     udp_config->si_recv.sin_port = 
 	htons((unsigned short)udp_config->recv_portno);
-    bind(udp_config->recv_socket, (struct sockaddr *)&udp_config->si_recv, 
-	sizeof(udp_config->si_recv));
+    if(bind(udp_config->recv_socket, (struct sockaddr *)&udp_config->si_recv, 
+	sizeof(udp_config->si_recv)) == -1){
+            zlog_error(category_health_report,
+    		"Unable to bind to listen port");
+#ifdef Debugging
+            zlog_error(category_debug,
+    		"Unable to bind to listen port");
+#endif
+        return E_WIFI_INIT_FAIL;
+
+    }
 
     // 2. initialize packet queue (for receive data from gateway)	
     if(ret = 
 	init_Packet_Queue(&udp_config->recv_pkt_queue) != pkt_Queue_SUCCESS)
     {
+        zlog_error(category_health_report,
+    		"Unable to intitialize receive packet queue");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
     		"Unable to intitialize receive packet queue");
 #endif
         return E_WIFI_INIT_FAIL;
@@ -99,8 +111,10 @@ int Wifi_init(sudp_config_beacon *udp_config){
     if(ret = 
 	init_Packet_Queue(&udp_config->send_pkt_queue) != pkt_Queue_SUCCESS)
     {
+        zlog_error(category_health_report,
+    		"Unable to initialze send packet queue");
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
     		"Unable to initialze send packet queue");
 #endif
         return E_WIFI_INIT_FAIL;
@@ -127,8 +141,11 @@ int receive_data(void *udp_config){
         numbytes = recvfrom(udp_config_ptr->recv_socket, recv_buf, sizeof(recv_buf), 
 			0, (struct sockaddr *)&clientaddr, &clientlen);
         if(numbytes <0){
+            zlog_error(category_health_report,
+    		"Unable to receive data from gateway via recvfrom(), "
+		"strerror(errno)=[%s]", strerror(errno));		
 #ifdef Debugging
-            zlog_debug(category_debug,
+            zlog_error(category_debug,
     		"Unable to receive data from gateway via recvfrom(), "
 		"strerror(errno)=[%s]", strerror(errno));		
 #endif
@@ -138,10 +155,13 @@ int receive_data(void *udp_config){
 		inet_ntoa(clientaddr.sin_addr), recv_buf, strlen(recv_buf));
 
 	    if(pkt_Queue_SUCCESS != ret_val){
+                zlog_error(category_health_report,
+    		    "Unable to add receive packet to receive packet queue. "
+		    "error=[%d]", ret_val);	
 #ifdef Debugging
-            zlog_debug(category_debug,
-    		"Unable to add receive packet to receive packet queue. "
-		"error=[%d]", ret_val);	
+            	zlog_error(category_debug,
+    		    "Unable to add receive packet to receive packet queue. "
+		    "error=[%d]", ret_val);	
 #endif
 	    }
 	}
@@ -163,8 +183,11 @@ void *send_data(void *udp_config){
   
     // 1. initialize send socket used by this worker thread
     if((he=gethostbyname(udp_config_ptr->send_ipv4_addr)) == NULL){
+            zlog_error(category_health_report,
+    		"Unable to gethostbyname(), addr=[%s]", 
+		    udp_config_ptr->send_ipv4_addr);
 #ifdef Debugging
-            zlog_debug(category_debug,
+            zlog_error(category_debug,
     		"Unable to gethostbyname(), addr=[%s]", 
 		    udp_config_ptr->send_ipv4_addr);
 #endif
@@ -178,9 +201,11 @@ void *send_data(void *udp_config){
 	    break;
     }
     if(send_socket < 0){
+        zlog_error(category_health_report,
+    		"Unable to intitialize send socket"); 
 
 #ifdef Debugging
-        zlog_debug(category_debug,
+        zlog_error(category_debug,
     		"Unable to intitialize send socket"); 
 #endif
 
@@ -210,8 +235,11 @@ void *send_data(void *udp_config){
 			0,(struct sockaddr *)&addr, sizeof(struct sockaddr));
 
             	if(numbytes < 0){
+            	    zlog_error(category_health_report,
+	 	        "Unable to send data to gateway via sendto(), "
+			"strerror(errno)=[%s]", strerror(errno));
 #ifdef Debugging
-            	    zlog_debug(category_debug,
+            	    zlog_error(category_debug,
 	 	        "Unable to send data to gateway via sendto(), "
 			"strerror(errno)=[%s]", strerror(errno));
 #endif
