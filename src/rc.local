@@ -18,6 +18,7 @@ if [ "$_IP" ]; then
 fi
 
 cd /home/pi/LBeacon/src/
-/home/pi/LBeacon/src/auto_LBeacon.sh
+chmod 755 /home/pi/LBeacon/src/auto_LBeacon.sh
+/home/pi/LBeacon/src/auto_LBeacon.sh &
 
 exit 0
