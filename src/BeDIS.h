@@ -86,6 +86,9 @@
 /* Parameter that marks the start of the config file */
 #define DELIMITER "="
 
+/* Parameter that marks the start of fracton part of float number */
+#define FRACTION_DOT "."
+
 /* Maximum number of characters in each line of config file */
 #define CONFIG_BUFFER_SIZE 64
 
@@ -198,35 +201,6 @@ typedef struct coordinates{
     char Z_coordinates[COORDINATE_LENGTH];
 
 } Coordinates;
-
-/*
-  UNION
-*/
-
-/* This union will convert floats into Hex code used for the beacon
-   location
-*/
-union {
-
-    float f;
-    unsigned char b[sizeof(float)];
-
-} coordinate_X;
-
-union {
-
-    float f;
-    unsigned char b[sizeof(float)];
-
-} coordinate_Y;
-
-union {
-
-    float f;
-    unsigned char b[sizeof(float)];
-
-} coordinate_Z;
-
 
 /* A global flag that is initially set to true by the main thread. It is set
    to false by any thread when the thread encounters a fatal error,

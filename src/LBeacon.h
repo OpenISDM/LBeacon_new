@@ -231,6 +231,8 @@ typedef struct Config {
 } Config;
 
 
+
+
 /* The structure for storing information and status of a thread */
 typedef struct ThreadStatus {
 
@@ -365,6 +367,23 @@ extern int errno;
 /*
   FUNCTIONS
 */
+
+/*
+  generate_uuid:
+
+      This function generates the UUID of this LBeacon according to the 3D 
+      coordinates read from configuration file.
+
+  Parameters:
+      config - Config struct including file path, coordinates, etc.
+
+  Return value:
+      ErrorCode - indicate the result of execution, the expected return code is
+  WORK_SUCCESSFULLY
+
+*/
+
+ErrorCode generate_uuid(Config *config);
 
 /*
   get_config:

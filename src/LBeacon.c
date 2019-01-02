@@ -57,6 +57,58 @@
 #define Debugging
 
 
+ErrorCode generate_uuid(Config *config){
+    int coordinate_X_sign;    
+    int coordinate_Y_sign;    
+    int coordinate_Z_sign;   
+    
+    char coordinate[CONFIG_BUFFER_SIZE];
+    char *temp_coordinate = NULL; 
+
+    /* construct UUID as 00000ZZZ000XXXXXXXXX00YYYYYYYYYY format */ 
+    memset(config->uuid, 0, sizeof(config->uuid));
+
+    coordinate_X_sign = 0;
+    coordinate_Y_sign = 0;
+    coordinate_Z_sign = 0;
+   
+    if(atof(config->coordinate_X) < 0)
+	coordinate_X_sign = 1;
+    if(atof(config->coordinate_Y) < 0)
+	coordinate_Y_sign = 1;
+    if(atof(config->coordinate_Z) < 0)
+	coordinate_Z_sign = 1;
+
+    sprintf(config->uuid,
+        "00000%d%02d000%d%2d",
+                coordinate_Z_sign,
+		(int)atoi(config->coordinate_Z),
+		coordinate_X_sign,
+                (int)atoi(config->coordinate_X));
+    
+    temp_coordinate = strstr((char *) config->coordinate_X, FRACTION_DOT);
+    temp_coordinate = temp_coordinate + strlen(FRACTION_DOT);
+    strcat(config->uuid, temp_coordinate);
+    
+    memset(coordinate, 0, sizeof(coordinate));
+    sprintf(coordinate, "00%d%3d", 
+		coordinate_Y_sign,
+                (int)atoi(config->coordinate_Y));
+
+    strcat(config->uuid, coordinate);
+
+    temp_coordinate = strstr((char *) config->coordinate_Y, FRACTION_DOT);
+    temp_coordinate = temp_coordinate + strlen(FRACTION_DOT);
+    strcat(config->uuid, temp_coordinate);
+
+#ifdef Debugging
+    zlog_info(category_debug,
+        "Generated UUID: [%s]", config->uuid);
+#endif
+
+    return WORK_SUCCESSFULLY;
+}
+
 ErrorCode get_config(Config *config, char *file_name) {
 
     /* Return value is a struct containing all config information */
@@ -66,8 +118,6 @@ ErrorCode get_config(Config *config, char *file_name) {
     /* Create spaces for storing the string of the current line being read */
     char config_setting[CONFIG_BUFFER_SIZE];
     char *config_message = NULL;
-    int idx = 0;
-
 
     retry_time = FILE_OPEN_RETRY;
     while(retry_time--){
@@ -113,6 +163,13 @@ ErrorCode get_config(Config *config, char *file_name) {
     memset(config->coordinate_Z, 0, sizeof(config->coordinate_Z));
     memcpy(config->coordinate_Z, config_message, strlen(config_message));
 
+    generate_uuid(config);
+
+#ifdef Debugging
+    zlog_info(category_debug,
+        "Generated UUID: [%s]", config->uuid);
+#endif
+
     /* item 4 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
@@ -120,23 +177,6 @@ ErrorCode get_config(Config *config, char *file_name) {
     trim_string_tail(config_message);
     memset(config->rssi_coverage, 0, sizeof(config->rssi_coverage));
     memcpy(config->rssi_coverage, config_message, strlen(config_message));
-
-    coordinate_X.f = (float)atof(config->coordinate_X);
-    coordinate_Y.f = (float)atof(config->coordinate_Y);
-    coordinate_Z.f = (float)atof(config->coordinate_Z);
-
-    /* Store coordinates of the beacon */
-    sprintf(config->uuid,
-            "%02x%02x%02x%02x0000%02x%02x%02x%02x0000%02x%02x%02x%02x",
-            coordinate_Z.b[0], coordinate_Z.b[1], coordinate_Z.b[2],
-            coordinate_Z.b[3], coordinate_X.b[0], coordinate_X.b[1],
-            coordinate_X.b[2], coordinate_X.b[3], coordinate_Y.b[0],
-            coordinate_Y.b[1], coordinate_Y.b[2], coordinate_Y.b[3]);
-
-#ifdef Debugging
-        zlog_info(category_debug,
-                    "Generated UUID: [%s]", config->uuid);
-#endif
 
     /* item 5 */
     fgets(config_setting, sizeof(config_setting), file);
@@ -146,23 +186,6 @@ ErrorCode get_config(Config *config, char *file_name) {
     memset(config->gateway_addr, 0, sizeof(config->gateway_addr));
     memcpy(config->gateway_addr, config_message, strlen(config_message));
 
-/*
-    // discard the whitespace, newline, carry-return characters at the end
-    if(strlen(config_message) > 0){
-  
-        idx = strlen(config_message) - 1; 
-	while(10 == config_message[idx] || 
-		13 == config_message[idx] || 
-		32 == config_message[idx]){
-
-	   config_message[idx] = '\0';
-           idx--;
-	}
-	    
-        memcpy(config->gateway_addr, config_message, 
-		strlen(config_message));
-    }
-*/
     /* item 6 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
