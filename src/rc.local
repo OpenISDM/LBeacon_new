@@ -17,7 +17,7 @@ if [ "$_IP" ]; then
   printf "My IP address is %s\n" "$_IP"
 fi
 
-cd /home/pi/LBeacon-master/src/
-/home/pi/LBeacon-master/src/auto_LBeacon.sh
+cd /home/pi/LBeacon/src/
+/home/pi/LBeacon/src/auto_LBeacon.sh
 
 exit 0

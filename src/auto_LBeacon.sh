@@ -1,5 +1,5 @@
 #!/bin/bash
 
-sudo /home/pi/LBeacon-master/src/LBeacon &
+sudo /home/pi/LBeacon/src/LBeacon &
 
 exit 0
