@@ -93,69 +93,33 @@ ErrorCode get_config(Config *config, char *file_name) {
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
-    memcpy(config->coordinate_X, config_message,
-           strlen(config_message));
+    trim_string_tail(config_message);
+    memset(config->coordinate_X, 0, sizeof(config->coordinate_X));
+    memcpy(config->coordinate_X, config_message, strlen(config_message));
 
     /* item 2 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
-    memcpy(config->coordinate_Y, config_message,
-           strlen(config_message));
+    trim_string_tail(config_message);
+    memset(config->coordinate_Y, 0, sizeof(config->coordinate_Y));
+    memcpy(config->coordinate_Y, config_message, strlen(config_message));
 
     /* item 3 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
-    memcpy(config->coordinate_Z, config_message,
-           strlen(config_message));
+    trim_string_tail(config_message);
+    memset(config->coordinate_Z, 0, sizeof(config->coordinate_Z));
+    memcpy(config->coordinate_Z, config_message, strlen(config_message));
 
     /* item 4 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
-    memcpy(config->file_name, config_message, strlen(config_message));
-
-    /* item 5 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    memcpy(config->file_path, config_message, strlen(config_message));
-
-    /* item 6 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    memcpy(config->maximum_number_of_devices, config_message,
-           strlen(config_message));
-
-    /* item 7 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    memcpy(config->number_of_groups, config_message,
-           strlen(config_message));
-
-    /* item 8 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    memcpy(config->number_of_messages, config_message,
-           strlen(config_message));
-
-    /* item 9 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    memcpy(config->number_of_push_dongles, config_message,
-           strlen(config_message));
-
-    /* item 10 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    memcpy(config->rssi_coverage, config_message,
-           strlen(config_message));
+    trim_string_tail(config_message);
+    memset(config->rssi_coverage, 0, sizeof(config->rssi_coverage));
+    memcpy(config->rssi_coverage, config_message, strlen(config_message));
 
     coordinate_X.f = (float)atof(config->coordinate_X);
     coordinate_Y.f = (float)atof(config->coordinate_Y);
@@ -174,12 +138,15 @@ ErrorCode get_config(Config *config, char *file_name) {
                     "Generated UUID: [%s]", config->uuid);
 #endif
 
-    /* item 11 */
+    /* item 5 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
+    trim_string_tail(config_message);
     memset(config->gateway_addr, 0, sizeof(config->gateway_addr));
+    memcpy(config->gateway_addr, config_message, strlen(config_message));
 
+/*
     // discard the whitespace, newline, carry-return characters at the end
     if(strlen(config_message) > 0){
   
@@ -195,24 +162,30 @@ ErrorCode get_config(Config *config, char *file_name) {
         memcpy(config->gateway_addr, config_message, 
 		strlen(config_message));
     }
-
-    /* item 12 */
+*/
+    /* item 6 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
+    trim_string_tail(config_message);
     config->gateway_port = atoi(config_message);
 
-    /* item 13 */
+    /* item 7 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
+    trim_string_tail(config_message);
     config->local_client_port = atoi(config_message);
 
+    zlog_info(category_health_report,
+        "Gateway conn: addr=[%s], port=[%d], client_port=[%d]", 
+	config->gateway_addr, config->gateway_port, 
+	config->local_client_port);
 #ifdef Debugging
-        zlog_info(category_debug,
-                    "Gateway conn: addr=[%s], port=[%d], client_port=[%d]", 
-			config->gateway_addr, config->gateway_port, 
-			config->local_client_port);
+    zlog_info(category_debug,
+        "Gateway conn: addr=[%s], port=[%d], client_port=[%d]", 
+	config->gateway_addr, config->gateway_port, 
+	config->local_client_port);
 #endif
 
     fclose(file);

@@ -303,6 +303,20 @@ unsigned int *uuid_str_to_data(char *uuid);
  */
 unsigned int twoc(int in, int t);
 
+/*
+  trim_string_tail:
+
+  Trim the whitespace, newline and carry-return at the end of string
+
+  Parameters:
+
+     message - the character array of input string 
+
+  Return value:
+
+     data - @todo
+ */
+void trim_string_tail(char *message);
 
 /*
  ctrlc_handler:

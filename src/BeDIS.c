@@ -119,6 +119,24 @@ unsigned int twoc(int in, int t) {
     return (in < 0) ? (in + (2 << (t - 1))) : in;
 }
 
+void trim_string_tail(char *message) {
+ 
+    int idx = 0;
+   
+    // discard the whitespace, newline, carry-return characters at the end
+    if(strlen(message) > 0){
+
+        idx = strlen(message) - 1;
+        while(10 == message[idx] ||
+                13 == message[idx] ||
+                32 == message[idx]){
+
+           message[idx] = '\0';
+           idx--;
+        }
+    }
+}
+
 
 void ctrlc_handler(int stop) { ready_to_work = false; }
 
