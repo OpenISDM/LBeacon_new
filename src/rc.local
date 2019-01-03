@@ -19,6 +19,6 @@ fi
 
 cd /home/pi/LBeacon/src/
 chmod 755 /home/pi/LBeacon/src/auto_LBeacon.sh
-/home/pi/LBeacon/src/auto_LBeacon.sh &
+/home/pi/LBeacon/src/auto_LBeacon.sh
 
 exit 0
