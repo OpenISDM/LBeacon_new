@@ -22,7 +22,7 @@ File Name:
 
 Version:
 
-    1.2,  20190102
+    2.0,  20190103
 
 Abstract:
 
@@ -61,15 +61,13 @@ Authors:
 #include <netinet/in.h>
 #include <obexftp/client.h>
 #include "BeDIS.h"
+#include "Version.h"
+#include "Build.h"
 
 
 /*
   CONSTANTS
 */
-
-/* The major and minor versions of LBeacon used for advertising */
-#define LBEACON_MAJOR_VER 1
-#define LBEACON_MINOR_VER 2
 
 /* Command opcode pack/unpack from HCI library. ogf and ocf stand for Opcode
    group field and Opcofe command field, respectively. See Bluetooth
