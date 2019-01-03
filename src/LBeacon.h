@@ -76,10 +76,10 @@ Authors:
 //#define cmd_opcode_pack(ogf, ocf) (uint16_t)((ocf &amp; 0x03ff) | \
 //                                                        (ogf &lt;&lt; 10))
 /* File path of the config file of the LBeacon */
-#define CONFIG_FILE_NAME "../config/config.conf"
+#define CONFIG_FILE_NAME "/home/pi/LBeacon/config/config.conf"
 
 /* File path of the logging file*/
-#define LOG_FILE_NAME "../config/zlog.conf"
+#define LOG_FILE_NAME "/home/pi/LBeacon/config/zlog.conf"
 
 /* The category defined of log file used for health report */
 #define LOG_CATEGORY_HEALTH_REPORT "Health_Report"
@@ -94,10 +94,10 @@ Authors:
 #define TRACKED_BLE_TXT_FILE_NAME "tracked_ble_txt.txt"
 
 /* The log file for LBeacon health history */
-#define HEALTH_REPORT_LOG_FILE_NAME "Health_Report.log"
+#define HEALTH_REPORT_LOG_FILE_NAME "/home/pi/LBeacon/log/Health_Report.log"
 
 /* The lock file for LBeacon  */
-#define LBEACON_LOCK_FILE "LBeacon.pid"
+#define LBEACON_LOCK_FILE "/home/pi/LBeacon/bin/LBeacon.pid"
 
 /* BlueZ bluetooth extended inquiry response protocol: flags */
 #define EIR_FLAGS 0X01
