@@ -7,7 +7,9 @@ LIB = -L /usr/local/lib
 #---------------------------------------------------------------------------
 all: LBeacon
 LBeacon: $(OBJS)
-	$(CC) $(OBJS) $(CFLAGS) -o LBeacon $(LIB) -lrt -lpthread -lmulticobex -lbfb -lbluetooth -lobexftp -lopenobex -lxbee -lwiringPi -lzlog
+	$(CC) $(OBJS) $(CFLAGS) -o LBeacon $(LIB) -lrt -lpthread -lbfb -lbluetooth -lwiringPi -lzlog 
+	@mv LBeacon ../bin/
+
 LBeacon.o: LBeacon.c LBeacon.h
 	$(CC) LBeacon.c LBeacon.h $(LIB) -c
 BeDIS.o: BeDIS.c BeDIS.h
