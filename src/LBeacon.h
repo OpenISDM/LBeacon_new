@@ -98,6 +98,9 @@ Authors:
 /* The log file for LBeacon health history */
 #define HEALTH_REPORT_LOG_FILE_NAME "Health_Report.log"
 
+/* The lock file for LBeacon  */
+#define LBEACON_LOCK_FILE "LBeacon.pid"
+
 /* BlueZ bluetooth extended inquiry response protocol: flags */
 #define EIR_FLAGS 0X01
 
@@ -368,6 +371,23 @@ extern int errno;
   FUNCTIONS
 */
 
+/*
+  single_running_instance:
+
+      This function write a file lock to ensure that system has only one 
+      instance of running LBeacon. 
+
+  Parameters:
+      file_name - the name of the lock file that specifies PID of running 
+	LBeacon
+
+  Return value:
+      ErrorCode - indicate the result of execution, the expected return code is
+  WORK_SUCCESSFULLY
+
+*/
+
+ErrorCode single_running_instance(char *file_name);
 /*
   generate_uuid:
 

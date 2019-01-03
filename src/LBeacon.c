@@ -57,6 +57,61 @@
 #define Debugging
 
 
+ErrorCode single_running_instance(char *file_name){
+    int retry_time = 0;
+    int lock_file = 0;
+    struct flock fl;
+
+    retry_time = FILE_OPEN_RETRY;
+    while(retry_time--){
+        lock_file = open(file_name, O_RDWR | O_CREAT | O_TRUNC, 0644);
+
+        if(-1 != lock_file){
+            break;
+	}
+    }
+    if(-1 == lock_file){
+        zlog_error(category_health_report,
+            "Unable to open lock file");
+#ifdef Debugging
+        zlog_error(category_debug,
+            "Unable to open lock file");
+#endif
+        return E_OPEN_FILE;
+    } 
+    
+    fl.l_type = F_WRLCK;
+    fl.l_whence = SEEK_SET;
+    fl.l_start = 0;
+    fl.l_len = 0;
+    
+    if(fcntl(lock_file, F_SETLK, &fl) == -1){
+        zlog_error(category_health_report,
+            "Unable to lock file");
+#ifdef Debugging
+        zlog_error(category_debug,
+            "Unable to lock file");
+#endif
+        close(lock_file);
+        return E_OPEN_FILE;
+    }
+   
+    char pids[10];
+    snprintf(pids, sizeof(pids), "%d\n", getpid());
+    if((size_t)write(lock_file, pids, strlen(pids)) != strlen(pids)){
+        zlog_error(category_health_report,
+            "Unable to write pid into lock file");
+#ifdef Debugging
+        zlog_error(category_debug,
+            "Unable to write pid into lock file");
+#endif
+        close(lock_file);
+        return E_OPEN_FILE; 
+    }
+    return WORK_SUCCESSFULLY;
+
+}
+
 ErrorCode generate_uuid(Config *config){
     int coordinate_X_sign;    
     int coordinate_Y_sign;    
@@ -2215,14 +2270,26 @@ int main(int argc, char **argv) {
 #endif
     }
 
+    /* Ensure there is only single running instance */
+    return_value = single_running_instance(LBEACON_LOCK_FILE);
+    if(WORK_SUCCESSFULLY != return_value){
+        zlog_error(category_health_report,
+            "Error openning lock file");
+#ifdef Debugging
+        zlog_error(category_debug,
+            "Error openning lock file");
+#endif
+        return E_OPEN_FILE;
+    }
+    
     /* Load config struct */
     return_value = get_config(&g_config, CONFIG_FILE_NAME);
     if(WORK_SUCCESSFULLY != return_value){
         zlog_error(category_health_report,
-            "Error openning file");
+            "Error openning config file");
 #ifdef Debugging
         zlog_error(category_debug,
-            "Error openning file");
+            "Error openning config file");
 #endif
         return E_OPEN_FILE;
     }
