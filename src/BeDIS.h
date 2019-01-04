@@ -12,8 +12,8 @@
 
   File Description:
 
-     This file, contain the definitions and declarations of constant structure.
-     and function used in both Gateway and LBeacon.
+     This file, contain the definitions and declarations of constants, structures,
+     and functions used in both Gateway and LBeacon.
 
   File Name:
 
@@ -40,9 +40,7 @@
      Joey Zhou     , joeyzhou5566@gmail.com
      Holly Wang    , hollywang@iis.sinica.edu.tw
      Jake Lee      , jakelee@iis.sinica.edu.tw
-     Johnson Su    , johnsonsu@iis.sinica.edu.tw
-     Shirley Huang , shirley.huang.93@gmail.com
-
+     Chun Yu Lai   , chunyu1202@gmail.com
 
  */
 
@@ -72,16 +70,7 @@
 #include <sys/time.h>
 #include <sys/timeb.h>
 #include <sys/file.h>
-#include <ctype.h>
-#include <stdbool.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <sys/timeb.h>
-#include <time.h>
+
 #include "Mempool.h"
 #include "UDP_API.h"
 #include "LinkedList.h"

@@ -43,9 +43,7 @@
       Joey Zhou, joeyzhou@iis.sinica.edu.tw
       Kenneth Tang, kennethtang@iis.sinica.edu.tw
       James Huamg, jameshuang@iis.sinica.edu.tw
-      Shirley Huang, shirley.huang.93@gmail.com
-
-
+      Chun Yu Lai, chunyu1202@gmail.com
 
 */
 

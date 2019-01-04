@@ -17,7 +17,7 @@
 
   File Name:
 
-     BeDIS.h
+     BeDIS.c
 
   Version:
 
@@ -40,9 +40,7 @@
      Joey Zhou     , joeyzhou5566@gmail.com
      Holly Wang    , hollywang@iis.sinica.edu.tw
      Jake Lee      , jakelee@iis.sinica.edu.tw
-     Johnson Su    , johnsonsu@iis.sinica.edu.tw
-     Shirley Huang , shirley.huang.93@gmail.com
-
+     Chun Yu Lai   , chunyu1202@gmail.com
 
  */
 
