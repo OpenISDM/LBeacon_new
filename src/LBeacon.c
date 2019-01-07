@@ -43,9 +43,7 @@
       Joey Zhou, joeyzhou@iis.sinica.edu.tw
       Kenneth Tang, kennethtang@iis.sinica.edu.tw
       James Huamg, jameshuang@iis.sinica.edu.tw
-      Shirley Huang, shirley.huang.93@gmail.com
-
-
+      Chun Yu Lai, chunyu1202@gmail.com
 
 */
 
@@ -868,7 +866,7 @@ void *manage_communication(void* param){
     Threadpool thpool;
     int id = 0;
 
-    long long gateway_latest_time = 0;
+    int gateway_latest_time = 0;
     int polled_type;
     char message[WIFI_MESSAGE_LENGTH];
     
@@ -1432,8 +1430,8 @@ ensure the correctnedd.
 
         /* sprintf() is the function to set a format and convert the
            datatype to char */
-        sprintf(timestamp_initial_str, "%llu", temp->initial_scanned_time);
-        sprintf(timestamp_final_str, "%llu", temp->final_scanned_time);
+        sprintf(timestamp_initial_str, "%d", temp->initial_scanned_time);
+        sprintf(timestamp_final_str, "%d", temp->final_scanned_time);
 
         /* Write the content to the file */
         fputs(temp->scanned_mac_address, track_file);
@@ -2707,8 +2705,8 @@ void *send_file(void *id) {
     /* An iterator through the array of ScannedDevice struct */
     int device_id;
 
-    long long start;
-    long long end;
+    int start;
+    int end;
 
 
     while (true == ready_to_work &&  false == send_message_cancelled) {
@@ -2764,7 +2762,7 @@ void *send_file(void *id) {
                 client = obexftp_open(OBEX_TRANS_BLUETOOTH, NULL, NULL,
                                       NULL);
                 end = get_system_time();
-                printf("Time to open connection: %lld ms\n", end - start);
+                printf("Time to open connection: %d seconds\n", end - start);
 
                 if (client == NULL) {
 

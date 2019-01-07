@@ -43,8 +43,7 @@ Authors:
     Joey Zhou, joeyzhou@iis.sinica.edu.tw
     Kenneth Tang, kennethtang@iis.sinica.edu.tw
     James Huamg, jameshuang@iis.sinica.edu.tw
-    Shirley Huang, shirley.huang.93@gmail.com
-
+	Chun Yu Lai, chunyu1202@gmail.com
 
 */
 
@@ -250,8 +249,8 @@ typedef struct ThreadStatus {
 typedef struct ScannedDevice {
 
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
-    long long initial_scanned_time;
-    long long final_scanned_time;
+    int initial_scanned_time;
+    int final_scanned_time;
     /* List entries for linking the struct to scanned_list and
        tracked_BR_object_list or to tracked_BLE_object_list, depending
        whether the device type is BR_EDR or BLE. */

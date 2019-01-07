@@ -12,15 +12,16 @@
 
   File Description:
 
-     This file, contain the definitions and declarations of constant structure.
-     and function used in both Gateway and LBeacon.
+     This file, contain the definitions and declarations of constants, structures,
+     and functions used in both Gateway and LBeacon.
 
   File Name:
 
      BeDIS.h
 
-  Version: 
-     2.0, 20190103
+  Version:
+
+     2.0, 201901041100
 
   Abstract:
 
@@ -39,9 +40,7 @@
      Joey Zhou     , joeyzhou5566@gmail.com
      Holly Wang    , hollywang@iis.sinica.edu.tw
      Jake Lee      , jakelee@iis.sinica.edu.tw
-     Johnson Su    , johnsonsu@iis.sinica.edu.tw
-     Shirley Huang , shirley.huang.93@gmail.com
-
+     Chun Yu Lai   , chunyu1202@gmail.com
 
  */
 
@@ -71,16 +70,7 @@
 #include <sys/time.h>
 #include <sys/timeb.h>
 #include <sys/file.h>
-#include <ctype.h>
-#include <stdbool.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <sys/timeb.h>
-#include <time.h>
+
 #include "Mempool.h"
 #include "UDP_API.h"
 #include "LinkedList.h"
@@ -145,8 +135,7 @@ is possibily transient failed.*/
 #define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC 3
 
 /* Timeout interval in seconds */
-#define WAITING_TIME 3
-#define A_SHORT_TIME 10
+#define WAITING_TIME 10
 
 typedef enum _ErrorCode{
 
@@ -225,24 +214,40 @@ typedef enum DeviceType {
 zlog_category_t *category_health_report, *category_debug;
 
 typedef enum pkt_types {
-
+    // Unknown type of pkt type
     undefined = 0,
+    // For Join Request
+    // Request join from LBeacon
     request_to_join = 1,
+    // When Gateway accept LBeacon join request
     join_request_ack = 2,
+    // When Gateway deny Beacon join request
     join_request_deny = 3,
-    tracked_object_data = 8,
-    health_report = 9,
-    data_for_LBeacon = 10,
-    poll_for_tracked_object_data = 11,
-    RFHR_to_Lbeacons = 12,
-    poll_for_RFHR_from_sever = 13
+    // For LBeacon send pkt type
+    // A pkt contain tracked object data
+    tracked_object_data = 4,
+    // A pkt contain health report
+    health_report = 5,
+    // A pkt that is for LBeacon
+    data_for_LBeacon = 6,
+    // For Gayeway
+    // For the gateway polling health report from LBeacon
+    RFHR_from_gateway = 8,
+    // For server
+    // For gateway polling tracked object data from LBeacon
+    poll_for_tracked_object_data_from_server = 9,
+    // A polling request for health report from server
+    RFHR_from_server = 10
 
 } PktType;
 
-typedef enum pkt_direction {
 
+typedef enum pkt_direction {
+    // pkt from gateway
     from_gateway = 10,
+    // pkt from server
     from_server = 8,
+    // pkt from beacon
     from_beacon = 0
 
 } PktDirection;
@@ -284,11 +289,11 @@ unsigned int twoc(int in, int t);
 /*
   trim_string_tail:
 
-  Trim the whitespace, newline and carry-return at the end of string
+     Trim the whitespace, newline and carry-return at the end of string
 
   Parameters:
 
-     message - the character array of input string 
+     message - the character array of input string
 
   Return value:
 
@@ -317,13 +322,14 @@ void ctrlc_handler(int stop);
 /*
   startThread:
 
-     This function initializes the specified threads.
+     This function initializes the specified thread. And threads initialize by
+     this function will be create in detach mode.
 
   Parameters:
 
-     threads - name of the thread
-     thfunct - the function for thread to execute.
-     arg - the argument for thread's function
+     threads - name of the thread.
+     thfunct - the function for the thread to execute.
+     arg - the argument for the function of the thread.
 
   Return value:
 
@@ -347,7 +353,7 @@ ErrorCode startThread(pthread_t *threads, void *( *thfunct)(void *), void *arg);
      system_time - system time in seconds
 */
 
-long long unsigned get_system_time();
+int get_system_time();
 
 /*
   memset:
