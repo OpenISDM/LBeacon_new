@@ -632,6 +632,57 @@ void *timeout_cleanup(void *param);
 
 
 /*
+  send_join_request:
+
+      This function sends join_request to Gateway when there is no packets
+      from Gateway for long time.
+
+  Parameters:
+
+      None
+
+  Return value:
+
+      None
+*/
+
+void send_join_request();
+
+/*
+  handle_tracked_object_data:
+
+      This function consolidates all the BLE and BR_EDR devices information
+      and sends the information to Gateway.
+
+  Parameters:
+
+      None
+
+  Return value:
+
+      None
+*/
+
+void handle_tracked_object_data();
+
+/*
+  handle_health_report:
+
+      This function reads the Health_Report.log and send its content to 
+      Gateway.
+
+  Parameters:
+
+      None
+
+  Return value:
+
+      None
+*/
+
+void handle_health_report();
+
+/*
   manage_communication:
 
       This is the start function of the main thread in the communication

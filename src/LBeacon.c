@@ -930,6 +930,264 @@ int beacon_basic_info(char *message, size_t message_size, int polled_type){
     return 0;
 }
 
+void send_join_request(){
+  char message[WIFI_MESSAGE_LENGTH];
+  int ret_val = 0;
+
+  memset(message, 0, sizeof(message));
+
+  if(0 != beacon_basic_info(message, sizeof(message),
+      request_to_join)){
+
+      zlog_error(category_health_report,
+          "Unable to prepare basic information for response. "
+          "Abort sending this response to gateway.");
+#ifdef Debugging
+      zlog_error(category_debug,
+          "Unable to prepare basic information for response. "
+          "Abort sending this response to gateway.");
+#endif
+      return;
+   }
+
+   ret_val = addpkt(&udp_config.send_pkt_queue,
+       UDP, udp_config.send_ipv4_addr, message,
+       sizeof(message));
+
+   if(pkt_Queue_SUCCESS != ret_val){
+       zlog_error(category_health_report,
+           "Unable to add packet to queue, error=[%d]",
+           ret_val);
+#ifdef Debugging
+       zlog_error(category_debug,
+           "Unable to add packet to queue, error=[%d]",
+           ret_val);
+#endif
+    }
+}
+
+void handle_tracked_object_data(){
+  char message[WIFI_MESSAGE_LENGTH];
+
+  FILE *br_object_file = NULL;
+  FILE *ble_object_file = NULL;
+  bool is_br_empty = false;
+  bool is_ble_empty = false;
+  char msg_temp_one[WIFI_MESSAGE_LENGTH];
+  char msg_temp_two[WIFI_MESSAGE_LENGTH];
+  int max_objects = 0;
+  int used_objects = 0;
+  int ret_val = 0;
+
+  /* return directly, if both BR and BLE tracked lists
+  are emtpy
+  */
+  pthread_mutex_lock(&list_lock);
+
+  is_br_empty =
+      is_entry_list_empty(&BR_object_list_head.list_entry);
+  is_ble_empty =
+      is_entry_list_empty(&BLE_object_list_head.list_entry);
+
+  pthread_mutex_unlock(&list_lock);
+
+  if(is_br_empty && is_ble_empty){
+#ifdef Debugging
+      zlog_debug(category_debug,
+          "Both BR and BLE lists are empty.");
+#endif
+      return;
+  }
+
+  /* Copy track_object data to a file to be transmited
+  */
+  memset(message, 0, sizeof(message));
+  memset(msg_temp_one, 0, sizeof(msg_temp_one));
+  memset(msg_temp_two, 0, sizeof(msg_temp_two));
+
+  used_objects = 0;
+  max_objects = (sizeof(message) -
+      MAX_LENGTH_RESP_BASIC_INFO -
+      used_objects * MAX_LENGTH_RESP_DEVICE_INFO)/
+      MAX_LENGTH_RESP_DEVICE_INFO;
+
+  if(WORK_SUCCESSFULLY !=
+      consolidate_tracked_data(&BR_object_list_head,
+      msg_temp_one, sizeof(msg_temp_one),
+      max_objects, &used_objects)){
+
+      zlog_error(category_health_report,
+          "Unable to consolidate BR_EDR devices, "
+          "abort BR_EDR devices this time.");
+#ifdef Debugging
+      zlog_error(category_debug,
+          "Unable to consolidate BR_EDR devices, "
+          "abort BR_EDR devices this time.");
+#endif
+  }
+
+  max_objects = (sizeof(message) -
+      MAX_LENGTH_RESP_BASIC_INFO -
+      used_objects * MAX_LENGTH_RESP_DEVICE_INFO)/
+      MAX_LENGTH_RESP_DEVICE_INFO;
+
+  if(WORK_SUCCESSFULLY !=
+      consolidate_tracked_data(&BLE_object_list_head,
+      msg_temp_two, sizeof(msg_temp_two),
+      max_objects, &used_objects)){
+
+      zlog_error(category_health_report,
+          "Unable to consolidate BLE devices, "
+          "abort BLE devices this time.");
+#ifdef Debugging
+      zlog_error(category_debug,
+          "Unable to consolidate BLE devices, "
+          "abort BLE devices this time.");
+#endif
+  }
+
+  if(0 != beacon_basic_info(message, sizeof(message),
+      tracked_object_data)){
+
+      zlog_error(category_health_report,
+          "Unable to prepare basic information for "
+          "response. Abort sending this response to "
+          "gateway.");
+#ifdef Debugging
+      zlog_error(category_debug,
+          "Unable to prepare basic information for "
+          "response. Abort sending this response to "
+          "gateway.");
+#endif
+      return;
+  }
+
+  if(sizeof(message) <= strlen(message) +
+      strlen(msg_temp_one) + strlen(msg_temp_two)){
+
+      zlog_error(category_health_report,
+          "Abort BR/BLE tracked data, because there is "
+          "potential buffer overflow. strlen(message)=%d, "
+          "strlen(msg_temp_one)=%d,strlen(msg_temp_two)=%d",
+          strlen(message), strlen(msg_temp_one),
+          strlen(msg_temp_two));
+ #ifdef Debugging
+      zlog_error(category_debug,
+          "Abort BR/BLE tracked data, because there is "
+          "potential buffer overflow. strlen(message)=%d, "
+          "strlen(msg_temp_one)=%d,strlen(msg_temp_two)=%d",
+          strlen(message), strlen(msg_temp_one),
+          strlen(msg_temp_two));
+ #endif
+      return;
+  }
+
+  strcat(message, msg_temp_one);
+  strcat(message, msg_temp_two);
+  ret_val = addpkt(&udp_config.send_pkt_queue,
+      UDP, udp_config.send_ipv4_addr,
+      message, sizeof(message));
+
+  if(pkt_Queue_SUCCESS != ret_val){
+      zlog_error(category_health_report,
+          "Unable to add packet to queue, error=[%d]",
+          ret_val);
+#ifdef Debugging
+      zlog_error(category_debug,
+          "Unable to add packet to queue, error=[%d]",
+          ret_val);
+#endif
+  }
+
+}
+
+void handle_health_report(){
+  char message[WIFI_MESSAGE_LENGTH];
+  char msg_temp_one[WIFI_MESSAGE_LENGTH];
+
+  FILE *health_file = NULL;
+  int retry_time = 0;
+  int ret_val = 0;
+
+  retry_time = FILE_OPEN_RETRY;
+  while(retry_time--){
+  health_file =
+      fopen(HEALTH_REPORT_LOG_FILE_NAME, "r");
+
+      if(NULL != health_file){
+          break;
+      }
+  }
+
+  if(NULL == health_file){
+      zlog_error(category_health_report,
+          "Error openning file");
+#ifdef Debugging
+      zlog_error(category_debug,
+          "Error openning file");
+#endif
+      return;
+  }
+
+  /* contruct the content for UDP packet*/
+  memset(message, 0, sizeof(message));
+
+  if(0!=beacon_basic_info(message, sizeof(message), health_report)){
+
+      zlog_error(category_health_report,
+          "Unable to prepare basic information for response. "
+          "Abort sending this response to gateway.");
+#ifdef Debugging
+      zlog_error(category_debug,
+          "Unable to prepare basic information for response. "
+          "Abort sending this response to gateway.");
+#endif
+      return;
+   }
+
+   /* read health report data to temp buffer*/
+   memset(msg_temp_one, 0, sizeof(msg_temp_one));
+
+   fread(msg_temp_one,
+       sizeof(msg_temp_one) - strlen(message) - 1,
+       sizeof(char), health_file);
+
+   fclose(health_file);
+
+   if(sizeof(message) <= strlen(message) + strlen(msg_temp_one)){
+       zlog_error(category_health_report,
+           "Abort health report data, because there is "
+           "potential buffer overflow. strlen(message)=%d, "
+           "strlen(msg_temp_one)=%d",
+           strlen(message), strlen(msg_temp_one));
+
+#ifdef Debugging
+       zlog_error(category_debug,
+           "Abort health report data, because there is "
+           "potential buffer overflow. strlen(message)=%d, "
+           "strlen(msg_temp_one)=%d",
+           strlen(message), strlen(msg_temp_one));
+#endif
+        return;
+    }
+
+    strcat(message, msg_temp_one);
+
+    ret_val = addpkt(&udp_config.send_pkt_queue,
+        UDP, udp_config.send_ipv4_addr,
+        message, sizeof(message));
+
+    if(pkt_Queue_SUCCESS != ret_val){
+        zlog_error(category_health_report,
+            "Unable to add packet to queue, error=[%d]",
+            ret_val);
+#ifdef Debugging
+        zlog_error(category_debug,
+            "Unable to add packet to queue, error=[%d]",
+            ret_val);
+#endif
+    }
+}
 
 void *manage_communication(void* param){
     Threadpool thpool;
@@ -937,21 +1195,6 @@ void *manage_communication(void* param){
 
     int gateway_latest_time = 0;
     int polled_type;
-    char message[WIFI_MESSAGE_LENGTH];
-
-    FILE *br_object_file = NULL;
-    FILE *ble_object_file = NULL;
-    bool is_br_empty = false;
-    bool is_ble_empty = false;
-    char msg_temp_one[WIFI_MESSAGE_LENGTH];
-    char msg_temp_two[WIFI_MESSAGE_LENGTH];
-    int max_objects = 0;
-    int used_objects = 0;
-
-    FILE *health_file = NULL;
-
-    int retry_time = 0;
-    int ret_val = 0;
 
 #ifdef Debugging
     zlog_debug(category_debug,
@@ -963,19 +1206,14 @@ void *manage_communication(void* param){
     thpool = thpool_init(NUM_WORK_THREADS);
 
     if(NULL != thpool){
-        /*Evenly assign the worker threads to own the jobs of
-        send/recieve data to/from gateway.
-        */
-        for(id = 0; id< NUM_WORK_THREADS; id++){
-            if(id % 2 == 0){
-                thpool_add_work(thpool,(void*)send_data,
-                   (sudp_config_beacon *) &udp_config, 0);
-            }else{
-                thpool_add_work(thpool,(void*)receive_data,
-                    (sudp_config_beacon *) &udp_config, 0);
-            }
+        /* One worker thread for receive */
+        thpool_add_work(thpool,(void*)receive_data,
+            (sudp_config_beacon *) &udp_config, 0);
+        /* Other worker thread for send */
+        for(id = 1; id< NUM_WORK_THREADS; id++){
+            thpool_add_work(thpool,(void*)send_data,
+                (sudp_config_beacon *) &udp_config, 0);
         }
-
     }else{
 
         zlog_error(category_health_report,
@@ -1007,297 +1245,67 @@ void *manage_communication(void* param){
             zlog_info(category_debug,
                 "Send requets_to_join to gateway again");
 #endif
-            memset(message, 0, sizeof(message));
+            send_join_request();
 
-            if(0 != beacon_basic_info(message, sizeof(message),
-                request_to_join)){
+            /* Because network connection has failed for long time,
+            we should notify timeout_cleanup thread to remove nodes
+            from all lists.
+            */
+            pthread_mutex_lock(&exec_lock);
 
-                zlog_error(category_health_report,
-                    "Unable to prepare basic information for response. "
-                    "Abort sending this response to gateway.");
+            reach_cln_all_lists = true;
+            pthread_cond_signal(&cond_cln_all_lists);
+
+            pthread_mutex_unlock(&exec_lock);
+        }
+
+
+        /* Check call back from the gateway. If not polled by
+        gateway.
+        */
+        polled_type = undefined;
+        if(true == is_null(&udp_config.recv_pkt_queue)){
+            /* continue to next iteration if receive packet queue is
+            empty.
+            */
+            continue;
+
+        }else{
+            /* Update gateway_latest_time to make LBeacon aware that
+            its connection to gateway is still okay.
+            */
+            gateway_latest_time = get_system_time();
+
+            /* Get one packet from receive packet queue
+            */
+            sPkt tmp_pkt = get_pkt(&udp_config.recv_pkt_queue);
+            polled_type = 0x0F & tmp_pkt.content[0];
+        }
+
+        /* According to the polled data type, prepare a work item */
+        switch(polled_type){
+
+            case join_request_ack:
 #ifdef Debugging
-                zlog_error(category_debug,
-                    "Unable to prepare basic information for response. "
-                    "Abort sending this response to gateway.");
+                zlog_info(category_debug,
+                    "Receive join_request_ack from gateway");
 #endif
-                continue;
-             }
+                break; // join_request_ack case
 
-             ret_val = addpkt(&udp_config.send_pkt_queue,
-                 UDP, udp_config.send_ipv4_addr, message,
-                 sizeof(message));
-
-             if(pkt_Queue_SUCCESS != ret_val){
-                 zlog_error(category_health_report,
-                     "Unable to add packet to queue, error=[%d]",
-                     ret_val);
+            case tracked_object_data:
 #ifdef Debugging
-                 zlog_error(category_debug,
-                     "Unable to add packet to queue, error=[%d]",
-                     ret_val);
+                zlog_info(category_debug,
+                    "Receive tracked_object_data from gateway");
 #endif
-              }
+                handle_tracked_object_data();
+                break; // tracked_object_data case
 
-              /* Because network connection has failed for long time,
-              we should notify timeout_cleanup thread to remove nodes
-              from all lists.
-              */
-              pthread_mutex_lock(&exec_lock);
-
-              reach_cln_all_lists = true;
-              pthread_cond_signal(&cond_cln_all_lists);
-
-              pthread_mutex_unlock(&exec_lock);
-          }
-
-
-          /* Check call back from the gateway. If not polled by
-          gateway.
-          */
-          polled_type = undefined;
-          if(true == is_null(&udp_config.recv_pkt_queue)){
-              /* continue to next iteration if receive packet queue is
-              empty.
-              */
-              continue;
-
-          }else{
-              /* Update gateway_latest_time to make LBeacon aware that
-              its connection to gateway is still okay.
-              */
-              gateway_latest_time = get_system_time();
-
-              /* Get one packet from receive packet queue
-              */
-              sPkt tmp_pkt = get_pkt(&udp_config.recv_pkt_queue);
-              polled_type = 0x0F & tmp_pkt.content[0];
-          }
-
-          /* According to the polled data type, prepare a work item */
-          switch(polled_type){
-              case join_request_ack:
+            case health_report:
 #ifdef Debugging
-                  zlog_info(category_debug,
-                      "Receive join_request_ack from gateway");
+                zlog_info(category_debug,
+                    "Receive health_report from gateway");
 #endif
-                  break; // join_request_ack case
-
-              case tracked_object_data:
-#ifdef Debugging
-                  zlog_info(category_debug,
-                      "Receive tracked_object_data from gateway");
-#endif
-                  /* return directly, if both BR and BLE tracked lists
-                  are emtpy
-                  */
-                  pthread_mutex_lock(&list_lock);
-
-                  is_br_empty =
-                      is_entry_list_empty(&BR_object_list_head.list_entry);
-                  is_ble_empty =
-                      is_entry_list_empty(&BLE_object_list_head.list_entry);
-
-                  pthread_mutex_unlock(&list_lock);
-
-                  if(is_br_empty && is_ble_empty){
-#ifdef Debugging
-                      zlog_debug(category_debug,
-                          "Both BR and BLE lists are empty.");
-#endif
-                      continue;
-                  }
-
-                  /* Copy track_object data to a file to be transmited
-                  */
-                  memset(message, 0, sizeof(message));
-                  memset(msg_temp_one, 0, sizeof(msg_temp_one));
-                  memset(msg_temp_two, 0, sizeof(msg_temp_two));
-
-                  used_objects = 0;
-                  max_objects = (sizeof(message) -
-                      MAX_LENGTH_RESP_BASIC_INFO -
-                      used_objects * MAX_LENGTH_RESP_DEVICE_INFO)/
-                      MAX_LENGTH_RESP_DEVICE_INFO;
-
-                  if(WORK_SUCCESSFULLY !=
-                      consolidate_tracked_data(&BR_object_list_head,
-                      msg_temp_one, sizeof(msg_temp_one),
-                      max_objects, &used_objects)){
-
-                      zlog_error(category_health_report,
-                          "Unable to consolidate BR_EDR devices, "
-                          "abort BR_EDR devices this time.");
-#ifdef Debugging
-                      zlog_error(category_debug,
-                          "Unable to consolidate BR_EDR devices, "
-                          "abort BR_EDR devices this time.");
-#endif
-                  }
-
-                  max_objects = (sizeof(message) -
-                      MAX_LENGTH_RESP_BASIC_INFO -
-                      used_objects * MAX_LENGTH_RESP_DEVICE_INFO)/
-                      MAX_LENGTH_RESP_DEVICE_INFO;
-
-                  if(WORK_SUCCESSFULLY !=
-                      consolidate_tracked_data(&BLE_object_list_head,
-                      msg_temp_two, sizeof(msg_temp_two),
-                      max_objects, &used_objects)){
-
-                      zlog_error(category_health_report,
-                          "Unable to consolidate BLE devices, "
-                          "abort BLE devices this time.");
-#ifdef Debugging
-                      zlog_error(category_debug,
-                          "Unable to consolidate BLE devices, "
-                          "abort BLE devices this time.");
-#endif
-                  }
-
-                  if(0 != beacon_basic_info(message, sizeof(message),
-                      tracked_object_data)){
-
-                      zlog_error(category_health_report,
-                          "Unable to prepare basic information for "
-                          "response. Abort sending this response to "
-                          "gateway.");
-#ifdef Debugging
-                      zlog_error(category_debug,
-                          "Unable to prepare basic information for "
-                          "response. Abort sending this response to "
-                          "gateway.");
-#endif
-                      continue;
-                  }
-
-                  if(sizeof(message) > strlen(message) +
-                      strlen(msg_temp_one) + strlen(msg_temp_two)){
-
-                      strcat(message, msg_temp_one);
-                      strcat(message, msg_temp_two);
-                      ret_val = addpkt(&udp_config.send_pkt_queue,
-                          UDP, udp_config.send_ipv4_addr,
-                          message, sizeof(message));
-
-                      if(pkt_Queue_SUCCESS != ret_val){
-                          zlog_error(category_health_report,
-                              "Unable to add packet to queue, error=[%d]",
-                              ret_val);
-#ifdef Debugging
-                          zlog_error(category_debug,
-                              "Unable to add packet to queue, error=[%d]",
-                              ret_val);
-#endif
-                       }
-
-                   }else{
-
-                       zlog_error(category_health_report,
-                         "Abort BR/BLE tracked data, because there is "
-                         "potential buffer overflow. strlen(message)=%d, "
-                         "strlen(msg_temp_one)=%d,strlen(msg_temp_two)=%d",
-                         strlen(message), strlen(msg_temp_one),
-                         strlen(msg_temp_two));
-#ifdef Debugging
-                       zlog_error(category_debug,
-                         "Abort BR/BLE tracked data, because there is "
-                         "potential buffer overflow. strlen(message)=%d, "
-                         "strlen(msg_temp_one)=%d,strlen(msg_temp_two)=%d",
-                         strlen(message), strlen(msg_temp_one),
-                         strlen(msg_temp_two));
-#endif
-                   } // if-else
-
-                   break; // tracked_object_data case
-
-               case health_report:
-#ifdef Debugging
-                   zlog_info(category_debug,
-                       "Receive health_report from gateway");
-#endif
-                   retry_time = FILE_OPEN_RETRY;
-                   while(retry_time--){
-                   health_file =
-                       fopen(HEALTH_REPORT_LOG_FILE_NAME, "r");
-
-                       if(NULL != health_file){
-                           break;
-                       }
-                   }
-
-                   if(NULL == health_file){
-                       zlog_error(category_health_report,
-                           "Error openning file");
-#ifdef Debugging
-                       zlog_error(category_debug,
-                           "Error openning file");
-#endif
-                   }else{
-                       /* contruct the content for UDP packet*/
-                       memset(message, 0, sizeof(message));
-
-                       if(0!=beacon_basic_info(message, sizeof(message),
-                           health_report)){
-
-                           zlog_error(category_health_report,
-                               "Unable to prepare basic information for "
-                               "response. Abort sending this response to "
-                               "gateway.");
-#ifdef Debugging
-                           zlog_error(category_debug,
-                               "Unable to prepare basic information for "
-                               "response. Abort sending this response to "
-                               "gateway.");
-#endif
-                           continue;
-                    }
-
-                    /* read health report data to temp buffer*/
-                    memset(msg_temp_one, 0, sizeof(msg_temp_one));
-
-                    fread(msg_temp_one,
-                        sizeof(msg_temp_one) - strlen(message) - 1,
-                        sizeof(char), health_file);
-
-                    fclose(health_file);
-
-                    if(sizeof(message) > strlen(message) +
-                        strlen(msg_temp_one)){
-
-                        strcat(message, msg_temp_one);
-
-                        ret_val = addpkt(&udp_config.send_pkt_queue,
-                            UDP, udp_config.send_ipv4_addr,
-                            message, sizeof(message));
-
-                        if(pkt_Queue_SUCCESS != ret_val){
-                            zlog_error(category_health_report,
-                              "Unable to add packet to queue, error=[%d]",
-                              ret_val);
-#ifdef Debugging
-                            zlog_error(category_debug,
-                              "Unable to add packet to queue, error=[%d]",
-                              ret_val);
-#endif
-                        }
-
-                   }else{
-
-                       zlog_error(category_health_report,
-                         "Abort health report data, because there is "
-                         "potential buffer overflow. strlen(message)=%d, "
-                         "strlen(msg_temp_one)=%d",
-                         strlen(message), strlen(msg_temp_one));
-
-#ifdef Debugging
-                       zlog_error(category_debug,
-                         "Abort health report data, because there is "
-                         "potential buffer overflow. strlen(message)=%d, "
-                         "strlen(msg_temp_one)=%d",
-                         strlen(message), strlen(msg_temp_one));
-#endif
-                   } // if-else
-                }
+                handle_health_report();
                 break; // health_report case
 
             default:
@@ -1306,7 +1314,8 @@ void *manage_communication(void* param){
                     "Receive unknown packet type=[%d] from gateway",
                     polled_type);
 #endif
-                break;
+                break; // default case
+
          } // switch
     } // end of the while
 
