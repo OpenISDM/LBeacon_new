@@ -80,6 +80,12 @@ Authors:
 /* File path of the logging file*/
 #define LOG_FILE_NAME "/home/pi/LBeacon/config/zlog.conf"
 
+/* The expected lowest basement under ground in the world. This constant 
+will be added to Z-coordinate (level information) got from input 
+configuration file. This adjustment helps us to have positive number in the 
+config data structure and lets Z-coordinate occupy only 2 bytes in UUID. */
+#define BASEMENT_UNDER_GROUND 20
+
 /* The category defined of log file used for health report */
 #define LOG_CATEGORY_HEALTH_REPORT "Health_Report"
 
