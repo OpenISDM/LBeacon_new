@@ -80,9 +80,9 @@ Authors:
 /* File path of the logging file*/
 #define LOG_FILE_NAME "/home/pi/LBeacon/config/zlog.conf"
 
-/* The expected lowest basement under ground in the world. This constant 
-will be added to Z-coordinate (level information) got from input 
-configuration file. This adjustment helps us to have positive number in the 
+/* The expected lowest basement under ground in the world. This constant
+will be added to Z-coordinate (level information) got from input
+configuration file. This adjustment helps us to have positive number in the
 config data structure and lets Z-coordinate occupy only 2 bytes in UUID. */
 #define BASEMENT_UNDER_GROUND 20
 
@@ -127,17 +127,17 @@ config data structure and lets Z-coordinate occupy only 2 bytes in UUID. */
 /* Time interval in milliseconds between advertising by a LBeacon */
 #define INTERVAL_ADVERTISING_IN_MS 3000
 
-/* Time interval in seconds for cleanup scanned_list_head. The decision 
-is made by main thread and it will notify cleanup_scanned_list thread 
+/* Time interval in seconds for cleanup scanned_list_head. The decision
+is made by main thread and it will notify cleanup_scanned_list thread
 to do the cleanup task.
 */
 #define INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC 30
 
 /* Time interval in seconds for idle status in Wifi connection between
 LBeacon and gateway. Usually, it situation is impossible in BeDIS Object
-tracker solution, so we treat it as network connetion failure scenario 
-right now. In this situation, LBeacon sends UDP join_requset to gateway 
-again to receive gateway's packets and notifies timeout_cleanup thread 
+tracker solution, so we treat it as network connetion failure scenario
+right now. In this situation, LBeacon sends UDP join_requset to gateway
+again to receive gateway's packets and notifies timeout_cleanup thread
 to do the cleanup task. */
 #define INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC 180
 
@@ -161,12 +161,12 @@ to do the cleanup task. */
 /* Number of worker threads in the thread pool used by communication unit */
 #define NUM_WORK_THREADS 4
 
-/* Maximum length of basic info of each response to gateway via wifi 
+/* Maximum length of basic info of each response to gateway via wifi
 network link.*/
 
 #define MAX_LENGTH_RESP_BASIC_INFO 128
 
-/* Maximum length of device information of each response to gateway via wifi 
+/* Maximum length of device information of each response to gateway via wifi
 network link.*/
 
 #define MAX_LENGTH_RESP_DEVICE_INFO 50
@@ -227,10 +227,10 @@ typedef struct Config {
 
     /* The IPv4 network address of gateway */
     char gateway_addr[NETWORK_ADDR_LENGTH];
-    
+
     /* Sepcify the UDP port of gateway connection*/
     int gateway_port;
-    
+
     /* Specify the UDP port for LBeacon to listen and receive UDP from gateway*/
     int local_client_port;
 
@@ -342,12 +342,12 @@ pthread_mutex_t  list_lock;
 /* The pthread lock that controls execution of threads */
 pthread_mutex_t  exec_lock;
 
-/* The pthread condition variable identifing that the network connection has 
-been failed for too long, and we should cleanup all lists 
+/* The pthread condition variable identifing that the network connection has
+been failed for too long, and we should cleanup all lists
 */
 pthread_cond_t  cond_cln_all_lists;
 
-/* The flag used to identify the LBeacon has reaches the condition in which 
+/* The flag used to identify the LBeacon has reaches the condition in which
 we should clean up all lists to have more free memory space.
 */
 bool reach_cln_all_lists;
@@ -377,11 +377,11 @@ extern int errno;
 /*
   single_running_instance:
 
-      This function write a file lock to ensure that system has only one 
-      instance of running LBeacon. 
+      This function write a file lock to ensure that system has only one
+      instance of running LBeacon.
 
   Parameters:
-      file_name - the name of the lock file that specifies PID of running 
+      file_name - the name of the lock file that specifies PID of running
 	LBeacon
 
   Return value:
@@ -394,7 +394,7 @@ ErrorCode single_running_instance(char *file_name);
 /*
   generate_uuid:
 
-      This function generates the UUID of this LBeacon according to the 3D 
+      This function generates the UUID of this LBeacon according to the 3D
       coordinates read from configuration file.
 
   Parameters:
@@ -496,7 +496,7 @@ void *start_br_scanning(void *param);
 
       bluetooth_device_address - MAC address of a bluetooth device discovered
                                  during inquiry
-      device_type - the indicator to show the device type of the input address 
+      device_type - the indicator to show the device type of the input address
       name - the name of the BR_EDR / BLE devices
       rssi - the RSSI value of this device
 
@@ -505,8 +505,29 @@ void *start_br_scanning(void *param);
       None
 */
 
-void send_to_push_dongle(bdaddr_t *bluetooth_device_address, 
-				DeviceType device_type, char* name, int rssi);
+void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
+                         DeviceType device_type,
+                         char* name,
+                         int rssi);
+
+/*
+  check_is_in_list:
+
+     This function checks whether the MAC address given as input is in the
+     specified list. If a node with MAC address matching the input address
+     is found in the list, the function returns the pointer to the node
+     with matching address; otherwise it returns NULL.
+
+  Parameters:
+
+    address - MAC address of a bluetooth device
+    node - the node containing the MAC address to compare
+
+  Return value:
+    0: the MAC address is exactly matches
+
+*/
+int compare_mac_address(char address[], ScannedDevice *node);
 
 
 /*
@@ -560,8 +581,8 @@ struct ScannedDevice *check_is_in_list(char address[],
 
 ErrorCode enable_advertising(int advertising_interval,
                              char *advertising_uuid,
-           int major_number,
-           int minor_number,
+                             int major_number,
+                             int minor_number,
                              int rssi_value);
 
 
@@ -586,9 +607,9 @@ ErrorCode disable_advertising();
 /*
   beacon_basic_info
 
-      This function prepares the basic information about the LBeacon, and the 
-      information helps BeDIS server identify the LBeacons packets received 
-      from vairous of gateways. The resulted message will be in the format of 
+      This function prepares the basic information about the LBeacon, and the
+      information helps BeDIS server identify the LBeacons packets received
+      from vairous of gateways. The resulted message will be in the format of
       "Packet type(one byte)B:<LBeacon information>G:<Gateway information>".
 
       Once the basic information is produced, the caller of this function can
@@ -599,13 +620,13 @@ ErrorCode disable_advertising();
       message - the message buffer to contain the resulted basic information
       message_size - the size of message parameter
       polled_type - one of the packet types (also called communication protocols
-         between LBeacon and gateway). This function needs this information to 
-         prepare the first byte of the resulted message which will be parsed 
+         between LBeacon and gateway). This function needs this information to
+         prepare the first byte of the resulted message which will be parsed
 	 and utilized while gateway receives the packet.
 
   Return value:
 
-      int: 0 means successful, and other values means corrsponding failures     
+      int: 0 means successful, and other values means corrsponding failures
 */
 
 int beacon_basic_info(char *message, size_t message_size, int polled_type);
@@ -668,7 +689,7 @@ void handle_tracked_object_data();
 /*
   handle_health_report:
 
-      This function reads the Health_Report.log and send its content to 
+      This function reads the Health_Report.log and send its content to
       Gateway.
 
   Parameters:
@@ -722,7 +743,7 @@ void *manage_communication(void *param);
              copied.
       max_num_objects - the maximum number of objects to be consolidated at
 		one time
-      used_objects - used for return value to let caller know how many 
+      used_objects - used for return value to let caller know how many
 		objects were consolidated in this function.
 
   Return value:
@@ -731,9 +752,10 @@ void *manage_communication(void *param);
                   fails or WORK SUCCESSFULLY otherwise
 */
 
-ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list,
-					const int max_num_objects,
-					int *used_objects);
+ErrorCode copy_object_data_to_file(char *file_name,
+                                   ObjectListHead *list,
+                                   const int max_num_objects,
+                                   int *used_objects);
 
 
 /*
@@ -752,10 +774,10 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list,
       msg_buf - message buffer to contain the consolidated data
 
       msg_size - size of bytes of msg_buf
-     
+
       max_num_objects - the maximum number of objects to be consolidated at
 		one time
-      used_objects - used for return value to let caller know how many 
+      used_objects - used for return value to let caller know how many
 		objects were consolidated in this function.
 
   Return value:
@@ -764,10 +786,10 @@ ErrorCode copy_object_data_to_file(char *file_name, ObjectListHead *list,
                   fails or WORK SUCCESSFULLY otherwise
 */
 
-ErrorCode consolidate_tracked_data(ObjectListHead *list, 
-					char *msg_buf, size_t msg_size,
-					const int max_num_objects,
-					int *used_objects);
+ErrorCode consolidate_tracked_data(ObjectListHead *list,
+                                   char *msg_buf, size_t msg_size,
+                                   const int max_num_objects,
+                                   int *used_objects);
 
 /*
   free_tracked_list:
@@ -793,7 +815,7 @@ void free_tracked_list(List_Entry *list_entry, DeviceType device_type);
 
       This function first removes nodes from the speicified list. If the node
       is also linked by other lists, this function will remove the node from
-      the lists as well. Once the node is isolated, this function calls memory 
+      the lists as well. Once the node is isolated, this function calls memory
       pool to release memory used by the node.
 
   Parameters:
@@ -994,8 +1016,10 @@ extern int  hci_send_cmd(int dd, uint16_t ogf, uint16_t ocf, uint8_t plen,
 
       cli - a new allocated ObexFTP client instance, or NULL on error.
 */
-extern obexftp_client_t * obexftp_open(int transport, obex_ctrans_t *ctrans,
-    obexftp_info_cb_t infocb, void *infocb_data);
+extern obexftp_client_t * obexftp_open(int transport,
+                                       obex_ctrans_t *ctrans,
+                                       obexftp_info_cb_t infocb,
+                                       void *infocb_data);
 
 /*
   send_data:
