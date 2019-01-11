@@ -2230,9 +2230,11 @@ void cleanup_exit(ErrorCode err_code){
 
 
 int main(int argc, char **argv) {
-
     ErrorCode return_value = WORK_SUCCESSFULLY;
     struct sigaction sigint_handler;
+
+    /*Initialize the global flag */
+    ready_to_work = true;
 
     /* Initialize the application log */
     if (zlog_init("../config/zlog.conf") == 0) {
@@ -2253,6 +2255,8 @@ int main(int argc, char **argv) {
        }
 #endif
     }
+
+
     /* Ensure there is only single running instance */
     return_value = single_running_instance(LBEACON_LOCK_FILE);
     if(WORK_SUCCESSFULLY != return_value){
@@ -2264,6 +2268,7 @@ int main(int argc, char **argv) {
 #endif
         return E_OPEN_FILE;
     }
+
 
     /* Load config struct */
     return_value = get_config(&g_config, CONFIG_FILE_NAME);
@@ -2277,8 +2282,6 @@ int main(int argc, char **argv) {
         return E_OPEN_FILE;
     }
 
-    /*Initialize the global flag */
-    ready_to_work = true;
 
     /* Initialize the lock for accessing the lists */
     pthread_mutex_init(&list_lock,NULL);
@@ -2298,22 +2301,6 @@ int main(int argc, char **argv) {
 #ifdef Debugging
         zlog_error(category_debug,
             "Error allocating memory");
-#endif
-    }
-
-    /* Initialize the wifi connection to gateway */
-    strcpy(udp_config.send_ipv4_addr, g_config.gateway_addr);
-    udp_config.send_portno = g_config.gateway_port;
-    udp_config.recv_portno = g_config.local_client_port;
-
-    return_value = Wifi_init(&udp_config);
-    if(WORK_SUCCESSFULLY != return_value){
-
-        zlog_error(category_health_report,
-            "Error initializing network connection to gateway");
-#ifdef Debugging
-        zlog_error(category_debug,
-            "Error initializing network connection to gateway");
 #endif
     }
 
@@ -2339,6 +2326,7 @@ int main(int argc, char **argv) {
 #endif
     }
 
+
     /* Create the thread for track BR_EDR device */
     pthread_t br_scanning_thread;
 
@@ -2352,6 +2340,7 @@ int main(int argc, char **argv) {
         zlog_error(category_debug,
             "Error creating thread");
 #endif
+        cleanup_exit(return_value);
     }
 
 
@@ -2359,7 +2348,7 @@ int main(int argc, char **argv) {
     pthread_t ble_scanning_thread;
 
     return_value = startThread(&ble_scanning_thread,
-        start_ble_scanning, NULL);
+    start_ble_scanning, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
         zlog_error(category_health_report,
@@ -2367,6 +2356,43 @@ int main(int argc, char **argv) {
 #ifdef Debugging
         zlog_error(category_debug,
             "Error creating thread");
+#endif
+        cleanup_exit(return_value);
+    }
+
+
+    /* Start bluetooth advertising and wait while all threads are
+    executing
+    */
+    return_value = enable_advertising(INTERVAL_ADVERTISING_IN_MS,
+        g_config.uuid, LBEACON_MAJOR_VER, LBEACON_MINOR_VER, RSSI_VALUE);
+
+    if (WORK_SUCCESSFULLY != return_value){
+
+        zlog_error(category_health_report,
+            "Unable to enable advertising. Please make sure "
+            "all the hardware devices are ready and try again.");
+#ifdef Debugging
+        zlog_error(category_debug,
+            "Unable to enable advertising. Please make sure "
+            "all the hardware devices are ready and try again.");
+#endif
+        cleanup_exit(return_value);
+    }
+
+
+    /* Initialize the wifi connection to gateway */
+    strcpy(udp_config.send_ipv4_addr, g_config.gateway_addr);
+    udp_config.send_portno = g_config.gateway_port;
+    udp_config.recv_portno = g_config.local_client_port;
+
+    return_value = Wifi_init(&udp_config);
+    if(WORK_SUCCESSFULLY != return_value){
+        zlog_error(category_health_report,
+            "Error initializing network connection to gateway");
+#ifdef Debugging
+        zlog_error(category_debug,
+            "Error initializing network connection to gateway");
 #endif
     }
 
@@ -2411,30 +2437,10 @@ int main(int argc, char **argv) {
 #endif
 
 
-    /* Start bluetooth advertising and wait while all threads are
-       executing
-    */
-     return_value = enable_advertising(INTERVAL_ADVERTISING_IN_MS,
-         g_config.uuid, LBEACON_MAJOR_VER, LBEACON_MINOR_VER, RSSI_VALUE);
-
-    if (WORK_SUCCESSFULLY != return_value){
-
-        zlog_error(category_health_report,
-            "Unable to enable advertising. Please make sure "
-            "all the hardware devices are ready and try again.");
-
-#ifdef Debugging
-        zlog_error(category_debug,
-            "Unable to enable advertising. Please make sure "
-            "all the hardware devices are ready and try again.");
-#endif
-
-        cleanup_exit(return_value);
-    }
-
     while (true == ready_to_work) {
         sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
     }
+
 
     /* When signal is received, disable message advertising */
     disable_advertising();
@@ -2442,7 +2448,6 @@ int main(int argc, char **argv) {
     cleanup_exit(WORK_SUCCESSFULLY);
 
     return WORK_SUCCESSFULLY;
-
 }
 
 
