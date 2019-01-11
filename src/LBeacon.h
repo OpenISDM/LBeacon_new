@@ -125,7 +125,7 @@ config data structure and lets Z-coordinate occupy only 2 bytes in UUID. */
 #define HCI_SEND_REQUEST_TIMEOUT_IN_MS 1000
 
 /* Time interval in milliseconds between advertising by a LBeacon */
-#define INTERVAL_ADVERTISING_IN_MS 3000
+#define INTERVAL_ADVERTISING_IN_MS 500
 
 /* Time interval in seconds for cleanup scanned_list_head. The decision
 is made by main thread and it will notify cleanup_scanned_list thread
