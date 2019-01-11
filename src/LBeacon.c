@@ -1173,6 +1173,8 @@ void *manage_communication(void* param){
     int id = 0;
 
     int gateway_latest_time = 0;
+    int current_time = 0;
+    int latest_join_request_time = 0;
     int polled_type;
 
 #ifdef Debugging
@@ -1205,44 +1207,47 @@ void *manage_communication(void* param){
 
 
     while(true == ready_to_work){
-        /* sleep a short time to prevent occupying CPU in this busy
-        while loop.
-        */
-        sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
-
-
-        /* If LBeacon has not got pakcet from gateway for 5 minutes,
-        LBeacon sends request_to_join to gateway again. The purpose
-        is to handle the gateway upgrade cases in which gateway might
-        not keep the registered LBeacon ID map.
-        */
-        if(get_system_time() - gateway_latest_time >
-            INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC){
-
-#ifdef Debugging
-            zlog_info(category_debug,
-                "Send requets_to_join to gateway again");
-#endif
-            send_join_request();
-
-            /* Because network connection has failed for long time,
-            we should notify timeout_cleanup thread to remove nodes
-            from all lists.
-            */
-            pthread_mutex_lock(&exec_lock);
-
-            reach_cln_all_lists = true;
-            pthread_cond_signal(&cond_cln_all_lists);
-
-            pthread_mutex_unlock(&exec_lock);
-        }
-
-
         /* Check call back from the gateway. If not polled by
         gateway.
         */
         polled_type = undefined;
-        if(false == is_null(&udp_config.recv_pkt_queue)){
+        if(true == is_null(&udp_config.recv_pkt_queue)){
+            /* If LBeacon has not got pakcet from gateway for
+            INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC seconds,
+            LBeacon sends request_to_join to gateway again. The purpose
+            is to handle the gateway upgrade cases in which gateway might
+            not keep the registered LBeacon ID map.
+            */
+            current_time = get_system_time();
+            if((current_time - gateway_latest_time >
+                INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC) &&
+                (current_time - latest_join_request_time >
+                INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC)){
+
+#ifdef Debugging
+                zlog_info(category_debug,
+                    "Send requets_to_join to gateway again");
+#endif
+                send_join_request();
+                latest_join_request_time = current_time;
+
+                /* Because network connection has failed for long time,
+                we should notify timeout_cleanup thread to remove nodes
+                from all lists.
+                */
+                pthread_mutex_lock(&exec_lock);
+
+                reach_cln_all_lists = true;
+                pthread_cond_signal(&cond_cln_all_lists);
+
+                pthread_mutex_unlock(&exec_lock);
+            }else{
+                /* sleep a short time to prevent occupying CPU in this busy
+                while loop.
+                */
+                sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
+            }
+        }else{
             /* Update gateway_latest_time to make LBeacon aware that
             its connection to gateway is still okay.
             */
