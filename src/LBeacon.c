@@ -891,9 +891,11 @@ int beacon_basic_info(char *message, size_t message_size, int polled_type){
 
     // LBeacon UUID
     strcat(message, g_config.uuid);
+    strcat(message, ";");
 
     // Gateway IP address
     strcat(message, g_config.gateway_addr);
+    strcat(message, ";");
 
     /* Make sure the resulted message (basic information) does not
 	exceed our expected length
