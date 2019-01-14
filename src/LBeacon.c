@@ -1377,7 +1377,8 @@ ErrorCode copy_object_data_to_file(char *file_name,
     /*Check if number_to_send is zero. If yes, no need to do more; close
     file and return */
     if(0 == number_to_send){
-
+       sprintf(basic_info, "%d;%d;", device_type, number_to_send);
+       fputs(basic_info, track_file);
        fclose(track_file);
        return WORK_SUCCESSFULLY;
     }
