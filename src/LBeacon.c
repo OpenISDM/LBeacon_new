@@ -1210,10 +1210,6 @@ void *manage_communication(void* param){
 
 
     while(true == ready_to_work){
-        /* Check call back from the gateway. If not polled by
-        gateway.
-        */
-        polled_type = undefined;
         if(true == is_null(&udp_config.recv_pkt_queue)){
             /* If LBeacon has not got pakcet from gateway for
             INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC seconds,
@@ -1256,47 +1252,47 @@ void *manage_communication(void* param){
             */
             gateway_latest_time = get_system_time();
 
+            polled_type = undefined;
             /* Get one packet from receive packet queue
             */
             sPkt tmp_pkt = get_pkt(&udp_config.recv_pkt_queue);
             polled_type = 0x0F & tmp_pkt.content[0];
+
+            /* According to the polled data type, prepare a work item */
+            switch(polled_type){
+
+                case join_request_ack:
+#ifdef Debugging
+                    zlog_info(category_debug,
+                        "Receive join_request_ack from gateway");
+#endif
+                    break; // join_request_ack case
+
+                case tracked_object_data:
+#ifdef Debugging
+                    zlog_info(category_debug,
+                        "Receive tracked_object_data from gateway");
+#endif
+                    handle_tracked_object_data();
+                    break; // tracked_object_data case
+
+                case health_report:
+#ifdef Debugging
+                    zlog_info(category_debug,
+                        "Receive health_report from gateway");
+#endif
+                    handle_health_report();
+                    break; // health_report case
+
+                default:
+#ifdef Debugging
+                    zlog_warn(category_debug,
+                        "Receive unknown packet type=[%d] from gateway",
+                        polled_type);
+#endif
+                    break; // default case
+             } // switch
         }
-
-        /* According to the polled data type, prepare a work item */
-        switch(polled_type){
-
-            case join_request_ack:
-#ifdef Debugging
-                zlog_info(category_debug,
-                    "Receive join_request_ack from gateway");
-#endif
-                break; // join_request_ack case
-
-            case tracked_object_data:
-#ifdef Debugging
-                zlog_info(category_debug,
-                    "Receive tracked_object_data from gateway");
-#endif
-                handle_tracked_object_data();
-                break; // tracked_object_data case
-
-            case health_report:
-#ifdef Debugging
-                zlog_info(category_debug,
-                    "Receive health_report from gateway");
-#endif
-                handle_health_report();
-                break; // health_report case
-
-            default:
-#ifdef Debugging
-                zlog_warn(category_debug,
-                    "Receive unknown packet type=[%d] from gateway",
-                    polled_type);
-#endif
-                break; // default case
-
-         } // switch
     } // end of the while
 
     /* Free the thread pool */
