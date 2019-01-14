@@ -155,7 +155,9 @@ ErrorCode generate_uuid(Config *config){
         coordinate_X_uint/16,
         coordinate_X_uint%16);
 
-    temp_coordinate = strstr((char *) config->coordinate_X, FRACTION_DOT);
+    memset(coordinate, 0, sizeof(coordinate));
+    sprintf(coordinate, "%.6f", atof(config->coordinate_X));
+    temp_coordinate = strstr(coordinate, FRACTION_DOT);
     temp_coordinate = temp_coordinate + strlen(FRACTION_DOT);
     strcat(config->uuid, temp_coordinate);
 
@@ -163,10 +165,11 @@ ErrorCode generate_uuid(Config *config){
     sprintf(coordinate, "0000%X%X",
         coordinate_Y_uint/16,
         coordinate_Y_uint%16);
-
     strcat(config->uuid, coordinate);
 
-    temp_coordinate = strstr((char *) config->coordinate_Y, FRACTION_DOT);
+    memset(coordinate, 0, sizeof(coordinate));
+    sprintf(coordinate, "%.6f", atof(config->coordinate_Y));
+    temp_coordinate = strstr(coordinate, FRACTION_DOT);
     temp_coordinate = temp_coordinate + strlen(FRACTION_DOT);
     strcat(config->uuid, temp_coordinate);
 
