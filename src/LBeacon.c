@@ -344,47 +344,53 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
 
 #ifdef Debugging
         zlog_debug(category_debug,
-            "******Get the memory from the pool. ****** ");
-        zlog_debug(category_debug,
-            "device_type[%d]: %17s - %20s - RSSI %4d",
+            "New device: device_type[%d] - %17s - %20s - RSSI %4d",
             device_type, address, name, rssi);
 #endif
 
         temp_node = (struct ScannedDevice*) mp_alloc(&mempool);
-        if(NULL != temp_node){
-            /* Initialize the list entries */
-            init_entry(&temp_node->sc_list_entry);
-            init_entry(&temp_node->tr_list_entry);
-
-            /* Get the initial scan time for the new node. */
-            temp_node->initial_scanned_time = get_system_time();
-            temp_node->final_scanned_time = temp_node->initial_scanned_time;
-
-            /* Copy the MAC address to the node */
-            strncpy(temp_node->scanned_mac_address,
-                address, LENGTH_OF_MAC_ADDRESS);
-
-            /* Insert the new node into the right lists. */
-            pthread_mutex_lock(&list_lock);
-
-            if(BLE == device_type){
-
-                /* Insert the new node to the BLE_object_list_head */
-                insert_list_tail(&temp_node->tr_list_entry,
-                    &BLE_object_list_head.list_entry);
-
-            }else if(BR_EDR == device_type){
-
-                /* Insert the new node to the scanned list */
-                insert_list_first(&temp_node->sc_list_entry,
-                    &scanned_list_head.list_entry);
-
-                /* Insert the new node to the BR_object_list_head  */
-                insert_list_tail(&temp_node->tr_list_entry,
-                    &BR_object_list_head.list_entry);
-            }
-            pthread_mutex_unlock(&list_lock);
+        if(NULL == temp_node){
+            zlog_error(category_health_report,
+                "Unable to get memory from mp_alloc(). Skip this new device.");
+#ifdef Debugging
+            zlog_error(category_debug,
+                "Unable to get memory from mp_alloc(). Skip this new device.");
+#endif
+            return;
         }
+
+        /* Initialize the list entries */
+        init_entry(&temp_node->sc_list_entry);
+        init_entry(&temp_node->tr_list_entry);
+
+        /* Get the initial scan time for the new node. */
+        temp_node->initial_scanned_time = get_system_time();
+        temp_node->final_scanned_time = temp_node->initial_scanned_time;
+
+        /* Copy the MAC address to the node */
+        strncpy(temp_node->scanned_mac_address,
+            address, LENGTH_OF_MAC_ADDRESS);
+
+        /* Insert the new node into the right lists. */
+        pthread_mutex_lock(&list_lock);
+
+        if(BLE == device_type){
+
+            /* Insert the new node to the BLE_object_list_head */
+            insert_list_tail(&temp_node->tr_list_entry,
+                &BLE_object_list_head.list_entry);
+
+        }else if(BR_EDR == device_type){
+
+            /* Insert the new node to the scanned list */
+            insert_list_first(&temp_node->sc_list_entry,
+                &scanned_list_head.list_entry);
+
+            /* Insert the new node to the BR_object_list_head  */
+            insert_list_tail(&temp_node->tr_list_entry,
+                &BR_object_list_head.list_entry);
+        }
+        pthread_mutex_unlock(&list_lock);
     }
     return;
 }
@@ -2448,7 +2454,6 @@ int main(int argc, char **argv) {
     disable_advertising();
 
     cleanup_exit(WORK_SUCCESSFULLY);
-
     return WORK_SUCCESSFULLY;
 }
 
