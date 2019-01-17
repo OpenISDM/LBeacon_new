@@ -334,8 +334,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
     }
 
     if (NULL == temp_node) {
-
-    /* The address is new. */
+        /* The address is new. */
 
         /* Allocate memory from memory pool for a new node, initialize the
         node, and insert the new node to the scanned_list_head and
@@ -352,44 +351,40 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
 #endif
 
         temp_node = (struct ScannedDevice*) mp_alloc(&mempool);
+        if(NULL != temp_node){
+            /* Initialize the list entries */
+            init_entry(&temp_node->sc_list_entry);
+            init_entry(&temp_node->tr_list_entry);
 
+            /* Get the initial scan time for the new node. */
+            temp_node->initial_scanned_time = get_system_time();
+            temp_node->final_scanned_time = temp_node->initial_scanned_time;
 
-        /* Initialize the list entries */
-        init_entry(&temp_node->sc_list_entry);
-        init_entry(&temp_node->tr_list_entry);
+            /* Copy the MAC address to the node */
+            strncpy(temp_node->scanned_mac_address,
+                address, LENGTH_OF_MAC_ADDRESS);
 
-        /* Get the initial scan time for the new node. */
-        temp_node->initial_scanned_time = get_system_time();
-        temp_node->final_scanned_time = temp_node->initial_scanned_time;
+            /* Insert the new node into the right lists. */
+            pthread_mutex_lock(&list_lock);
 
-        /* Copy the MAC address to the node */
-        strncpy(temp_node->scanned_mac_address,
-                address,
-                LENGTH_OF_MAC_ADDRESS);
+            if(BLE == device_type){
 
-        /* Insert the new node into the right lists. */
-        pthread_mutex_lock(&list_lock);
+                /* Insert the new node to the BLE_object_list_head */
+                insert_list_tail(&temp_node->tr_list_entry,
+                    &BLE_object_list_head.list_entry);
 
-        if(BLE == device_type){
+            }else if(BR_EDR == device_type){
 
-            /* Insert the new node to the BLE_object_list_head */
-            insert_list_tail(&temp_node->tr_list_entry,
-                            &BLE_object_list_head.list_entry);
+                /* Insert the new node to the scanned list */
+                insert_list_first(&temp_node->sc_list_entry,
+                    &scanned_list_head.list_entry);
 
-        }else if(BR_EDR == device_type){
-
-            /* Insert the new node to the scanned list */
-            insert_list_first(&temp_node->sc_list_entry,
-                            &scanned_list_head.list_entry);
-
-            /* Insert the new node to the BR_object_list_head  */
-            insert_list_tail(&temp_node->tr_list_entry,
-                            &BR_object_list_head.list_entry);
-
+                /* Insert the new node to the BR_object_list_head  */
+                insert_list_tail(&temp_node->tr_list_entry,
+                    &BR_object_list_head.list_entry);
+            }
+            pthread_mutex_unlock(&list_lock);
         }
-
-        pthread_mutex_unlock(&list_lock);
-
     }
     return;
 }
