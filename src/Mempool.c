@@ -149,8 +149,10 @@ void *mp_alloc(Memory_Pool *mp){
 
         /* If the next position which mp->head is pointing to is NULL,
            expand the memory pool. */
-      if(mp_expand(mp, mp->slots) == MEMORY_POOL_ERROR)
+      if(mp_expand(mp, mp->slots) == MEMORY_POOL_ERROR){
+        pthread_mutex_unlock(&mp->mem_lock);
         return NULL;
+      }
     }
 
     //store first address, i.e., address of the start of first element
