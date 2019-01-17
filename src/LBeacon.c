@@ -1615,37 +1615,40 @@ void cleanup_list(ObjectListHead *list, bool is_scanned_list_head){
         list_for_each_safe(list_pointers, save_list_pointers,
             &list->list_entry){
 
-        /* If the input list_entry is used for scanned list, we should
-           remove the node from sc_list_entry first. Otherwise, we remove
-           the node from tr_list_entry.
-        */
+            /* If the input list_entry is used for scanned list, we should
+            remove the node from sc_list_entry first. Otherwise, we remove
+            the node from tr_list_entry.
+            */
             if(is_scanned_list_head){
                 temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
                 remove_list_node(&temp->sc_list_entry);
-            }
-
-            temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
-            remove_list_node(&temp->tr_list_entry);
-        }
-
-        /* Because both scanned_list_head and BR_object_list_head use the
-           same node for two list_entry (sc_list_entry and tr_list_entry),
-           if the device_type is BR_EDR, we should make sure the node is
-           removed from the other list as well.
-        */
-        if(BR_EDR == list->device_type){
-            if(is_scanned_list_head){
-                if(false == is_isolated_node(&temp->tr_list_entry)){
-                    remove_list_node(&temp->tr_list_entry);
-                }
             }else{
-                if(false == is_isolated_node(&temp->sc_list_entry)){
-                    remove_list_node(&temp->sc_list_entry);
-                }
+                temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+                remove_list_node(&temp->tr_list_entry);
             }
-        }
 
-    mp_free(&mempool, temp);
+            /* Because both scanned_list_head and BR_object_list_head use the
+            same node for two list_entry (sc_list_entry and tr_list_entry),
+            if the device_type is BR_EDR, we should make sure the node is
+            removed from the other list as well.
+            */
+            if(BR_EDR == list->device_type){
+                /* BR_EDR case for scanned list head and BR trakced object header
+                */
+                if(is_scanned_list_head){
+                    if(false == is_isolated_node(&temp->tr_list_entry)){
+                        remove_list_node(&temp->tr_list_entry);
+                    }
+                }else{
+                    if(false == is_isolated_node(&temp->sc_list_entry)){
+                        remove_list_node(&temp->sc_list_entry);
+                    }
+                }
+            }else if(BLE == list->device_type){
+                /* BLE case  */
+            }
+            mp_free(&mempool, temp);
+        }
     }
     pthread_mutex_unlock(&list_lock);
 
