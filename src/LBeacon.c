@@ -155,7 +155,9 @@ ErrorCode generate_uuid(Config *config){
         coordinate_X_uint/16,
         coordinate_X_uint%16);
 
-    temp_coordinate = strstr((char *) config->coordinate_X, FRACTION_DOT);
+    memset(coordinate, 0, sizeof(coordinate));
+    sprintf(coordinate, "%.6f", atof(config->coordinate_X));
+    temp_coordinate = strstr(coordinate, FRACTION_DOT);
     temp_coordinate = temp_coordinate + strlen(FRACTION_DOT);
     strcat(config->uuid, temp_coordinate);
 
@@ -163,10 +165,11 @@ ErrorCode generate_uuid(Config *config){
     sprintf(coordinate, "0000%X%X",
         coordinate_Y_uint/16,
         coordinate_Y_uint%16);
-
     strcat(config->uuid, coordinate);
 
-    temp_coordinate = strstr((char *) config->coordinate_Y, FRACTION_DOT);
+    memset(coordinate, 0, sizeof(coordinate));
+    sprintf(coordinate, "%.6f", atof(config->coordinate_Y));
+    temp_coordinate = strstr(coordinate, FRACTION_DOT);
     temp_coordinate = temp_coordinate + strlen(FRACTION_DOT);
     strcat(config->uuid, temp_coordinate);
 
@@ -331,8 +334,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
     }
 
     if (NULL == temp_node) {
-
-    /* The address is new. */
+        /* The address is new. */
 
         /* Allocate memory from memory pool for a new node, initialize the
         node, and insert the new node to the scanned_list_head and
@@ -342,14 +344,20 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
 
 #ifdef Debugging
         zlog_debug(category_debug,
-            "******Get the memory from the pool. ****** ");
-        zlog_debug(category_debug,
-            "device_type[%d]: %17s - %20s - RSSI %4d",
+            "New device: device_type[%d] - %17s - %20s - RSSI %4d",
             device_type, address, name, rssi);
 #endif
 
         temp_node = (struct ScannedDevice*) mp_alloc(&mempool);
-
+        if(NULL == temp_node){
+            zlog_error(category_health_report,
+                "Unable to get memory from mp_alloc(). Skip this new device.");
+#ifdef Debugging
+            zlog_error(category_debug,
+                "Unable to get memory from mp_alloc(). Skip this new device.");
+#endif
+            return;
+        }
 
         /* Initialize the list entries */
         init_entry(&temp_node->sc_list_entry);
@@ -361,8 +369,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
 
         /* Copy the MAC address to the node */
         strncpy(temp_node->scanned_mac_address,
-                address,
-                LENGTH_OF_MAC_ADDRESS);
+            address, LENGTH_OF_MAC_ADDRESS);
 
         /* Insert the new node into the right lists. */
         pthread_mutex_lock(&list_lock);
@@ -371,22 +378,19 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
 
             /* Insert the new node to the BLE_object_list_head */
             insert_list_tail(&temp_node->tr_list_entry,
-                            &BLE_object_list_head.list_entry);
+                &BLE_object_list_head.list_entry);
 
         }else if(BR_EDR == device_type){
 
             /* Insert the new node to the scanned list */
             insert_list_first(&temp_node->sc_list_entry,
-                            &scanned_list_head.list_entry);
+                &scanned_list_head.list_entry);
 
             /* Insert the new node to the BR_object_list_head  */
             insert_list_tail(&temp_node->tr_list_entry,
-                            &BR_object_list_head.list_entry);
-
+                &BR_object_list_head.list_entry);
         }
-
         pthread_mutex_unlock(&list_lock);
-
     }
     return;
 }
@@ -888,9 +892,11 @@ int beacon_basic_info(char *message, size_t message_size, int polled_type){
 
     // LBeacon UUID
     strcat(message, g_config.uuid);
+    strcat(message, ";");
 
     // Gateway IP address
     strcat(message, g_config.gateway_addr);
+    strcat(message, ";");
 
     /* Make sure the resulted message (basic information) does not
 	exceed our expected length
@@ -1173,6 +1179,8 @@ void *manage_communication(void* param){
     int id = 0;
 
     int gateway_latest_time = 0;
+    int current_time = 0;
+    int latest_join_request_time = 0;
     int polled_type;
 
 #ifdef Debugging
@@ -1205,90 +1213,89 @@ void *manage_communication(void* param){
 
 
     while(true == ready_to_work){
-        /* sleep a short time to prevent occupying CPU in this busy
-        while loop.
-        */
-        sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
-
-
-        /* If LBeacon has not got pakcet from gateway for 5 minutes,
-        LBeacon sends request_to_join to gateway again. The purpose
-        is to handle the gateway upgrade cases in which gateway might
-        not keep the registered LBeacon ID map.
-        */
-        if(get_system_time() - gateway_latest_time >
-            INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC){
+        if(true == is_null(&udp_config.recv_pkt_queue)){
+            /* If LBeacon has not got pakcet from gateway for
+            INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC seconds,
+            LBeacon sends request_to_join to gateway again. The purpose
+            is to handle the gateway upgrade cases in which gateway might
+            not keep the registered LBeacon ID map.
+            */
+            current_time = get_system_time();
+            if((current_time - gateway_latest_time >
+                INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC) &&
+                (current_time - latest_join_request_time >
+                INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC)){
 
 #ifdef Debugging
-            zlog_info(category_debug,
-                "Send requets_to_join to gateway again");
+                zlog_info(category_debug,
+                    "Send requets_to_join to gateway again");
 #endif
-            send_join_request();
+                send_join_request();
+                latest_join_request_time = current_time;
 
-            /* Because network connection has failed for long time,
-            we should notify timeout_cleanup thread to remove nodes
-            from all lists.
-            */
-            pthread_mutex_lock(&exec_lock);
+                /* Because network connection has failed for long time,
+                we should notify timeout_cleanup thread to remove nodes
+                from all lists.
+                */
+                pthread_mutex_lock(&exec_lock);
 
-            reach_cln_all_lists = true;
-            pthread_cond_signal(&cond_cln_all_lists);
+                reach_cln_all_lists = true;
+                pthread_cond_signal(&cond_cln_all_lists);
 
-            pthread_mutex_unlock(&exec_lock);
-        }
-
-
-        /* Check call back from the gateway. If not polled by
-        gateway.
-        */
-        polled_type = undefined;
-        if(false == is_null(&udp_config.recv_pkt_queue)){
+                pthread_mutex_unlock(&exec_lock);
+            }else{
+                /* sleep a short time to prevent occupying CPU in this busy
+                while loop.
+                */
+                sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
+            }
+        }else{
             /* Update gateway_latest_time to make LBeacon aware that
             its connection to gateway is still okay.
             */
             gateway_latest_time = get_system_time();
 
+            polled_type = undefined;
             /* Get one packet from receive packet queue
             */
             sPkt tmp_pkt = get_pkt(&udp_config.recv_pkt_queue);
             polled_type = 0x0F & tmp_pkt.content[0];
+
+            /* According to the polled data type, prepare a work item */
+            switch(polled_type){
+
+                case join_request_ack:
+#ifdef Debugging
+                    zlog_info(category_debug,
+                        "Receive join_request_ack from gateway");
+#endif
+                    break; // join_request_ack case
+
+                case tracked_object_data:
+#ifdef Debugging
+                    zlog_info(category_debug,
+                        "Receive tracked_object_data from gateway");
+#endif
+                    handle_tracked_object_data();
+                    break; // tracked_object_data case
+
+                case health_report:
+#ifdef Debugging
+                    zlog_info(category_debug,
+                        "Receive health_report from gateway");
+#endif
+                    handle_health_report();
+                    break; // health_report case
+
+                default:
+#ifdef Debugging
+                    zlog_warn(category_debug,
+                        "Receive unknown packet type=[%d] from gateway",
+                        polled_type);
+#endif
+                    break; // default case
+             } // switch
         }
-
-        /* According to the polled data type, prepare a work item */
-        switch(polled_type){
-
-            case join_request_ack:
-#ifdef Debugging
-                zlog_info(category_debug,
-                    "Receive join_request_ack from gateway");
-#endif
-                break; // join_request_ack case
-
-            case tracked_object_data:
-#ifdef Debugging
-                zlog_info(category_debug,
-                    "Receive tracked_object_data from gateway");
-#endif
-                handle_tracked_object_data();
-                break; // tracked_object_data case
-
-            case health_report:
-#ifdef Debugging
-                zlog_info(category_debug,
-                    "Receive health_report from gateway");
-#endif
-                handle_health_report();
-                break; // health_report case
-
-            default:
-#ifdef Debugging
-                zlog_warn(category_debug,
-                    "Receive unknown packet type=[%d] from gateway",
-                    polled_type);
-#endif
-                break; // default case
-
-         } // switch
     } // end of the while
 
     /* Free the thread pool */
@@ -1371,7 +1378,8 @@ ErrorCode copy_object_data_to_file(char *file_name,
     /*Check if number_to_send is zero. If yes, no need to do more; close
     file and return */
     if(0 == number_to_send){
-
+       sprintf(basic_info, "%d;%d;", device_type, number_to_send);
+       fputs(basic_info, track_file);
        fclose(track_file);
        return WORK_SUCCESSFULLY;
     }
@@ -1607,37 +1615,40 @@ void cleanup_list(ObjectListHead *list, bool is_scanned_list_head){
         list_for_each_safe(list_pointers, save_list_pointers,
             &list->list_entry){
 
-        /* If the input list_entry is used for scanned list, we should
-           remove the node from sc_list_entry first. Otherwise, we remove
-           the node from tr_list_entry.
-        */
+            /* If the input list_entry is used for scanned list, we should
+            remove the node from sc_list_entry first. Otherwise, we remove
+            the node from tr_list_entry.
+            */
             if(is_scanned_list_head){
                 temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
                 remove_list_node(&temp->sc_list_entry);
-            }
-
-            temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
-            remove_list_node(&temp->tr_list_entry);
-        }
-
-        /* Because both scanned_list_head and BR_object_list_head use the
-           same node for two list_entry (sc_list_entry and tr_list_entry),
-           if the device_type is BR_EDR, we should make sure the node is
-           removed from the other list as well.
-        */
-        if(BR_EDR == list->device_type){
-            if(is_scanned_list_head){
-                if(false == is_isolated_node(&temp->tr_list_entry)){
-                    remove_list_node(&temp->tr_list_entry);
-                }
             }else{
-                if(false == is_isolated_node(&temp->sc_list_entry)){
-                    remove_list_node(&temp->sc_list_entry);
-                }
+                temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+                remove_list_node(&temp->tr_list_entry);
             }
-        }
 
-    mp_free(&mempool, temp);
+            /* Because both scanned_list_head and BR_object_list_head use the
+            same node for two list_entry (sc_list_entry and tr_list_entry),
+            if the device_type is BR_EDR, we should make sure the node is
+            removed from the other list as well.
+            */
+            if(BR_EDR == list->device_type){
+                /* BR_EDR case for scanned list head and BR trakced object header
+                */
+                if(is_scanned_list_head){
+                    if(false == is_isolated_node(&temp->tr_list_entry)){
+                        remove_list_node(&temp->tr_list_entry);
+                    }
+                }else{
+                    if(false == is_isolated_node(&temp->sc_list_entry)){
+                        remove_list_node(&temp->sc_list_entry);
+                    }
+                }
+            }else if(BLE == list->device_type){
+                /* BLE case  */
+            }
+            mp_free(&mempool, temp);
+        }
     }
     pthread_mutex_unlock(&list_lock);
 
@@ -2446,7 +2457,6 @@ int main(int argc, char **argv) {
     disable_advertising();
 
     cleanup_exit(WORK_SUCCESSFULLY);
-
     return WORK_SUCCESSFULLY;
 }
 
