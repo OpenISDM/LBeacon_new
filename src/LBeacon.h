@@ -219,8 +219,8 @@ typedef struct Config {
     /* String representation of the number of push dongles */
     char number_of_push_dongles[CONFIG_BUFFER_SIZE];
 
-    /* String representation of the required signal strength */
-    char rssi_coverage[CONFIG_BUFFER_SIZE];
+    /* Specify the required signal strength */
+    int rssi_coverage;
 
     /* String representation of the universally unique identifer */
     char uuid[CONFIG_BUFFER_SIZE];

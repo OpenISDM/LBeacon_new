@@ -256,8 +256,7 @@ ErrorCode get_config(Config *config, char *file_name) {
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
-    memset(config->rssi_coverage, 0, sizeof(config->rssi_coverage));
-    memcpy(config->rssi_coverage, config_message, strlen(config_message));
+    config->rssi_coverage = atoi(config_message);
 
     /* item 5 */
     fgets(config_setting, sizeof(config_setting), file);
@@ -1879,7 +1878,7 @@ void *start_ble_scanning(void *param){
                 rssi = (signed char)info->data[info->length];
 
                 /* If the rssi vaule is within the threshold */
-                if(rssi > RSSI_RANGE){
+                if(rssi > g_config.rssi_coverage){
                     memset(name, 0, sizeof(name));
                     eir_parse_name(info->data, info->length, name,
                         sizeof(name) - 1);
@@ -2119,7 +2118,7 @@ void *start_br_scanning(void* param) {
                         info_rssi = (void *)event_buffer_pointer +
                             (sizeof(*info_rssi) * results_id) + 1;
 
-                        if (info_rssi->rssi > RSSI_RANGE) {
+                        if (info_rssi->rssi > g_config.rssi_coverage) {
                             memset(name, 0, sizeof(name));
                             send_to_push_dongle(&info_rssi->bdaddr,
                                 BR_EDR, name, info_rssi->rssi);
