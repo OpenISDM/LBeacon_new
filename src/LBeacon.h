@@ -42,8 +42,7 @@ Authors:
     Jake Lee, jakelee@iis.sinica.edu.tw
     Joey Zhou, joeyzhou@iis.sinica.edu.tw
     Kenneth Tang, kennethtang@iis.sinica.edu.tw
-    James Huamg, jameshuang@iis.sinica.edu.tw
-	Chun Yu Lai, chunyu1202@gmail.com
+    Chun Yu Lai, chunyu1202@gmail.com
 
 */
 
@@ -128,8 +127,8 @@ config data structure and lets Z-coordinate occupy only 2 bytes in UUID. */
 #define INTERVAL_ADVERTISING_IN_MS 500
 
 /* Time interval in seconds for cleanup scanned_list_head. The decision
-is made by main thread and it will notify cleanup_scanned_list thread
-to do the cleanup task.
+is made by check_is_in_list. When the function checks for duplicated devices
+in the scanned_list_head, it will remove the timeout devices in the meantime.
 */
 #define INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC 30
 
@@ -141,15 +140,10 @@ again to receive gateway's packets and notifies timeout_cleanup thread
 to do the cleanup task. */
 #define INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC 180
 
-
-/* Nominal transmission range limit. Only devices in this RSSI range are
-   to be discovered and data sent. */
-#define RSSI_RANGE -80
-
 /* RSSI value of TX power for calibration and broadcast  */
 #define RSSI_VALUE -50
 
-/* Number of characters in a Bluetooth device */
+/* Number of characters in the name of a Bluetooth device */
 #define LENGTH_OF_DEVICE_NAME 30
 
 /* Number of characters in a Bluetooth MAC address */
@@ -161,13 +155,13 @@ to do the cleanup task. */
 /* Number of worker threads in the thread pool used by communication unit */
 #define NUM_WORK_THREADS 4
 
-/* Maximum length of basic info of each response to gateway via wifi
-network link.*/
+/* Maximum length in number of bytes of basic info of each response to
+gateway via wifi network link.*/
 
 #define MAX_LENGTH_RESP_BASIC_INFO 128
 
-/* Maximum length of device information of each response to gateway via wifi
-network link.*/
+/* Maximum length in number of bytes of device information of each response
+to gateway via wifi network link.*/
 
 #define MAX_LENGTH_RESP_DEVICE_INFO 50
 
@@ -228,10 +222,10 @@ typedef struct Config {
     /* The IPv4 network address of gateway */
     char gateway_addr[NETWORK_ADDR_LENGTH];
 
-    /* Sepcify the UDP port of gateway connection*/
+    /* The UDP port of gateway connection*/
     int gateway_port;
 
-    /* Specify the UDP port for LBeacon to listen and receive UDP from gateway*/
+    /* The UDP port for LBeacon to listen and receive UDP from gateway*/
     int local_client_port;
 
 } Config;
@@ -292,6 +286,11 @@ typedef struct object_list_head{
 /* In hci_sock.h, the struct for callback event from the socket. */
 //extern struct hci_filter;
 
+/*
+  EXTERNAL GLOBAL VARIABLES
+*/
+
+extern int errno;
 
 
 /*
@@ -345,12 +344,12 @@ pthread_mutex_t  exec_lock;
 /* The pthread condition variable identifing that the network connection has
 been failed for too long, and we should cleanup all lists
 */
-pthread_cond_t  cond_cln_all_lists;
+pthread_cond_t  cond_cleanup_all_lists;
 
 /* The flag used to identify the LBeacon has reaches the condition in which
 we should clean up all lists to have more free memory space.
 */
-bool reach_cln_all_lists;
+bool reach_cleanup_all_lists;
 
 #ifdef Bluetooth_classic
 
@@ -361,13 +360,6 @@ char *g_push_file_path;
 ThreadStatus g_idle_handler[MAX_NUM_OBJECTS];
 
 #endif
-
-/*
-  EXTERNAL GLOBAL VARIABLES
-*/
-
-extern int errno;
-
 
 
 /*
@@ -382,11 +374,11 @@ extern int errno;
 
   Parameters:
       file_name - the name of the lock file that specifies PID of running
-	LBeacon
+                  LBeacon
 
   Return value:
-      ErrorCode - indicate the result of execution, the expected return code is
-  WORK_SUCCESSFULLY
+      ErrorCode - indicate the result of execution, the expected return code
+                  is WORK_SUCCESSFULLY
 
 */
 
@@ -401,8 +393,8 @@ ErrorCode single_running_instance(char *file_name);
       config - Config struct including file path, coordinates, etc.
 
   Return value:
-      ErrorCode - indicate the result of execution, the expected return code is
-  WORK_SUCCESSFULLY
+      ErrorCode - indicate the result of execution, the expected return code
+                  is WORK_SUCCESSFULLY
 
 */
 
@@ -416,13 +408,13 @@ ErrorCode generate_uuid(Config *config);
       global variable.
 
   Parameters:
-      config - Config struct including file path, coordinates, etc.
+      config - Pointer to config struct including file path, coordinates, etc.
       file_name - the name of the config file that stores all the beacon data
 
   Return value:
 
-      ErrorCode - indicate the result of execution, the expected return code is
-  WORK_SUCCESSFULLY
+      ErrorCode - indicate the result of execution, the expected return code
+                  is WORK_SUCCESSFULLY
 */
 
 ErrorCode get_config(Config *config, char *file_name);
@@ -555,8 +547,6 @@ struct ScannedDevice *check_is_in_list(char address[],
                                        ObjectListHead *list);
 
 
-
-
 /*
   enable_advertising:
 
@@ -609,7 +599,7 @@ ErrorCode disable_advertising();
 
       This function prepares the basic information about the LBeacon, and the
       information helps BeDIS server identify the LBeacons packets received
-      from vairous of gateways. The resulted message will be in the format of
+      from various gateways. The resulted message will be in the format of
       "Packet type(one byte)B:<LBeacon information>G:<Gateway information>".
 
       Once the basic information is produced, the caller of this function can
@@ -619,10 +609,11 @@ ErrorCode disable_advertising();
 
       message - the message buffer to contain the resulted basic information
       message_size - the size of message parameter
-      polled_type - one of the packet types (also called communication protocols
-         between LBeacon and gateway). This function needs this information to
-         prepare the first byte of the resulted message which will be parsed
-	 and utilized while gateway receives the packet.
+      polled_type - one of the packet types (also called communication
+                    protocols between LBeacon and gateway). This function
+                    needs this information to prepare the first byte of the
+                    resulted message which will be parsed and utilized while
+                    gateway receives the packet.
 
   Return value:
 
@@ -635,7 +626,7 @@ int beacon_basic_info(char *message, size_t message_size, int polled_type);
 /*
   timeout_cleanup:
 
-      This function sets a timer to countdown a specific time. When timer
+      This function sets a timer to countdown a specified time. When timer
       expires, cleans up tracked object lists to make sure the memory space
       is always available.
 
@@ -730,7 +721,7 @@ void *manage_communication(void *param);
   copy_object_data_to_file:
 
       This function copies the data on tracked objects captured in the
-      specifed tracked object list to file to be transfer to gateway. The
+      specifed tracked object list to file to be transferred to gateway. The
       output file contains for each ScannedDevice struct found in the list,
       the MAC address and the initial and final timestamps.
 
@@ -742,9 +733,9 @@ void *manage_communication(void *param);
       list - head of the tracked object list from which data is to be
              copied.
       max_num_objects - the maximum number of objects to be consolidated at
-		one time
+                        one time
       used_objects - used for return value to let caller know how many
-		objects were consolidated in this function.
+                     objects were consolidated by this function.
 
   Return value:
 
@@ -775,10 +766,10 @@ ErrorCode copy_object_data_to_file(char *file_name,
 
       msg_size - size of bytes of msg_buf
 
-      max_num_objects - the maximum number of objects to be consolidated at
-		one time
+      max_num_objects - the maximum number of objects to be consolidated
+                        at one time
       used_objects - used for return value to let caller know how many
-		objects were consolidated in this function.
+                     objects were consolidated by this function.
 
   Return value:
 
@@ -800,7 +791,7 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list,
 
   Parameters:
 
-      list_entry - the head of a specified list.
+      list_head - the head of a specified list.
       device_type - type of device with data contained in the list
 
   Return value:
@@ -808,7 +799,7 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list,
       None
 */
 
-void free_tracked_list(List_Entry *list_entry, DeviceType device_type);
+void free_tracked_list(List_Entry *list_head, DeviceType device_type);
 
 /*
   cleanup_list:
@@ -820,15 +811,15 @@ void free_tracked_list(List_Entry *list_entry, DeviceType device_type);
 
   Parameters:
 
-      list - the head of a specified list.
-      is_scanned_list - speicify if the input list is scanned_list_head or not.
+      list_head - the head of a specified list.
+      is_scanned_list - speicify whether the input list is scanned_list_head.
 
   Return value:
 
       None
 */
 
-void cleanup_list(ObjectListHead *list, bool is_scanned_list_head);
+void cleanup_lists(ObjectListHead *list_head, bool is_scanned_list_head);
 
 /*
   cleanup_exit:
@@ -849,12 +840,9 @@ void cleanup_exit(ErrorCode err_code);
 
 
 
-
-
 /*
   EXTERNAL FUNCTIONS
 */
-
 
 
 /*
@@ -915,7 +903,7 @@ extern int hci_open_dev(int dev_id);
 
   Parameters:
 
-      f - the filter to be cleaned
+      f - the filter to be cleared
 
   Return value:
 
@@ -967,7 +955,7 @@ extern void hci_filter_set_event(int e, struct hci_filter *f);
 
       dd - device descriptor of the open HCI socket
       mode - new inquiry mode
-      to - send request to this
+      to -
 
   Return value:
 
@@ -1022,9 +1010,9 @@ extern obexftp_client_t * obexftp_open(int transport,
                                        void *infocb_data);
 
 /*
-  send_data:
+  xbee_send_data:
 
-      When called, this function sends a packet that containing the specified
+      When called, this function sends a packet containing the specified
       message to the gateway via xbee module.
 
   Parameters:
@@ -1036,7 +1024,7 @@ extern obexftp_client_t * obexftp_open(int transport,
       None
 
 */
-extern void *send_data(char *message);
+extern void *xbee_send_data(char *message);
 
 
 /*
@@ -1044,7 +1032,7 @@ extern void *send_data(char *message);
 
     This function receives the name of a message file and returns the file
     path where the message is located. It goes through each directory in the
-    messages folder and in each category, it reads each file name to find
+    messages folder and in each category, reads each file name to find
     the designated message to be broadcast to the users under the beacon.
 
   Parameters:
@@ -1053,7 +1041,7 @@ extern void *send_data(char *message);
 
   Return value:
 
-    eturn_value - message file path
+    return_value - message file path
 */
 
 
