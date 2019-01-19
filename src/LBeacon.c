@@ -2305,21 +2305,6 @@ int main(int argc, char **argv) {
         cleanup_exit(return_value);
     }
 
-    /* Initialize the wifi connection to gateway */
-    strcpy(udp_config.send_ipv4_addr, g_config.gateway_addr);
-    udp_config.send_portno = g_config.gateway_port;
-    udp_config.recv_portno = g_config.local_client_port;
-
-    return_value = Wifi_init(&udp_config);
-    if(WORK_SUCCESSFULLY != return_value){
-        zlog_error(category_health_report,
-                   "Error initializing network connection to gateway");
-#ifdef Debugging
-        zlog_error(category_debug,
-                   "Error initializing network connection to gateway");
-#endif
-    }
-
     /* Create the thread for cleaning up data in tracked objects */
     return_value = startThread(&timer_thread,
                                timeout_cleanup, NULL);
@@ -2340,8 +2325,23 @@ int main(int argc, char **argv) {
               "All the threads are created.");
 #endif
 
-    /* Initialize the thread pool and worker threads
-    */
+
+    /* Initialize the wifi connection to gateway */
+    strcpy(udp_config.send_ipv4_addr, g_config.gateway_addr);
+    udp_config.send_portno = g_config.gateway_port;
+    udp_config.recv_portno = g_config.local_client_port;
+
+    return_value = Wifi_init(&udp_config);
+    if(WORK_SUCCESSFULLY != return_value){
+        zlog_error(category_health_report,
+                   "Error initializing network connection to gateway");
+#ifdef Debugging
+        zlog_error(category_debug,
+                   "Error initializing network connection to gateway");
+#endif
+    }
+
+    /* Initialize the thread pool and worker threads */
     thpool = thpool_init(NUM_WORK_THREADS);
 
     if(NULL != thpool){
