@@ -39,7 +39,7 @@
 
       Holly Wang, hollywang@iis.sinica.edu.tw
       Gary Xiao, garyh0205@hotmail.com
-	  Chun Yu Lai, chunyu1202@gmail.com
+      Chun Yu Lai, chunyu1202@gmail.com
 
 */
 
@@ -77,11 +77,11 @@ int Wifi_init(sudp_config_beacon *udp_config);
 /*
   receive_data:
 
-    This is the entry function of worker thread. In LBeacon, we create 
+    This is the entry function of worker thread. In LBeacon, we create
     multiple worker threads within thread pool to start from this function
-    to receive data from gateway. 
-    This function receives the packet sent by the gateway via Wifi UDP 
-    connection, creates a temporary node of queue to store the content and 
+    to receive data from gateway.
+    This function receives the packet sent by the gateway via Wifi UDP
+    connection, creates a temporary node of queue to store the content and
     inserts this node to receive packet queue.
 
   Parameters:
@@ -90,7 +90,7 @@ int Wifi_init(sudp_config_beacon *udp_config);
 
 
   Return value:
-    
+
      int - The error code for the corresponding error or successful
 
 */
@@ -100,9 +100,9 @@ int receive_data(void *udp_config);
 /*
   send_data:
 
-    This is the entry function of worker thread. In LBeacon, we create 
-    multiple worker threads within thread pool to start from this function 
-    to send data to gateway. 
+    This is the entry function of worker thread. In LBeacon, we create
+    multiple worker threads within thread pool to start from this function
+    to send data to gateway.
     This function prepares a socket, retrieves one packet from send packet
     queue and sends this packet to gateway via Wifi UDP connection.
 
