@@ -1156,10 +1156,7 @@ void handle_health_report(){
       }
 }
 
-void *manage_communication(void* param){
-    Threadpool thpool;
-    int id = 0;
-
+void manage_communication(){
     int gateway_latest_time = 0;
     int current_time = 0;
     int latest_join_request_time = 0;
@@ -1168,31 +1165,6 @@ void *manage_communication(void* param){
 #ifdef Debugging
     zlog_debug(category_debug, ">> manage_communication ");
 #endif
-
-    /* Initialize the thread pool and worker threads
-    */
-    thpool = thpool_init(NUM_WORK_THREADS);
-
-    if(NULL != thpool){
-        /* One worker thread for receive */
-        thpool_add_work(thpool,(void*)receive_data,
-                        (sudp_config_beacon *) &udp_config, 0);
-        /* Other worker thread for send */
-        for(id = 1; id< NUM_WORK_THREADS; id++){
-            thpool_add_work(thpool,(void*)send_data ,
-                            (sudp_config_beacon *) &udp_config, 0);
-        }
-    }else{
-        zlog_error(category_health_report,
-                   "Unable to initialize thread pool in "
-                   "manage_communication");
-#ifdef Debugging
-        zlog_error(category_debug,
-                   "Unable to initialize thread pool in "
-                   "manage_communication");
-#endif
-        return;
-    } // if-else
 
     while(true == ready_to_work){
         if(true == is_null(&udp_config.recv_pkt_queue)){
@@ -1282,13 +1254,11 @@ void *manage_communication(void* param){
         }
     } // end of the while
 
-    /* Free the thread pool */
-    thpool_destroy(thpool);
-
 #ifdef Debugging
     zlog_debug(category_debug, "<< manage_communication ");
 #endif
 
+    return;
 }
 
 ErrorCode copy_object_data_to_file(char *file_name,
@@ -2193,6 +2163,11 @@ void cleanup_exit(ErrorCode err_code){
 int main(int argc, char **argv) {
     ErrorCode return_value = WORK_SUCCESSFULLY;
     struct sigaction sigint_handler;
+    pthread_t br_scanning_thread;
+    pthread_t ble_scanning_thread;
+    pthread_t timer_thread;
+    Threadpool thpool;
+    int id = 0;
 
     /*Initialize the global flag */
     ready_to_work = true;
@@ -2284,8 +2259,6 @@ int main(int argc, char **argv) {
     }
 
     /* Create the thread for track BR_EDR device */
-    pthread_t br_scanning_thread;
-
     return_value = startThread(&br_scanning_thread,
                                start_br_scanning, NULL);
 
@@ -2300,8 +2273,6 @@ int main(int argc, char **argv) {
     }
 
     /* Create the thread for track BLE device */
-    pthread_t ble_scanning_thread;
-
     return_value = startThread(&ble_scanning_thread,
                                start_ble_scanning, NULL);
 
@@ -2349,25 +2320,9 @@ int main(int argc, char **argv) {
 #endif
     }
 
-    /* Create the thread for track device */
-    pthread_t manage_communication_thread;
-
-    return_value = startThread(&manage_communication_thread,
-                               manage_communication, NULL);
-
-    if(return_value != WORK_SUCCESSFULLY){
-        zlog_error(category_health_report,
-                   "Error creating thread");
-#ifdef Debugging
-        zlog_error(category_debug,
-                   "Error creating thread");
-#endif
-    }
-
     /* Create the thread for cleaning up data in tracked objects */
-    pthread_t timer_thread;
-
-    return_value = startThread(&timer_thread, timeout_cleanup, NULL);
+    return_value = startThread(&timer_thread,
+                               timeout_cleanup, NULL);
 
     if(return_value != WORK_SUCCESSFULLY){
         zlog_error(category_health_report,
@@ -2385,8 +2340,42 @@ int main(int argc, char **argv) {
               "All the threads are created.");
 #endif
 
-    while (true == ready_to_work) {
-        sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
+    /* Initialize the thread pool and worker threads
+    */
+    thpool = thpool_init(NUM_WORK_THREADS);
+
+    if(NULL != thpool){
+        /* One worker thread for receive
+        */
+        thpool_add_work(thpool,(void*)receive_data,
+                        (sudp_config_beacon *) &udp_config, 0);
+        /* Other worker thread for send
+        */
+        for(id = 1; id< NUM_WORK_THREADS; id++){
+            thpool_add_work(thpool,(void*)send_data ,
+                            (sudp_config_beacon *) &udp_config, 0);
+        }
+    }else{
+        zlog_error(category_health_report,
+                   "Unable to initialize thread pool");
+#ifdef Debugging
+        zlog_error(category_debug,
+                   "Unable to initialize thread pool");
+#endif
+    } // if-else
+
+    while(true == ready_to_work){
+        /* Although manage_communication contains a while-loop with the
+        same condition inside, we should have this while-loop here to
+        make sure the erros returned from manage_communication are
+        treated as soft-errors and do not cause this program to terminate.
+        */
+        manage_communication();
+    }
+
+    if(NULL != thpool){
+        /* Free the thread pool */
+        thpool_desotry(thpool);
     }
 
     /* When signal is received, disable message advertising */
@@ -2395,7 +2384,6 @@ int main(int argc, char **argv) {
     cleanup_exit(WORK_SUCCESSFULLY);
     return WORK_SUCCESSFULLY;
 }
-
 
 /* Follow are functions for communication via BR/EDR path to Bluetooth
    classic devices */

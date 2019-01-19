@@ -607,24 +607,22 @@ void handle_health_report();
 /*
   manage_communication:
 
-      This is the start function of the main thread in the communication
-      unit of LBeacon. After initializing the wifi network, it creates a
-      thread pool with NUM_WORK_THREADS worker threads; then while the beacon
-      is ready to work, the function waits for poll from the gateway, when
-      polled, the function creates appropriate work items to be executed by
-      a worker thread.
+      This function waits for polling from the gateway and process
+      the corresponding polling types. When there is no polling from
+      gateway for long time, this function submits join_request to
+      gateway again to re-establish the connection between gateway and
+      cleans up all the three lists in the meantime.
 
   Parameters:
 
-      param - not used. This parameter is defined to meet the definition of
-              pthread_create() function
+      None
 
   Return value:
 
       None
 */
 
-void *manage_communication(void *param);
+void manage_communication();
 
 /*
   copy_object_data_to_file:
