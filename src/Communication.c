@@ -141,6 +141,7 @@ int receive_data(void *udp_config){
                             sizeof(recv_buf), 0,
                             (struct sockaddr *)&clientaddr, &clientlen);
         if(numbytes < 0){
+/*
             zlog_error(category_health_report,
                        "Unable to receive data from gateway "
                        "via recvfrom(), strerror(errno)=[%s]",
@@ -151,6 +152,7 @@ int receive_data(void *udp_config){
                        "via recvfrom(), strerror(errno)=[%s]",
                        strerror(errno));
 #endif
+*/
         }else{
             ret_val = addpkt(&udp_config_ptr->recv_pkt_queue, UDP,
                              inet_ntoa(clientaddr.sin_addr), recv_buf,
