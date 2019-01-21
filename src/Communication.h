@@ -42,6 +42,8 @@
       Chun Yu Lai, chunyu1202@gmail.com
 
 */
+#ifndef COMMUNICATION_H
+#define COMMUNICATION_H
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -49,14 +51,7 @@
 #include <string.h>
 #include <errno.h>
 
-
-#ifndef BEDIS_H
 #include "BeDIS.h"
-#endif
-
-#ifndef COMMUNICATION_H
-#define COMMUNICATION_H
-
 
 /*
   Wifi_init:

@@ -134,6 +134,9 @@ is possibily transient failed.*/
 /* Time interval in seconds for busy-wait checking in threads */
 #define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC 3
 
+/* Timeout in seconds for UDP recevie socket */
+#define TIMEOUT_UDP_RECEIVCE_IN_SEC 5
+
 /* Timeout interval in seconds */
 #define WAITING_TIME 10
 

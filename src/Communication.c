@@ -72,13 +72,13 @@ int Wifi_init(sudp_config_beacon *udp_config){
     optval=1;
     setsockopt(udp_config->recv_socket, SOL_SOCKET, SO_REUSEADDR,
                (const void*)&optval, sizeof(int));
-/*
+
     struct timeval timeout;
-    timeout.tv_sec  = 30;
+    timeout.tv_sec  = TIMEOUT_UDP_RECEIVCE_IN_SEC;
     timeout.tv_usec = 0;
     setsockopt(udp_config->recv_socket, SOL_SOCKET, SO_RCVTIMEO,
                &timeout, sizeof(timeout));
-*/
+
     bzero((char *)&udp_config->si_recv, sizeof(udp_config->si_recv));
     udp_config->si_recv.sin_family = AF_INET;
     udp_config->si_recv.sin_addr.s_addr = htonl(INADDR_ANY);

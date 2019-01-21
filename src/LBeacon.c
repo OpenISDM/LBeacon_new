@@ -1482,7 +1482,7 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list,
 #ifdef Debugging
         zlog_error(category_debug,
                    "Error of invalid input parameter, "
-                   list device_type=[%d]",
+                   "list device_type=[%d]",
                    list->device_type);
 #endif
         return E_INPUT_PARAMETER;
@@ -2375,7 +2375,7 @@ int main(int argc, char **argv) {
 
     if(NULL != thpool){
         /* Free the thread pool */
-        thpool_desotry(thpool);
+        thpool_destroy(thpool);
     }
 
     /* When signal is received, disable message advertising */
