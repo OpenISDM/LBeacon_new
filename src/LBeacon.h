@@ -243,6 +243,7 @@ typedef struct ScannedDevice {
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
     int initial_scanned_time;
     int final_scanned_time;
+    int rssi;
     /* List entries for linking the struct to scanned_list and
        tracked_BR_object_list or to tracked_BLE_object_list, depending
        whether the device type is BR_EDR or BLE. */
@@ -469,6 +470,7 @@ int compare_mac_address(char address[], ScannedDevice *node);
 
       address - MAC address of a bluetooth device
       list_head - the head of a specified list
+      rssi - the rssi value of the input device
 
 
   Return value:
@@ -479,7 +481,8 @@ int compare_mac_address(char address[], ScannedDevice *node);
 */
 
 struct ScannedDevice *check_is_in_list(char address[],
-                                       ObjectListHead *list);
+                                       ObjectListHead *list,
+                                       int rssi);
 
 /*
   enable_advertising:

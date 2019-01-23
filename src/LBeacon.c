@@ -309,14 +309,14 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
     */
 
     if(BLE == device_type){
-        temp_node = check_is_in_list(address, &BLE_object_list_head);
+        temp_node = check_is_in_list(address, &BLE_object_list_head, rssi);
 
     }else if(BR_EDR == device_type){
         /* BR_EDR device including BR_EDR phone (feature phone):
         scanned_list should have distinct nodes. So we use scanned_list_head
         for checking the existance of MAC address here.
         */
-        temp_node = check_is_in_list(address, &scanned_list_head);
+        temp_node = check_is_in_list(address, &scanned_list_head, rssi);
 
     }else{
 #ifdef Debugging
@@ -361,6 +361,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
         /* Get the initial scan time for the new node. */
         temp_node->initial_scanned_time = get_system_time();
         temp_node->final_scanned_time = temp_node->initial_scanned_time;
+        temp_node->rssi = rssi;
 
         /* Copy the MAC address to the node */
         strncpy(temp_node->scanned_mac_address, address,
@@ -411,7 +412,8 @@ int compare_mac_address(char address[], ScannedDevice *node){
 }
 
 struct ScannedDevice *check_is_in_list(char address[],
-                                       ObjectListHead *list) {
+                                       ObjectListHead *list,
+                                       int rssi) {
     /* Create a temporary list pointer and set as the head */
     struct List_Entry *list_pointers, *save_list_pointers;
     ScannedDevice *temp = NULL;
@@ -498,6 +500,7 @@ struct ScannedDevice *check_is_in_list(char address[],
                 }else if (0 == compare_mac_address(address, temp)){
                     /* Update the final scan time */
                     temp->final_scanned_time = get_system_time();
+                    temp->rssi = rssi;
                     temp_is_null = false;
                     break;
                 }
@@ -521,6 +524,7 @@ struct ScannedDevice *check_is_in_list(char address[],
 
                     /* Update the final scan time */
                     temp->final_scanned_time = get_system_time();
+                    temp->rssi = rssi;
                     temp_is_null = false;
                     break;
                 }
@@ -1272,9 +1276,8 @@ ErrorCode copy_object_data_to_file(char *file_name,
     ScannedDevice *temp;
     int number_in_list;
     int number_to_send;
-    char timestamp_initial_str[LENGTH_OF_EPOCH_TIME];
-    char timestamp_final_str[LENGTH_OF_EPOCH_TIME];
     char basic_info[MAX_LENGTH_RESP_BASIC_INFO];
+    char response_buf[MAX_LENGTH_RESP_DEVICE_INFO];
     int retry_time = 0;
     int node_count;
     unsigned timestamp_init;
@@ -1425,16 +1428,15 @@ ErrorCode copy_object_data_to_file(char *file_name,
         /* sprintf() is the function to set a format and convert the
         datatype to char
         */
-        sprintf(timestamp_initial_str, "%d", temp->initial_scanned_time);
-        sprintf(timestamp_final_str, "%d", temp->final_scanned_time);
+        memset(response_buf, 0, sizeof(response_buf));
+        sprintf(response_buf, "%s;%d;%d;%d;",
+                temp->scanned_mac_address,
+                temp->initial_scanned_time,
+                temp->final_scanned_time,
+                temp->rssi);
 
         /* Write the content to the file */
-        fputs(temp->scanned_mac_address, track_file);
-        fputs(";", track_file);
-        fputs(timestamp_initial_str, track_file);
-        fputs(";", track_file);
-        fputs(timestamp_final_str, track_file);
-        fputs(";", track_file);
+        fputs(response_buf, track_file);
     }
 
     /* Remove nodes from the local list and release memory allocated to
