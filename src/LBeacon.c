@@ -461,15 +461,16 @@ struct ScannedDevice *check_is_in_list(char address[],
                     free the space back to the memory pool.
                     */
                     if(is_isolated_node(&temp->tr_list_entry)){
+#ifdef Debugging
+                        zlog_debug(category_debug,
+                                   "Remove scanned list [%s] from "
+                                   "scanned_list_head",
+                                   temp->scanned_mac_address);
+#endif
                         mp_free(&mempool, temp);
                     }
 
-#ifdef Debugging
-                    zlog_debug(category_debug,
-                               "Remove scanned list [%s] from "
-                               "scanned_list_head",
-                               temp->scanned_mac_address);
-#endif
+
                 }else if (get_system_time() - temp->initial_scanned_time >
                           INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC){
 
@@ -484,15 +485,16 @@ struct ScannedDevice *check_is_in_list(char address[],
                     free the space back to the memory pool.
                     */
                     if(is_isolated_node(&temp->tr_list_entry)){
+#ifdef Debugging
+                        zlog_debug(category_debug,
+                                   "Remove scanned list [%17s] "
+                                   "from scanned_list_head",
+                                   temp->scanned_mac_address);
+#endif
                         mp_free(&mempool, temp);
                     }
 
-#ifdef Debugging
-                    zlog_debug(category_debug,
-                               "Remove scanned list [%s] "
-                               "from scanned_list_head",
-                               temp->scanned_mac_address);
-#endif
+
                 }else if (0 == compare_mac_address(address, temp)){
                     /* Update the final scan time */
                     temp->final_scanned_time = get_system_time();
