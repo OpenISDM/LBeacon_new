@@ -190,6 +190,11 @@ typedef struct _errordesc {
     char *message;
 } errordesc;
 
+typedef enum _HealthReportErrorCode{
+    S_NORMAL = 0,
+    E_ERROR = 1
+} HealthReportErrorCode;
+
 typedef struct coordinates{
 
     char X_coordinates[COORDINATE_LENGTH];

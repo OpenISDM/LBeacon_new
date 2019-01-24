@@ -1080,6 +1080,7 @@ void handle_tracked_object_data(){
 void handle_health_report(){
     char message[WIFI_MESSAGE_LENGTH];
     char msg_temp_one[WIFI_MESSAGE_LENGTH];
+    char temp_buf[WIFI_MESSAGE_LENGTH];
     FILE *health_file = NULL;
     int retry_time = 0;
     int ret_val = 0;
@@ -1120,13 +1121,22 @@ void handle_health_report(){
         return;
      }
 
-     /* read health report data to temp buffer*/
-     memset(msg_temp_one, 0, sizeof(msg_temp_one));
+     /* read the last line from Health_Report.log file */
+     memset(temp_buf, 0, sizeof(temp_buf));
 
-     fread(msg_temp_one, sizeof(msg_temp_one) - strlen(message) - 1,
-           sizeof(char), health_file);
+     while(!feof(health_file)){
+         fgets(temp_buf, sizeof(temp_buf), health_file);
+     }
 
      fclose(health_file);
+
+     memset(msg_temp_one, 0, sizeof(msg_temp_one));
+
+     if(NULL == strstr(temp_buf, HEALTH_REPORT_ERROR_SIGN)){
+         sprintf(msg_temp_one, "%d;", S_NORMAL);
+     }else{
+         sprintf(msg_temp_one, "%d;", E_ERROR);
+     }
 
      if(sizeof(message) <= strlen(message) + strlen(msg_temp_one)){
          zlog_error(category_health_report,
@@ -2208,6 +2218,13 @@ int main(int argc, char **argv) {
         return E_OPEN_FILE;
     }
 
+    zlog_info(category_health_report,
+              "LBeacon process is launched...");
+#ifdef Debugging
+    zlog_info(category_debug,
+              "LBeacon process is launched...");
+#endif
+
     /* Load config struct */
     return_value = get_config(&g_config, CONFIG_FILE_NAME);
     if(WORK_SUCCESSFULLY != return_value){
@@ -2233,10 +2250,10 @@ int main(int argc, char **argv) {
         mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_IN_MEM_POOL)){
 
         zlog_error(category_health_report,
-                   "Error allocating memory");
+                   "Error allocating memory pool");
 #ifdef Debugging
         zlog_error(category_debug,
-                   "Error allocating memory");
+                   "Error allocating memory pool");
 #endif
     }
 
@@ -2268,10 +2285,10 @@ int main(int argc, char **argv) {
 
     if(return_value != WORK_SUCCESSFULLY){
         zlog_error(category_health_report,
-                   "Error creating thread");
+                   "Error creating thread for start_br_scanning");
 #ifdef Debugging
         zlog_error(category_debug,
-                   "Error creating thread");
+                   "Error creating thread for start_br_scanning");
 #endif
         cleanup_exit(return_value);
     }
@@ -2282,10 +2299,10 @@ int main(int argc, char **argv) {
 
     if(return_value != WORK_SUCCESSFULLY){
         zlog_error(category_health_report,
-                   "Error creating thread");
+                   "Error creating thread for start_ble_scanning");
 #ifdef Debugging
         zlog_error(category_debug,
-                   "Error creating thread");
+                   "Error creating thread for start_ble_scanning");
 #endif
         cleanup_exit(return_value);
     }
@@ -2315,20 +2332,12 @@ int main(int argc, char **argv) {
 
     if(return_value != WORK_SUCCESSFULLY){
         zlog_error(category_health_report,
-                   "Error creating thread");
+                   "Error creating thread for timeout_cleanup");
 #ifdef Debugging
         zlog_error(category_debug,
-                   "Error creating thread");
+                   "Error creating thread for timeout_cleanup");
 #endif
     }
-
-    zlog_info(category_health_report,
-              "All the threads are created.");
-#ifdef Debugging
-    zlog_info(category_debug,
-              "All the threads are created.");
-#endif
-
 
     /* Initialize the wifi connection to gateway */
     strcpy(udp_config.send_ipv4_addr, g_config.gateway_addr);

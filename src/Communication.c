@@ -180,6 +180,7 @@ void *send_data(void *udp_config){
     struct hostent *he;
     struct sockaddr_in addr;
     int retry_times = 0;
+    bool is_in_failure_state = false;
 
     udp_config_ptr = (sudp_config_beacon*) udp_config;
 
@@ -239,7 +240,19 @@ void *send_data(void *udp_config){
                                 (struct sockaddr *)&addr,
                                 sizeof(struct sockaddr));
 
-                if(numbytes < 0){
+                if(numbytes >= 0){
+                    if(is_in_failure_state){
+                        is_in_failure_state = false;
+
+                        zlog_info(category_health_report,
+                                  "send_data returns back to work");
+#ifdef debugging
+                        zlog_info(category_debug,
+                                  "send_data returns back to work");
+                    }
+#endif
+                }else{
+                    is_in_failure_state = true;
                     zlog_error(category_health_report,
                                "Unable to send data to gateway via "
                                "sendto(), strerror(errno)=[%s]",

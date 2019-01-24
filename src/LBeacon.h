@@ -99,6 +99,11 @@ config data structure and lets Z-coordinate occupy only 2 bytes in UUID. */
 /* The log file for LBeacon health history */
 #define HEALTH_REPORT_LOG_FILE_NAME "/home/pi/LBeacon/log/Health_Report.log"
 
+/* The term used by zlog libarry to indicate error category. We will report
+LBeacon's health report as errors, if we find this term in the last line of
+Health_Report.log. */
+#define HEALTH_REPORT_ERROR_SIGN "ERROR"
+
 /* The lock file for LBeacon  */
 #define LBEACON_LOCK_FILE "/home/pi/LBeacon/bin/LBeacon.pid"
 
