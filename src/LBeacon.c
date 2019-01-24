@@ -1639,6 +1639,8 @@ void *start_ble_scanning(void *param){
     struct hci_request set_mask_rq;
     struct hci_request enable_adv_rq;
     struct hci_request disable_adv_rq;
+    uint16_t interval = htobs(0x0010);
+    uint16_t window = htobs(0x0010);
     int i=0;
     uint8_t reports_count;
     void * offset = NULL;
@@ -1689,9 +1691,9 @@ void *start_ble_scanning(void *param){
              return;
         }
 
-        /* Set BLE scan para,eters */
-        if( 0> hci_le_set_scan_parameters(socket, 0x01, htobs(0x0010),
-                                          htobs(0x0010), 0x00, 0x00,
+        /* Set BLE scan parameters */
+        if( 0> hci_le_set_scan_parameters(socket, 0x01, interval,
+                                          window, 0x00, 0x00,
                                           HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
 /*
             zlog_info(category_health_report,
