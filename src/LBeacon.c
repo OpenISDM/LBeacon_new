@@ -1633,7 +1633,6 @@ void *start_ble_scanning(void *param){
     struct hci_filter new_filter; /*Filter for controling the events*/
     evt_le_meta_event *meta;
     le_advertising_info *info;
-    char addr[LENGTH_OF_MAC_ADDRESS];
     int retry_time = 0;
     struct hci_request scan_params_rq;
     struct hci_request set_mask_rq;
@@ -1789,7 +1788,6 @@ void *start_ble_scanning(void *param){
                                sizeof(name) - 1);
                 /* If the name of the BLE device is not unknown */
                 if(strcmp(name, "")!= 0){
-                    ba2str(&(info->bdaddr), addr);
                     send_to_push_dongle(&info->bdaddr, BLE, name, rssi);
                 }
             }
