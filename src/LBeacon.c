@@ -1787,6 +1787,17 @@ void *start_ble_scanning(void *param){
                                info->length,
                                name,
                                sizeof(name) - 1);
+
+#ifdef Debugging
+/* For testing BLE scanning parameters
+                char address[LENGTH_OF_MAC_ADDRESS];
+                ba2str(&info->bdaddr, address);
+                strcat(address, "\0");
+                zlog_debug(category_debug,
+                           "Detected device: %s - RSSI %4d",
+                           address, rssi);
+*/
+#endif
                 /* If the name of the BLE device is not unknown */
                 if(strcmp(name, "")!= 0){
                     send_to_push_dongle(&info->bdaddr, BLE, name, rssi);
@@ -2013,6 +2024,16 @@ void *start_br_scanning(void* param) {
                                     (sizeof(*info_rssi) * results_id) + 1;
 
                         if (info_rssi->rssi > g_config.rssi_coverage) {
+#ifdef Debugging
+/* For testing BR scanning parameters
+                            char address[LENGTH_OF_MAC_ADDRESS];
+                            ba2str(&info_rssi->bdaddr, address);
+                            strcat(address, "\0");
+                            zlog_debug(category_debug,
+                                       "Detected device[BR]: %s - RSSI %4d",
+                                       address, info_rssi->rssi);
+*/
+#endif
                             memset(name, 0, sizeof(name));
                             send_to_push_dongle(&info_rssi->bdaddr,
                                                 BR_EDR, name,
