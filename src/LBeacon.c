@@ -1638,8 +1638,9 @@ void *start_ble_scanning(void *param){
     struct hci_request set_mask_rq;
     struct hci_request enable_adv_rq;
     struct hci_request disable_adv_rq;
-    uint16_t interval = htobs(0x0010);
-    uint16_t window = htobs(0x0010);
+    /* Time interval is 0.625ms */
+    uint16_t interval = htobs(0x0010); /* 1*16*0.625ms = 10ms */
+    uint16_t window = htobs(0x0010); /* 1*16*0.625ms = 10ms */
     int i=0;
     uint8_t reports_count;
     void * offset = NULL;
@@ -1944,7 +1945,8 @@ void *start_br_scanning(void* param) {
 
         /* No limit on number of responses per scan */
         inquiry_copy.num_rsp = 0;
-        inquiry_copy.length = 0x30;
+        /* Time unit is 1.28 seconds */
+        inquiry_copy.length = 0x08; /* 8*1.28 = 10.24 seconds */
 
 #ifdef Debugging
         zlog_debug(category_debug, "Starting inquiry with RSSI...");
