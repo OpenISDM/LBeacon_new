@@ -1684,8 +1684,8 @@ failed:
 
 
 void *start_ble_scanning(void *param){
-    uint8_t ble_buffer[HCI_MAX_EVENT_SIZE]; /*A buffer for the
-                                            callback event */
+    /*A buffer for the callback event */
+    uint8_t ble_buffer[HCI_MAX_EVENT_SIZE];
     int socket = 0; /*Number of the socket */
     int dongle_device_id = 0; /*dongle id */
     int ret, opt, status, len;
@@ -1702,7 +1702,6 @@ void *start_ble_scanning(void *param){
     uint16_t window = htobs(0x0010); /* 1*16*0.625ms = 10ms */
     int i=0;
     uint8_t reports_count;
-    void * offset = NULL;
     char name[LENGTH_OF_DEVICE_NAME];
     int rssi;
 
@@ -1834,31 +1833,30 @@ void *start_ble_scanning(void *param){
             meta = (evt_le_meta_event*)
                 (ble_buffer + HCI_EVENT_HDR_SIZE + 1);
 
-            offset = meta->data + 1;
-            info = (le_advertising_info *)offset;
+            if(EVT_LE_ADVERTISING_REPORT == meta->subevent){
+                info = (le_advertising_info *)(meta->data + 1);
 
-            rssi = (signed char)info->data[info->length];
+                /* the rssi is in the next byte after the packet*/
+                rssi = (signed char)info->data[info->length];
 
-            /* If the rssi vaule is within the threshold */
-            if(rssi > g_config.rssi_coverage){
-                memset(name, 0, sizeof(name));
-                eir_parse_name(info->data,
+                /* If the rssi vaule is within the threshold */
+                if(rssi > g_config.rssi_coverage){
+                    memset(name, 0, sizeof(name));
+                    eir_parse_name(info->data,
                                info->length,
                                name,
                                sizeof(name) - 1);
 
 #ifdef Debugging
 /* For testing BLE scanning parameters
-                char address[LENGTH_OF_MAC_ADDRESS];
-                ba2str(&info->bdaddr, address);
-                strcat(address, "\0");
-                zlog_debug(category_debug,
-                           "Detected device: %s - RSSI %4d",
-                           address, rssi);
+                    char address[LENGTH_OF_MAC_ADDRESS];
+                    ba2str(&info->bdaddr, address);
+                    strcat(address, "\0");
+                    zlog_debug(category_debug,
+                               "Detected device: %s - RSSI %4d",
+                               address, rssi);
 */
 #endif
-                /* If the name of the BLE device is not unknown */
-                if(strcmp(name, "")!= 0){
                     send_to_push_dongle(&info->bdaddr, BLE, name, rssi);
                 }
             }
