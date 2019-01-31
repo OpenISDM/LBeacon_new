@@ -671,37 +671,94 @@ ErrorCode enable_advertising(int advertising_interval,
     le_set_advertising_data_cp advertisement_data_copy;
     memset(&advertisement_data_copy, 0, sizeof(advertisement_data_copy));
 
+    /* The Advertising data consists of one or more Advertising Data (AD)
+    elements. Each element is formatted as follows:
+
+    1st byte: length of the element (excluding the length byte itself)
+    2nd byte: AD type – specifies what data is included in the element
+    AD data - one or more bytes - the meaning is defined by AD type
+    */
+
+    /* 1. Fill the EIR_FLAGS type (0x01 in Bluetooth AD type)
+    related information
+    */
     segment_length = 1;
     advertisement_data_copy
         .data[advertisement_data_copy.length + segment_length] =
         htobs(EIR_FLAGS);
     segment_length++;
+
+    /* FLAG information is bit-wise is listed below, and we choose to use
+    0x1A for 00011010 setting.
+    bit 0: LE Limited Discoverable Mode
+    bit 1: LE General Discoverable Mode
+    bit 2: BR/EDR Not Supported
+    bit 3: Simultaneous LE and BR/EDR to Same Device Capable (Controller)
+    bit 4: Simultaneous LE and BR/EDR to Same Device Capable (Host)
+    bit 5-7: Reserved
+    */
     advertisement_data_copy
-        .data[advertisement_data_copy.length + segment_length] = htobs(0x1A);
+        .data[advertisement_data_copy.length + segment_length] =
+        htobs(0x1A);
     segment_length++;
-    advertisement_data_copy.data[advertisement_data_copy.length] =
+
+    /* Fill the length for EIR_FLAGS type (0x01 in Bluetooth AD type) */
+    advertisement_data_copy
+        .data[advertisement_data_copy.length] =
         htobs(segment_length - 1);
 
     advertisement_data_copy.length += segment_length;
 
+    /* 2. Fill the EIR_MANUFACTURE_SPECIFIC_DATA (0xFF in Bluetooth AD type)
+    related information
+    */
     segment_length = 1;
     advertisement_data_copy
         .data[advertisement_data_copy.length + segment_length] =
         htobs(EIR_MANUFACTURE_SPECIFIC_DATA);
     segment_length++;
+
+    /* The first two bytes of EIR_MANUFACTURE_SPECIFIC_DATA type is the company
+    identifier
+    https://www.bluetooth.com/specifications/assigned-numbers/company-identifiers
+
+    For Raspberry Pi, we should use 0x000F to specify the manufactrer as
+    Broadcom Corporation
+    */
     advertisement_data_copy
-        .data[advertisement_data_copy.length + segment_length] = htobs(0x4C);
+        .data[advertisement_data_copy.length + segment_length] =
+        htobs(0x0F);
     segment_length++;
     advertisement_data_copy
-        .data[advertisement_data_copy.length + segment_length] = htobs(0x00);
-    segment_length++;
-    advertisement_data_copy
-        .data[advertisement_data_copy.length + segment_length] = htobs(0x02);
-    segment_length++;
-    advertisement_data_copy
-        .data[advertisement_data_copy.length + segment_length] = htobs(0x15);
+        .data[advertisement_data_copy.length + segment_length] =
+        htobs(0x00);
     segment_length++;
 
+    /* The next byte is Subtype. For beacon-like, we should use 0x02 for iBeacon
+    type.
+    */
+    advertisement_data_copy
+        .data[advertisement_data_copy.length + segment_length] =
+        htobs(0x02);
+    segment_length++;
+
+    /* The next byte is the Subtype length of following beacon-like information.
+    They are pre-defined and fixed as 0x15 = 21 bytes with following format:
+
+    16 bytes: Proximity UUID
+    2 bytes: Major version
+    2 bytes: Minor version
+    1 byte: Signal power
+    */
+
+    /* Subtype length is pre-defined and fixed as 0x15 for beacon-like
+    information*/
+    advertisement_data_copy
+        .data[advertisement_data_copy.length + segment_length] =
+        htobs(0x15);
+    segment_length++;
+
+    /* 16 bytes: Proximity UUID */
     uuid = uuid_str_to_data(advertising_uuid);
 
     for (uuid_iterator = 0;
@@ -715,7 +772,7 @@ ErrorCode enable_advertising(int advertising_interval,
         segment_length++;
     }
 
-    /* Major number */
+    /* 2 bytes: Major number */
     advertisement_data_copy
         .data[advertisement_data_copy.length + segment_length] =
         htobs(major_number >> 8 & 0x00FF);
@@ -725,7 +782,7 @@ ErrorCode enable_advertising(int advertising_interval,
         htobs(major_number & 0x00FF);
     segment_length++;
 
-    /* Minor number */
+    /* 2 bytes: Minor number */
     advertisement_data_copy
         .data[advertisement_data_copy.length + segment_length] =
         htobs(minor_number >> 8 & 0x00FF);
@@ -735,12 +792,14 @@ ErrorCode enable_advertising(int advertising_interval,
         htobs(minor_number & 0x00FF);
     segment_length++;
 
-    /* RSSI calibration */
+    /* 1 byte: Signal power (also known as RSSI calibration) */
     advertisement_data_copy
         .data[advertisement_data_copy.length + segment_length] =
         htobs(twoc(rssi_value, 8));
     segment_length++;
 
+    /* Fill the length for EIR_MANUFACTURE_SPECIFIC_DATA type
+    (0xFF in Bluetooth AD type) */
     advertisement_data_copy.data[advertisement_data_copy.length] =
         htobs(segment_length - 1);
 

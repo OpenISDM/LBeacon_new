@@ -107,18 +107,23 @@ Health_Report.log. */
 /* The lock file for LBeacon  */
 #define LBEACON_LOCK_FILE "/home/pi/LBeacon/bin/LBeacon.pid"
 
+/* For following EIR_ constants, please refer to Bluetooth specifications for
+the defined values.
+https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile
+*/
 /* BlueZ bluetooth extended inquiry response protocol: flags */
 #define EIR_FLAGS 0X01
+
+/* BlueZ bluetooth extended inquiry response protocol: short local name */
+#define EIR_NAME_SHORT 0x08
+
+/* BlueZ bluetooth extended inquiry response protocol: complete local name */
+#define EIR_NAME_COMPLETE 0x09
 
 /* BlueZ bluetooth extended inquiry response protocol: Manufacturer Specific
    Data */
 #define EIR_MANUFACTURE_SPECIFIC_DATA 0xFF
 
-/* BlueZ bluetooth extended inquiry response protocol: complete local name */
-#define EIR_NAME_COMPLETE 0x09
-
-/* BlueZ bluetooth extended inquiry response protocol: short local name */
-#define EIR_NAME_SHORT 0x08
 
 /* Maximum number of characters in message file name */
 #define FILE_NAME_BUFFER 64
