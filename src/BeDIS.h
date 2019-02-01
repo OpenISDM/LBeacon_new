@@ -10,18 +10,18 @@
 
      BeDIS
 
-  File Description:
-
-     This file, contain the definitions and declarations of constants, structures,
-     and functions used in both Gateway and LBeacon.
-
   File Name:
 
      BeDIS.h
 
+  File Description:
+
+     This file contains the definitions and declarations of constants,
+     structures, and functions used in both Gateway and LBeacon.
+
   Version:
 
-     2.0, 201901041100
+     2.0, 20190201
 
   Abstract:
 
@@ -47,6 +47,7 @@
 #ifndef BEDIS_H
 #define BEDIS_H
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -70,7 +71,6 @@
 #include <sys/time.h>
 #include <sys/timeb.h>
 #include <sys/file.h>
-
 #include "Mempool.h"
 #include "UDP_API.h"
 #include "LinkedList.h"
@@ -86,46 +86,46 @@
 /* Maximum number of characters in each line of config file */
 #define CONFIG_BUFFER_SIZE 64
 
-/* Times of retrying to open file, because file openning operation
-is possibily transient failed. */
+/* Number of times to retry open file, because file openning operation may have
+   transient failure. */
 #define FILE_OPEN_RETRY 5
 
-/* Times of retrying to get dongle, because this operation
-is possibily transient failed.*/
+/* Number of times to retry getting a dongle, because this operation may have
+   transient failure. */
 #define DONGLE_GET_RETRY 5
 
-/* Times of retrying to open socket, because socket openning operation
-is possibily transient failed.*/
+/* Number of times to retry opening socket, because socket openning operation
+   may have transient failure. */
 #define SOCKET_OPEN_RETRY 5
 
 /* The number of slots in the memory pool */
 #define SLOTS_IN_MEM_POOL 1024
 
-/* Length of address of the network */
+/* Length of the IP address in byte */
 #define NETWORK_ADDR_LENGTH 16
 
-/* Length of address of the network in Hex */
+/* Length of the IP address in Hex */
 #define NETWORK_ADDR_LENGTH_HEX 8
 
 /* Maximum length of message to be sent over WiFi in bytes */
 #define WIFI_MESSAGE_LENGTH 4096
 
-/* define the size of array to store Wi-Fi SSID */
+/* Minimum Wi-Fi message size (One byte for data type and one byte for a space) */
+#define MINIMUM_WIFI_MESSAGE_LENGTH 2
+
+/* The size of array to store Wi-Fi SSID */
 #define WIFI_SSID_LENGTH 10
 
-/* define the size of array to store Wi-Fi Password */
+/* The size of array to store Wi-Fi Password */
 #define WIFI_PASS_LENGTH 10
 
-/* Length of the Lbeacon's UUID in a number of characters */
+/* Length of the LBeacon's UUID in number of characters */
 #define UUID_LENGTH 32
 
-// Legnth of temporary buffer
-#define BUFFER_LENGTH 1024
-
-// Length of coordinates in number of bits
+/* Length of coordinates in number of bits */
 #define COORDINATE_LENGTH 64
 
-//The port on which to listen for incoming data
+/* The port on which to listen for incoming data */
 #define UDP_LISTEN_PORT 8888
 
 /* Number of bytes in the string format of epoch time */
@@ -134,11 +134,9 @@ is possibily transient failed.*/
 /* Time interval in seconds for busy-wait checking in threads */
 #define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC 3
 
-/* Timeout in seconds for UDP recevie socket */
-#define TIMEOUT_UDP_RECEIVCE_IN_SEC 5
-
 /* Timeout interval in seconds */
 #define WAITING_TIME 10
+
 
 typedef enum _ErrorCode{
 
@@ -163,7 +161,6 @@ typedef enum _ErrorCode{
     E_START_THREAD = 18,
     E_INIT_THREAD_POOL = 19,
     E_INIT_ZIGBEE = 20,
-    E_ZIGBEE_CONNECT = 21,
     E_LOG_INIT = 22,
     E_LOG_GET_CATEGORY = 23,
     E_EMPTY_FILE = 24,
@@ -172,28 +169,18 @@ typedef enum _ErrorCode{
     MAX_ERROR_CODE = 27,
     E_INITIALIZATION_FAIL = 28,
     E_WIFI_INIT_FAIL = 29,
-    E_ZIGBEE_INIT_FAIL = 30,
-    E_XBEE_VALIDATE = 31,
     E_START_COMMUNICAT_ROUTINE_THREAD = 32,
     E_START_BHM_ROUTINE_THREAD = 33,
     E_START_TRACKING_THREAD = 34,
-    E_ZIGBEE_CALL_BACK = 35,
-    E_ZIGBEE_SHUT_DOWN = 36,
     E_REG_SIG_HANDLER = 37,
     E_JOIN_THREAD = 38,
 
 } ErrorCode;
 
-
-typedef struct _errordesc {
+typedef struct {
     ErrorCode code;
     char *message;
 } errordesc;
-
-typedef enum _HealthReportErrorCode{
-    S_NORMAL = 0,
-    E_ERROR = 1
-} HealthReportErrorCode;
 
 typedef struct coordinates{
 
@@ -203,77 +190,89 @@ typedef struct coordinates{
 
 } Coordinates;
 
-/* A global flag that is initially set to true by the main thread. It is set
-   to false by any thread when the thread encounters a fatal error,
-   indicating that it is about to exit. In addition, if user presses Ctrl+C,
-   the ready_to_work will be set as false to stop all threadts. */
-bool ready_to_work;
-
-/* Type of device to be tracked. */
-typedef enum DeviceType {
-
-  BR_EDR = 0,
-  BLE = 1,
-  max_type = 2
-
-} DeviceType;
-
-/* The pointer to the category of the log file */
-zlog_category_t *category_health_report, *category_debug;
 
 typedef enum pkt_types {
-    // Unknown type of pkt type
+    /* Unknown type of pkt type */
     undefined = 0,
-    // For Join Request
-    // Request join from LBeacon
+
+    /* For Join Request */
+
+    /* Request join from LBeacon */
     request_to_join = 1,
-    // When Gateway accept LBeacon join request
+    /* When Gateway accept LBeacon join request */
     join_request_ack = 2,
-    // When Gateway deny Beacon join request
+    /* When Gateway deny Beacon join request */
     join_request_deny = 3,
-    // For LBeacon send pkt type
-    // A pkt contain tracked object data
+
+    /* For LBeacon send pkt type */
+
+    /* A pkt containing tracked object data */
     tracked_object_data = 4,
-    // A pkt contain health report
+    /* A pkt containing health report */
     health_report = 5,
-    // A pkt that is for LBeacon
+    /* A pkt for LBeacon */
     data_for_LBeacon = 6,
-    // For Gayeway
-    // For the gateway polling health report from LBeacon
+
+    /* For Gayeway */
+
+    /* For the Gateway polling health reports from LBeacons */
     RFHR_from_gateway = 8,
-    // For server
-    // For gateway polling tracked object data from LBeacon
+
+    /* For server */
+
+    /* For the Gateway polling tracked object data from LBeacons */
     poll_for_tracked_object_data_from_server = 9,
-    // A polling request for health report from server
+    /* A polling request for health report from server */
     RFHR_from_server = 10
 
 } PktType;
 
 
 typedef enum pkt_direction {
-    // pkt from gateway
+    /* pkt from gateway */
     from_gateway = 10,
-    // pkt from server
+    /* pkt from server */
     from_server = 8,
-    // pkt from beacon
+    /* pkt from beacon */
     from_beacon = 0
 
 } PktDirection;
 
-// FUNCTIONS
+
+/* Type of device to be tracked. */
+typedef enum DeviceType {
+
+    BR_EDR = 0,
+    BLE = 1,
+    max_type = 2
+
+} DeviceType;
+
+
+/* A global flag that is initially set to true by the main thread. It is set
+   to false by any thread when the thread encounters a fatal error,
+   indicating that it is about to exit. In addition, if user presses Ctrl+C,
+   the ready_to_work will be set as false to stop all threadts. */
+bool ready_to_work;
+
+/* The pointer to the category of the log file */
+zlog_category_t *category_health_report, *category_debug;
+
+
+/* FUNCTIONS */
 
 /*
   uuid_str_to_data:
 
-     @todo
+     Convert uuid from string to unsigned integer.
 
   Parameters:
 
-     uuid - @todo
+     uuid - The uuid in string type.
 
   Return value:
 
-     data - @todo
+     unsigned int - The converted uuid in unsigned int type.
  */
 unsigned int *uuid_str_to_data(char *uuid);
 
@@ -286,7 +285,7 @@ unsigned int *uuid_str_to_data(char *uuid);
   Parameters:
 
      in - @todo
-     t -  @todo
+     t  -  @todo
 
   Return value:
 
@@ -294,10 +293,12 @@ unsigned int *uuid_str_to_data(char *uuid);
  */
 unsigned int twoc(int in, int t);
 
+
 /*
   trim_string_tail:
 
-     Trim the whitespace, newline and carry-return at the end of string
+     Trim the whitespace, newline and carry-return at the end of string when
+     reading config messages.
 
   Parameters:
 
@@ -305,21 +306,22 @@ unsigned int twoc(int in, int t);
 
   Return value:
 
-     data - @todo
+     None
  */
 void trim_string_tail(char *message);
 
+
 /*
- ctrlc_handler:
+  ctrlc_handler:
 
      If the user presses CTRL-C, the global variable ready_to_work will be set
      to false, and a signal will be thrown to stop running the program.
 
- Parameters:
+  Parameters:
 
-     s - @todo
+     stop - A interger signal triggered by ctrl-c.
 
- Return value:
+  Return value:
 
      None
 
@@ -330,20 +332,21 @@ void ctrlc_handler(int stop);
 /*
   startThread:
 
-     This function initializes the specified thread. And threads initialize by
-     this function will be create in detach mode.
+     This function initializes the specified thread. Threads initialized by
+     this function will be create in detached mode.
 
   Parameters:
 
-     threads - name of the thread.
-     thfunct - the function for the thread to execute.
-     arg - the argument for the function of the thread.
+     thread        - The pointer of the thread.
+     start_routine - routine to be executed by the thread.
+     arg           - the argument for the start_routine.
 
   Return value:
 
      Error_code: The error code for the corresponding error
  */
-ErrorCode startThread(pthread_t *threads, void *( *thfunct)(void *), void *arg);
+ErrorCode startThread(pthread_t *thread, void *( *start_routine)(void *),
+                      void *arg);
 
 
 /*
@@ -360,8 +363,8 @@ ErrorCode startThread(pthread_t *threads, void *( *thfunct)(void *), void *arg);
 
      system_time - system time in seconds
 */
-
 int get_system_time();
+
 
 /*
   memset:
@@ -370,15 +373,15 @@ int get_system_time();
 
   Parameters:
 
-      ptr - the pointer to the block memory to fill
-      value - The value as an int to be set: The function will fill
-              the memory as if this value
-      number - number of bytes in the memory area starting from ptr to be
+     ptr    - the pointer to the block memory to fill
+     value  - The value in int type: The function will fill the memory
+              as if this value
+     number - number of bytes in the memory area starting from ptr to be
                set to value
 
   Return value:
 
-      dst - a pointer to the memory area
+     void * - a pointer points to the memory area
 */
 extern void * memset(void * ptr, int value, size_t number);
 
@@ -421,7 +424,7 @@ extern int pthread_attr_destroy(pthread_attr_t *attr);
   pthread_create:
 
       This function is called to start a new thread in the calling process.
-      The new thrad starts execution by invoking start_routine.
+      The new thread starts execution by invoking start_routine.
 
   Parameters:
 
