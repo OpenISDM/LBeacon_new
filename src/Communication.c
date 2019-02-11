@@ -47,7 +47,7 @@
 #include "Communication.h"
 #define Debugging
 
-int Wifi_init(sudp_config_beacon *udp_config){
+ErrorCode Wifi_init(sudp_config_beacon *udp_config){
     int optval = 0;
     int retry_times = 0;
 
@@ -98,7 +98,7 @@ int Wifi_init(sudp_config_beacon *udp_config){
         return E_WIFI_INIT_FAIL;
     }
 
-    // 2. initialize packet queue (for receive data from gateway)
+    // 2. initialize packet queue (for received data from gateway)
     if(pkt_Queue_SUCCESS != init_Packet_Queue(&udp_config->recv_pkt_queue)){
         zlog_error(category_health_report,
                    "Unable to intitialize receive packet queue");
@@ -109,7 +109,7 @@ int Wifi_init(sudp_config_beacon *udp_config){
         return E_WIFI_INIT_FAIL;
     }
 
-    // 3. initialize packet queue (for worker thread to send)
+    // 3. initialize packet queue (for worker threads to send)
     if(pkt_Queue_SUCCESS != init_Packet_Queue(&udp_config->send_pkt_queue)){
         zlog_error(category_health_report,
                    "Unable to initialze send packet queue");
@@ -124,7 +124,7 @@ int Wifi_init(sudp_config_beacon *udp_config){
 }
 
 
-int receive_data(void *udp_config){
+ErrorCode receive_data(void *udp_config){
     sudp_config_beacon *udp_config_ptr = NULL;
     int numbytes = 0;
     int clientlen;
@@ -170,10 +170,11 @@ int receive_data(void *udp_config){
             }
         }
     }
-    return 0;
+
+    return WORK_SUCCESSFULLY;
 }
 
-void *send_data(void *udp_config){
+ErrorCode *send_data(void *udp_config){
     sudp_config_beacon *udp_config_ptr = NULL;
     int send_socket = 0;
     int numbytes = 0;
@@ -194,7 +195,7 @@ void *send_data(void *udp_config){
                    "Unable to gethostbyname(), addr=[%s]",
                    udp_config_ptr->send_ipv4_addr);
 #endif
-        return;
+        return E_OPEN_SOCKET;
     }
 
     retry_times = SOCKET_OPEN_RETRY;
@@ -212,7 +213,7 @@ void *send_data(void *udp_config){
         zlog_error(category_debug,
                    "Unable to intitialize send socket");
 #endif
-        return;
+        return E_OPEN_SOCKET;
     }
 
     bzero((char*) &addr, sizeof(addr));
@@ -270,9 +271,11 @@ void *send_data(void *udp_config){
     }
     // 3. close the send socket
     close(send_socket);
+
+    return WORK_SUCCESSFULLY;
 }
 
-void Wifi_free(sudp_config_beacon *udp_config){
+ErrorCode Wifi_free(sudp_config_beacon *udp_config){
 
     // 1. close receive socket
     close(udp_config->recv_socket);
@@ -283,5 +286,5 @@ void Wifi_free(sudp_config_beacon *udp_config){
     // 3. release the packet queue
     Free_Packet_Queue(&udp_config->send_pkt_queue);
 
-    return;
+    return WORK_SUCCESSFULLY;
 }

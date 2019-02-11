@@ -56,7 +56,7 @@
 /*
   Wifi_init:
 
-     This function initilizes the Wifi's necessory object.
+     This function initializes the Wifi's necessory object.
 
   Parameters:
 
@@ -64,20 +64,20 @@
 
   Return value:
 
-      int - The error code for the corresponding error or successful
+      ErrorCode - The error code for the corresponding error or successful
 
  */
-int Wifi_init(sudp_config_beacon *udp_config);
+ErrorCode Wifi_init(sudp_config_beacon *udp_config);
 
 /*
   receive_data:
 
-    This is the entry function of worker thread. In LBeacon, we create
+    This is the entry function of worker threads. In LBeacon, we create
     multiple worker threads within thread pool to start from this function
     to receive data from gateway.
-    This function receives the packet sent by the gateway via Wifi UDP
-    connection, creates a temporary node of queue to store the content and
-    inserts this node to receive packet queue.
+    This function receives packets sent by the gateway via Wifi UDP
+    connection, creates a node to store the content and inserts the node
+    to the receive packet queue.
 
   Parameters:
 
@@ -86,20 +86,20 @@ int Wifi_init(sudp_config_beacon *udp_config);
 
   Return value:
 
-     int - The error code for the corresponding error or successful
+     ErrorCode - The error code for the corresponding error or successful
 
 */
 
-int receive_data(void *udp_config);
+ErrorCode receive_data(void *udp_config);
 
 /*
   send_data:
 
-    This is the entry function of worker thread. In LBeacon, we create
+    This is the entry function of worker threads. In LBeacon, we create
     multiple worker threads within thread pool to start from this function
     to send data to gateway.
-    This function prepares a socket, retrieves one packet from send packet
-    queue and sends this packet to gateway via Wifi UDP connection.
+    This function prepares a socket, retrieves a packet from the send packet
+    queue and sends the packet to the gateway via Wifi UDP connection.
 
   Parameters:
 
@@ -107,15 +107,15 @@ int receive_data(void *udp_config);
 
   Return value:
 
-    None
+    ErrorCode - The error code for the corresponding error or successful
 
 */
-void *send_data(void *udp_config);
+ErrorCode *send_data(void *udp_config);
 
 /*
   Wifi_free:
 
-     When called, this function frees the necessory element.
+     When called, this function frees the elements specified by the input.
 
   Parameters:
 
@@ -123,9 +123,9 @@ void *send_data(void *udp_config);
 
   Return value:
 
-     None
+    ErrorCode - The error code for the corresponding error or successful
  */
-void Wifi_free(sudp_config_beacon *udp_config);
+ErrorCode Wifi_free(sudp_config_beacon *udp_config);
 
 
 
