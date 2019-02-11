@@ -64,7 +64,7 @@ ErrorCode single_running_instance(char *file_name){
 
         if(-1 != lock_file){
             break;
-	      }
+        }
     }
 
     if(-1 == lock_file){
@@ -191,7 +191,7 @@ ErrorCode get_config(Config *config, char *file_name) {
 
         if(NULL != file){
             break;
-	      }
+        }
     }
 
     if (NULL == file) {
@@ -230,6 +230,7 @@ ErrorCode get_config(Config *config, char *file_name) {
     memset(config->coordinate_Z, 0, sizeof(config->coordinate_Z));
     memcpy(config->coordinate_Z, config_message, strlen(config_message));
 
+    /* item 4 */
     if(WORK_SUCCESSFULLY != generate_uuid(config)){
 
         zlog_error(category_health_report,
@@ -245,14 +246,14 @@ ErrorCode get_config(Config *config, char *file_name) {
     zlog_info(category_debug, "Generated UUID: [%s]", config->uuid);
 #endif
 
-    /* item 4 */
+    /* item 5 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
     config->rssi_coverage = atoi(config_message);
 
-    /* item 5 */
+    /* item 6 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -260,14 +261,14 @@ ErrorCode get_config(Config *config, char *file_name) {
     memset(config->gateway_addr, 0, sizeof(config->gateway_addr));
     memcpy(config->gateway_addr, config_message, strlen(config_message));
 
-    /* item 6 */
+    /* item 7 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
     config->gateway_port = atoi(config_message);
 
-    /* item 7 */
+    /* item 8 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -308,22 +309,23 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
        scanned time inside the function of check_is_in_list().
     */
 
-    if(BLE == device_type){
-        temp_node = check_is_in_list(address, &BLE_object_list_head, rssi);
-
-    }else if(BR_EDR == device_type){
-        /* BR_EDR device including BR_EDR phone (feature phone):
-        scanned_list should have distinct nodes. So we use scanned_list_head
-        for checking the existance of MAC address here.
-        */
-        temp_node = check_is_in_list(address, &scanned_list_head, rssi);
-
-    }else{
+    switch(device_type){
+        case BLE:
+            temp_node = check_is_in_list(address, &BLE_object_list_head, rssi);
+            break;
+        case BR_EDR:
+            /* BR_EDR devices including BR_EDR phone (feature phone):
+            scanned_list should have distinct nodes. So we use scanned_list_head
+            for checking the existance of MAC address here.
+            */
+            temp_node = check_is_in_list(address, &scanned_list_head, rssi);
+            break;
+        default:
 #ifdef Debugging
-        zlog_error(category_debug, "Unknown device_type=[%d]",
-                   device_type);
+            zlog_error(category_debug, "Unknown device_type=[%d]",
+                       device_type);
 #endif
-        return;
+            return;
     }
 
     if (NULL == temp_node) {
@@ -940,9 +942,9 @@ ErrorCode disable_advertising() {
 }
 
 
-ErrorCode beacon_basic_info(char *message, size_t message_size, int polled_type){
+ErrorCode beacon_basic_info(char *message, size_t message_size, int poll_type){
     // packet type
-    message[0] = 0x0F & polled_type;
+    message[0] = 0x0F & poll_type;
     message[1] = '\0';
 
     // LBeacon UUID
@@ -1235,7 +1237,7 @@ void manage_communication(){
     int gateway_latest_time = 0;
     int current_time = 0;
     int latest_join_request_time = 0;
-    int polled_type;
+    int poll_type;
 
 #ifdef Debugging
     zlog_debug(category_debug, ">> manage_communication ");
@@ -1284,15 +1286,15 @@ void manage_communication(){
             */
             gateway_latest_time = get_system_time();
 
-            polled_type = undefined;
+            poll_type = undefined;
             /* Get one packet from receive packet queue
             */
             sPkt tmp_pkt = get_pkt(&udp_config.recv_pkt_queue);
-            polled_type = 0x0F & tmp_pkt.content[0];
+            poll_type = 0x0F & tmp_pkt.content[0];
 
             /* According to the polled data type, prepare a work item
             */
-            switch(polled_type){
+            switch(poll_type){
 
                 case join_request_ack:
 #ifdef Debugging
@@ -1322,7 +1324,7 @@ void manage_communication(){
                     zlog_warn(category_debug,
                               "Receive unknown packet type=[%d] from "
                               "gateway",
-                              polled_type);
+                              poll_type);
 #endif
                     break; // default case
              } // switch
