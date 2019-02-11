@@ -79,10 +79,10 @@ Authors:
 #define LOG_FILE_NAME "/home/pi/LBeacon/config/zlog.conf"
 
 /* The expected lowest basement under ground in the world. This constant
-will be added to Z-coordinate (level information) got from input
+will be added to Z-coordinate (level information) gotten from input
 configuration file. This adjustment helps us to have positive number in the
 config data structure and lets Z-coordinate occupy only 2 bytes in UUID. */
-#define BASEMENT_UNDER_GROUND 20
+#define LOWEST_BASEMENT_LEVEL 20
 
 /* The category defined of log file used for health report */
 #define LOG_CATEGORY_HEALTH_REPORT "Health_Report"
@@ -134,18 +134,19 @@ https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile
 /* Time interval in milliseconds between advertising by a LBeacon */
 #define INTERVAL_ADVERTISING_IN_MS 500
 
-/* Time interval in seconds for cleanup scanned_list_head. The decision
-is made by check_is_in_list. When the function checks for duplicated devices
-in the scanned_list_head, it will remove the timeout devices in the meantime.
+/* Time interval in seconds for cleaning up scanned list. The decision is
+made by check_is_in_list. When the function checks for duplicated devices
+in the scanned list, it will remove the timed out devices as well.
 */
 #define INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC 30
 
 /* Time interval in seconds for idle status in Wifi connection between
-LBeacon and gateway. Usually, it situation is impossible in BeDIS Object
-tracker solution, so we treat it as network connetion failure scenario
-right now. In this situation, LBeacon sends UDP join_requset to gateway
-again to receive gateway's packets and notifies timeout_cleanup thread
-to do the cleanup task. */
+LBeacon and gateway. Usually, the Wifi connection being idle for longer than
+the specified time interval is impossible in BeDIS Object tracker solution. So
+we treat the condition as network connection failure scenario. When this
+happens, LBeacon sends UDP join_request to gateway again to receive gateway's
+packets and notifies timeout_cleanup thread to do the cleanup task.
+*/
 #define INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC 180
 
 /* RSSI value of TX power for calibration and broadcast  */
@@ -163,14 +164,13 @@ to do the cleanup task. */
 /* Number of worker threads in the thread pool used by communication unit */
 #define NUM_WORK_THREADS 4
 
-/* Maximum length in number of bytes of basic info of each response to
-gateway via wifi network link.*/
-
+/* Maximum length in number of bytes of basic info of each response from
+LBeacon to gateway.
+*/
 #define MAX_LENGTH_RESP_BASIC_INFO 128
 
 /* Maximum length in number of bytes of device information of each response
 to gateway via wifi network link.*/
-
 #define MAX_LENGTH_RESP_DEVICE_INFO 50
 
 /* The macro of comparing two integer for minimum */
@@ -199,10 +199,10 @@ typedef struct Config {
     /* String representation of the universally unique identifer */
     char uuid[CONFIG_BUFFER_SIZE];
 
-    /* Specify the required signal strength */
+    /* The required signal strength */
     int rssi_coverage;
 
-    /* The IPv4 network address of gateway */
+    /* The IPv4 network address of the gateway */
     char gateway_addr[NETWORK_ADDR_LENGTH];
 
     /* The UDP port of gateway connection*/
@@ -259,12 +259,6 @@ typedef struct ScannedDevice {
        whether the device type is BR_EDR or BLE. */
     struct List_Entry sc_list_entry;
     struct List_Entry tr_list_entry;
-
-/* Pad added to make the struct size an integer multiple of 32 byte, size of
-   D-cache line.
-
-   int pad[30];
-*/
 
 } ScannedDevice;
 
@@ -326,9 +320,6 @@ ObjectListHead BR_object_list_head;
 */
 ObjectListHead BLE_object_list_head;
 
-
-/* Global flags for communication among threads */
-
 /* The memory pool for the allocation of all nodes in scanned device list and
    tracked object lists. */
 Memory_Pool mempool;
@@ -340,12 +331,12 @@ pthread_mutex_t  list_lock;
 pthread_mutex_t  exec_lock;
 
 /* The pthread condition variable identifing that the network connection has
-been failed for too long, and we should cleanup all lists
+failed for too long, and we should cleanup all lists.
 */
 pthread_cond_t  cond_cleanup_all_lists;
 
-/* The flag used to identify the LBeacon has reaches the condition in which
-we should clean up all lists to have more free memory space.
+/* The flag used to identify that the LBeacon has reached the condition in which
+we need clean up all lists to have more free memory space.
 */
 bool reach_cleanup_all_lists;
 
@@ -487,7 +478,7 @@ int compare_mac_address(char address[], ScannedDevice *node);
 
   match_node - A pointer to the node found with MAC address identical to
                the input address.
-               or NULL
+               or NULL when no such node is found.
 */
 
 struct ScannedDevice *check_is_in_list(char address[],
@@ -504,7 +495,7 @@ struct ScannedDevice *check_is_in_list(char address[],
 
       advertising_interval - the time interval during which the LBeacon can
                          advertise
-      advertising_uuid - universally unique identifier for advertising
+      advertising_uuid - universally unique identifier of advertiser
       major_number - major version number of LBeacon
       minor_number - minor version number of LBeacon
       rssi_value - RSSI value of the bluetooth device
@@ -524,7 +515,7 @@ ErrorCode enable_advertising(int advertising_interval,
 /*
   disable_advertising:
 
-      This function disables the advertising capabilities of the beacon.
+      This function disables advertising of the beacon.
 
   Parameters:
 
@@ -541,11 +532,10 @@ ErrorCode disable_advertising();
 /*
   beacon_basic_info
 
-      This function prepares the basic information about the LBeacon, and the
-      information helps BeDIS server identify the LBeacons packets received
-      from various gateways. The resulted message will be in the format of
-      "Packet type(one byte)B:<LBeacon information>G:<Gateway information>".
-
+      This function prepares the basic information about the LBeacon which aims
+      to help BeDIS server identify packets received from various gateways.
+      [Note: The resulted message will be in the format of
+      "Packet type(one byte):<LBeacon UUID>:<Gateway IP address>"]
       Once the basic information is produced, the caller of this function can
       append more response content at the end of message.
 
@@ -553,18 +543,19 @@ ErrorCode disable_advertising();
 
       message - the message buffer to contain the resulted basic information
       message_size - the size of message parameter
-      polled_type - one of the packet types (also called communication
-                    protocols between LBeacon and gateway). This function
-                    needs this information to prepare the first byte of the
-                    resulted message which will be parsed and utilized while
-                    gateway receives the packet.
+      poll_type - one of the packet types (also called communication
+                  protocols between LBeacon and gateway). This function
+                  needs this information to prepare the first byte of the
+                  resulted message which will be parsed and utilized while
+                  gateway receives the packet.
 
   Return value:
 
-      int: 0 means successful, and other values means corrsponding failures
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise
 */
 
-int beacon_basic_info(char *message, size_t message_size, int polled_type);
+ErrorCode beacon_basic_info(char *message, size_t message_size, int poll_type);
 
 /*
   send_join_request:
@@ -671,10 +662,10 @@ ErrorCode copy_object_data_to_file(char *file_name,
 /*
   consolidate_tracked_data:
 
-      This function consolidate the data on tracked objects captured in the
-      specifed tracked object list to message to be transfer to gateway. The
-      output message buffer contains for each ScannedDevice struct found in
-      the list, the MAC address and the initial and final timestamps.
+      This function places the data on tracked objects captured in the
+      specifed tracked object list into a message buffer. The output message
+      buffer contains for each ScannedDevice struct found in the list, the MAC
+      address and the initial and final timestamps.
 
   Parameters:
 
@@ -683,13 +674,12 @@ ErrorCode copy_object_data_to_file(char *file_name,
 
       msg_buf - message buffer to contain the consolidated data
 
-      msg_size - size of bytes of msg_buf
+      msg_size - size of msg_buf in number of bytes
 
-      max_num_objects - the maximum number of objects to be consolidated
-                        at one time
-      used_objects - used for return value to let caller know how many
-                     objects were consolidated by this function.
-
+      max_num_objects - the maximum number of objects whose data are to be
+                        consolidated at one time
+      used_objects - the actual number of objects whose data were moved into
+                     the message buffer
   Return value:
 
       ErrorCode - The error code for the corresponding error if the function
@@ -723,18 +713,20 @@ void free_tracked_list(List_Entry *list_head, DeviceType device_type);
 /*
   ble_hci_request:
 
-      This function prepares the bluetooh BLE request
+      This function prepares the bluetooh BLE request specified by the input
+      parameters
 
   Parameters:
 
-      ocf - the argument used by bluetooth BLE request
-      clen - the argument used by bluetooth BLE request
-      status - the argument used by bluetooth BLE request
-      cparam - the argument used by bluetooth BLE request
+      ocf - an argument used by bluetooth BLE request
+      clen - an argument used by bluetooth BLE request
+      status - an argument used by bluetooth BLE request
+      cparam - an argument used by bluetooth BLE request
 
   Return value:
 
-      struct hci_request - specific bluetooth BLE request
+      struct hci_request - the bluetooth BLE request specified by the input
+                           parameters
 */
 
 const struct hci_request ble_hci_request(uint16_t ocf,
@@ -745,7 +737,7 @@ const struct hci_request ble_hci_request(uint16_t ocf,
 /*
   eir_parse_name:
 
-      This function parse the name from bluetooth BLE device
+      This function parses the name from bluetooth BLE device
 
   Parameters:
 
@@ -769,12 +761,13 @@ static void eir_parse_name(uint8_t *eir,
   start_ble_scanning:
 
       This function scans continuously for BLE bluetooth devices under the
-      coverage of the  beacon until scanning is cancelled. To reduce the
+      coverage of the beacon until scanning is cancelled. To reduce the
       traffic among BeDIS system, this function only tracks the tags with
-      our specific name. When one tag with specific name are scanned, this
+      our specific name. When a tag with specific name is found, this
       function calls send_to_push_dongle to either add a new ScannedDevice
       struct of the device to ble_object_list or update the final scan time
       of a struct in the list.
+      [N.B. This function is executed by the main thread. ]
 
   Parameters:
 
@@ -788,42 +781,21 @@ static void eir_parse_name(uint8_t *eir,
 
 void *start_ble_scanning(void *param);
 
-/*
-  start_br_scanning:
-
-      This function scans continuously for bluetooth devices under the
-      coverage of the  beacon until scanning is cancelled. When the RSSI
-      value of the device is within the threshold, this function calls
-      send_to_push_dongle to either add a new ScannedDevice struct of the
-      device to scanned list and track_object_list or update the final scan
-      time of a struct in the lists.
-
-      [N.B. This function is executed by the main thread. ]
-
-  Parameters:
-
-      param - not used. This parameter is defined to meet the definition of
-              pthread_create() function
-
-  Return value:
-
-      None
-*/
-
 void *start_br_scanning(void *param);
 
 /*
   cleanup_lists:
 
-      This function first removes nodes from the speicified list. If the node
-      is also linked by other lists, this function will remove the node from
-      the lists as well. Once the node is isolated, this function calls memory
-      pool to release memory used by the node.
+      This function first removes every node from the speicified list. If the
+      node is also linked by other lists, this function will remove the node
+      from the lists as well. Once the node is isolated, this function calls
+      memory pool to release memory used by the node.
 
   Parameters:
 
       list_head - the head of a specified list.
-      is_scanned_list - speicify whether the input list is scanned_list_head.
+      is_scanned_list - a flag indicating whether the input list is the
+                        scanned list.
 
   Return value:
 
@@ -836,8 +808,7 @@ void cleanup_lists(ObjectListHead *list_head, bool is_scanned_list_head);
   timeout_cleanup:
 
       This function sets a timer to countdown a specified time. When timer
-      expires, cleans up tracked object lists to make sure the memory space
-      is always available.
+      expires, cleans up tracked object lists.
 
   Parameters:
 
@@ -879,7 +850,7 @@ void cleanup_exit(ErrorCode err_code);
 
   Parameters:
 
-      dirname - the name of the directory which is goning to be opened.
+      dirname - the name of the directory to be opened.
 
   Return value:
 
@@ -896,7 +867,8 @@ extern DIR *opendir(const char *dirname);
   Parameters:
 
       ptr - the pointer points to the memory area
-      value - the constant byte to replace the memory area
+      value - the int value passed to the function which fills the blocks of
+              memory using unsinged char convension of this value
       number - number of bytes in the memory area starting from ptr to be
                filled
 
@@ -927,7 +899,7 @@ extern int hci_open_dev(int dev_id);
 /*
   hci_filter_clear:
 
-      This function is called to clear filter.
+      This function is called to clear a specified filter.
 
   Parameters:
 

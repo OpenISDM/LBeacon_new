@@ -123,7 +123,7 @@ ErrorCode generate_uuid(Config *config){
     coordinate_X_uint = (int)atof(config->coordinate_X);
     coordinate_Y_uint = (int)atof(config->coordinate_Y);
 
-    coordinate_Z_uint = BASEMENT_UNDER_GROUND +
+    coordinate_Z_uint = LOWEST_BASEMENT_LEVEL +
                         (int)atof(config->coordinate_Z);
 
     if( coordinate_X_uint < 0 ||
@@ -940,7 +940,7 @@ ErrorCode disable_advertising() {
 }
 
 
-int beacon_basic_info(char *message, size_t message_size, int polled_type){
+ErrorCode beacon_basic_info(char *message, size_t message_size, int polled_type){
     // packet type
     message[0] = 0x0F & polled_type;
     message[1] = '\0';
@@ -967,10 +967,10 @@ int beacon_basic_info(char *message, size_t message_size, int polled_type){
                    "information is [%d], and limitation is [%d].",
                    strlen(message), MAX_LENGTH_RESP_BASIC_INFO);
 #endif
-        return 1;
+        return E_BUFFER_SIZE;
     }
 
-    return 0;
+    return WORK_SUCCESSFULLY;
 }
 
 void send_join_request(){

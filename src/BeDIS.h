@@ -134,6 +134,9 @@
 /* Time interval in seconds for busy-wait checking in threads */
 #define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC 3
 
+/* Timeout in seconds for UDP recevie socket */
+#define TIMEOUT_UDP_RECEIVCE_IN_SEC 5
+
 /* Timeout interval in seconds */
 #define WAITING_TIME 10
 
@@ -161,19 +164,22 @@ typedef enum _ErrorCode{
     E_START_THREAD = 18,
     E_INIT_THREAD_POOL = 19,
     E_INIT_ZIGBEE = 20,
-    E_LOG_INIT = 22,
-    E_LOG_GET_CATEGORY = 23,
-    E_EMPTY_FILE = 24,
-    E_INPUT_PARAMETER = 25,
-    E_ADD_WORK_THREAD = 26,
-    MAX_ERROR_CODE = 27,
-    E_INITIALIZATION_FAIL = 28,
-    E_WIFI_INIT_FAIL = 29,
-    E_START_COMMUNICAT_ROUTINE_THREAD = 32,
-    E_START_BHM_ROUTINE_THREAD = 33,
-    E_START_TRACKING_THREAD = 34,
-    E_REG_SIG_HANDLER = 37,
-    E_JOIN_THREAD = 38,
+    E_LOG_INIT = 21,
+    E_LOG_GET_CATEGORY = 22,
+    E_EMPTY_FILE = 23,
+    E_INPUT_PARAMETER = 24,
+    E_ADD_WORK_THREAD = 25,
+    E_INITIALIZATION_FAIL = 26,
+    E_WIFI_INIT_FAIL = 27,
+    E_START_COMMUNICAT_ROUTINE_THREAD = 28,
+    E_START_BHM_ROUTINE_THREAD = 29,
+    E_START_TRACKING_THREAD = 30,
+    E_REG_SIG_HANDLER = 31,
+    E_JOIN_THREAD = 32,
+    E_BUFFER_SIZE = 33,
+    E_SQL_PARSE = 34,
+    E_SQL_RESULT_EXCEED = 35,
+    MAX_ERROR_CODE = 36
 
 } ErrorCode;
 
@@ -181,6 +187,11 @@ typedef struct {
     ErrorCode code;
     char *message;
 } errordesc;
+
+typedef enum _HealthReportErrorCode{
+    S_NORMAL = 0,
+    E_ERROR = 1
+} HealthReportErrorCode;
 
 typedef struct coordinates{
 
