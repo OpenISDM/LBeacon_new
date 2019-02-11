@@ -110,7 +110,7 @@ ErrorCode receive_data(void *udp_config);
     ErrorCode - The error code for the corresponding error or successful
 
 */
-ErrorCode *send_data(void *udp_config);
+ErrorCode send_data(void *udp_config);
 
 /*
   Wifi_free:

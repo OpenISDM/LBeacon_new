@@ -174,7 +174,7 @@ ErrorCode receive_data(void *udp_config){
     return WORK_SUCCESSFULLY;
 }
 
-ErrorCode *send_data(void *udp_config){
+ErrorCode send_data(void *udp_config){
     sudp_config_beacon *udp_config_ptr = NULL;
     int send_socket = 0;
     int numbytes = 0;
