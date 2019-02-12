@@ -162,7 +162,7 @@ packets and notifies timeout_cleanup thread to do the cleanup task.
 #define NUM_DIGITS_TO_COMPARE 4
 
 /* Number of worker threads in the thread pool used by communication unit */
-#define NUM_WORK_THREADS 4
+#define NUM_WORK_THREADS 16
 
 /* Maximum length in number of bytes of basic info of each response from
 LBeacon to gateway.
@@ -338,7 +338,7 @@ pthread_cond_t  cond_cleanup_all_lists;
 /* The flag used to identify that the LBeacon has reached the condition in which
 we need clean up all lists to have more free memory space.
 */
-bool reach_cleanup_all_lists;
+bool is_time_cleanup_all_lists;
 
 #ifdef Bluetooth_classic
 
@@ -451,13 +451,17 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
 
     address - MAC address of a bluetooth device
     node - the node containing the MAC address to compare
+    number_digits_compared - number of digits to be compared before we
+                             compare two addresses entries
 
   Return value:
     0: the MAC address is exactly matches
 
 */
 
-int compare_mac_address(char address[], ScannedDevice *node);
+int compare_mac_address(char address[],
+                        ScannedDevice *node,
+                        int number_digits_compared);
 
 /*
   check_is_in_list:
@@ -569,10 +573,11 @@ ErrorCode beacon_basic_info(char *message, size_t message_size, int poll_type);
 
   Return value:
 
-      None
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise
 */
 
-void send_join_request();
+ErrorCode send_join_request();
 
 /*
   handle_tracked_object_data:
@@ -586,10 +591,11 @@ void send_join_request();
 
   Return value:
 
-      None
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise
 */
 
-void handle_tracked_object_data();
+ErrorCode handle_tracked_object_data();
 
 /*
   handle_health_report:
@@ -603,10 +609,11 @@ void handle_tracked_object_data();
 
   Return value:
 
-      None
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise
 */
 
-void handle_health_report();
+ErrorCode handle_health_report();
 
 /*
   manage_communication:
@@ -623,10 +630,11 @@ void handle_health_report();
 
   Return value:
 
-      None
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise
 */
 
-void manage_communication();
+ErrorCode manage_communication();
 
 /*
   copy_object_data_to_file:
@@ -690,25 +698,6 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list,
                                    char *msg_buf, size_t msg_size,
                                    const int max_num_objects,
                                    int *used_objects);
-
-/*
-  free_tracked_list:
-
-      This function removes nodes from the specified list and if the removed
-      node is not in any list, calls memory pool to release memory used by
-      the node.
-
-  Parameters:
-
-      list_head - the head of a specified list.
-      device_type - type of device with data contained in the list
-
-  Return value:
-
-      None
-*/
-
-void free_tracked_list(List_Entry *list_head, DeviceType device_type);
 
 /*
   ble_hci_request:
@@ -776,12 +765,13 @@ static void eir_parse_name(uint8_t *eir,
 
   Return value:
 
-      None
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise
 */
 
-void *start_ble_scanning(void *param);
+ErrorCode *start_ble_scanning(void *param);
 
-void *start_br_scanning(void *param);
+ErrorCode *start_br_scanning(void *param);
 
 /*
   cleanup_lists:
@@ -799,16 +789,18 @@ void *start_br_scanning(void *param);
 
   Return value:
 
-      None
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise
 */
 
-void cleanup_lists(ObjectListHead *list_head, bool is_scanned_list_head);
+ErrorCode cleanup_lists(ObjectListHead *list_head, bool is_scanned_list_head);
 
 /*
   timeout_cleanup:
 
-      This function sets a timer to countdown a specified time. When timer
-      expires, cleans up tracked object lists.
+      This function is event driven. When it is time to clean up all lists,
+      this function cleans up all scanned list, BR object list, and BLE object
+      list.
 
   Parameters:
 
@@ -817,10 +809,11 @@ void cleanup_lists(ObjectListHead *list_head, bool is_scanned_list_head);
 
   Return value:
 
-      None
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise
 */
 
-void *timeout_cleanup(void *param);
+ErrorCode *timeout_cleanup(void *param);
 
 /*
   cleanup_exit:
@@ -829,15 +822,15 @@ void *timeout_cleanup(void *param);
 
   Parameters:
 
-      err_code - the error code of hard errors which causes program to
-                 terminate
+      None
 
   Return value:
 
-      None
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise
 */
 
-void cleanup_exit(ErrorCode err_code);
+ErrorCode cleanup_exit();
 
 /*
   EXTERNAL FUNCTIONS
