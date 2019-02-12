@@ -78,12 +78,6 @@ Authors:
 /* File path of the logging file*/
 #define LOG_FILE_NAME "/home/pi/LBeacon/config/zlog.conf"
 
-/* The expected lowest basement under ground in the world. This constant
-will be added to Z-coordinate (level information) gotten from input
-configuration file. This adjustment helps us to have positive number in the
-config data structure and lets Z-coordinate occupy only 2 bytes in UUID. */
-#define LOWEST_BASEMENT_LEVEL 20
-
 /* The category defined of log file used for health report */
 #define LOG_CATEGORY_HEALTH_REPORT "Health_Report"
 
@@ -138,7 +132,7 @@ https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile
 made by check_is_in_list. When the function checks for duplicated devices
 in the scanned list, it will remove the timed out devices as well.
 */
-#define INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC 30
+#define INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC 60
 
 /* Time interval in seconds for idle status in Wifi connection between
 LBeacon and gateway. Usually, the Wifi connection being idle for longer than
@@ -195,6 +189,13 @@ typedef struct Config {
 
     /* String representation of the Z coordinate of the beacon location */
     char coordinate_Z[CONFIG_BUFFER_SIZE];
+
+    /* The expected lowest basement under ground in the world. This constant
+    will be added to Z-coordinate (level information) gotten from input
+    configuration file. This adjustment helps us to have positive number in the
+    config data structure and lets Z-coordinate occupy only 2 bytes in UUID.
+    */
+    int lowest_basement_level;
 
     /* String representation of the universally unique identifer */
     char uuid[CONFIG_BUFFER_SIZE];

@@ -123,7 +123,7 @@ ErrorCode generate_uuid(Config *config){
     coordinate_X_uint = (int)atof(config->coordinate_X);
     coordinate_Y_uint = (int)atof(config->coordinate_Y);
 
-    coordinate_Z_uint = LOWEST_BASEMENT_LEVEL +
+    coordinate_Z_uint = config->lowest_basement_level +
                         (int)atof(config->coordinate_Z);
 
     if( coordinate_X_uint < 0 ||
@@ -231,6 +231,13 @@ ErrorCode get_config(Config *config, char *file_name) {
     memcpy(config->coordinate_Z, config_message, strlen(config_message));
 
     /* item 4 */
+    fgets(config_setting, sizeof(config_setting), file);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    trim_string_tail(config_message);
+    config->lowest_basement_level = atoi(config_message);
+
+    /* item 5 */
     if(WORK_SUCCESSFULLY != generate_uuid(config)){
 
         zlog_error(category_health_report,
@@ -246,14 +253,14 @@ ErrorCode get_config(Config *config, char *file_name) {
     zlog_info(category_debug, "Generated UUID: [%s]", config->uuid);
 #endif
 
-    /* item 5 */
+    /* item 6 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
     config->rssi_coverage = atoi(config_message);
 
-    /* item 6 */
+    /* item 7 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -261,14 +268,14 @@ ErrorCode get_config(Config *config, char *file_name) {
     memset(config->gateway_addr, 0, sizeof(config->gateway_addr));
     memcpy(config->gateway_addr, config_message, strlen(config_message));
 
-    /* item 7 */
+    /* item 8 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
     config->gateway_port = atoi(config_message);
 
-    /* item 8 */
+    /* item 9 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -618,7 +625,11 @@ ErrorCode enable_advertising(int advertising_interval,
            sizeof(advertising_parameters_copy));
     advertising_parameters_copy.min_interval = htobs(advertising_interval);
     advertising_parameters_copy.max_interval = htobs(advertising_interval);
-    advertising_parameters_copy.chan_map = 7;
+    advertising_parameters_copy.advtype = 3; /* advertising
+                                                non-connectable */
+    /*set bitmap to 111 (i.e., circulate on channels 37,38,39) */
+    advertising_parameters_copy.chan_map = 7; /* all three advertising
+                                              channels*/
 
     memset(&request, 0, sizeof(request));
     request.ogf = OGF_LE_CTL;
@@ -626,7 +637,7 @@ ErrorCode enable_advertising(int advertising_interval,
     request.cparam = &advertising_parameters_copy;
     request.clen = LE_SET_ADVERTISING_PARAMETERS_CP_SIZE;
     request.rparam = &status;
-    request.rlen = 1;
+    request.rlen = 1; /* length of request.rparam */
 
     return_value = hci_send_req(device_handle, &request,
                                 HCI_SEND_REQUEST_TIMEOUT_IN_MS);
@@ -655,7 +666,7 @@ ErrorCode enable_advertising(int advertising_interval,
     request.cparam = &advertisement_copy;
     request.clen = LE_SET_ADVERTISE_ENABLE_CP_SIZE;
     request.rparam = &status;
-    request.rlen = 1;
+    request.rlen = 1; /* length of request.rparam */
 
     return_value = hci_send_req(device_handle, &request,
                                 HCI_SEND_REQUEST_TIMEOUT_IN_MS);
@@ -818,7 +829,7 @@ ErrorCode enable_advertising(int advertising_interval,
     request.cparam = &advertisement_data_copy;
     request.clen = LE_SET_ADVERTISING_DATA_CP_SIZE;
     request.rparam = &status;
-    request.rlen = 1;
+    request.rlen = 1; /* length of request.rparam */
 
     return_value = hci_send_req(device_handle, &request,
                                 HCI_SEND_REQUEST_TIMEOUT_IN_MS);
@@ -910,7 +921,7 @@ ErrorCode disable_advertising() {
     request.cparam = &advertisement_copy;
     request.clen = LE_SET_ADVERTISE_ENABLE_CP_SIZE;
     request.rparam = &status;
-    request.rlen = 1;
+    request.rlen = 1; /* length of request.rparam */
 
     return_value = hci_send_req(device_handle, &request,
                                 HCI_SEND_REQUEST_TIMEOUT_IN_MS);
@@ -1643,7 +1654,7 @@ const struct hci_request ble_hci_request(uint16_t ocf,
     rq.cparam = cparam;
     rq.clen = clen;
     rq.rparam = status;
-    rq.rlen = 1;
+    rq.rlen = 1; /* length of request.rparam */
 
     return rq;
 }
