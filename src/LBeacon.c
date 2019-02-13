@@ -480,7 +480,6 @@ struct ScannedDevice *check_is_in_list(char address[],
                         mp_free(&mempool, temp);
                     }
 
-
                 }else if (get_system_time() - temp->initial_scanned_time >
                           INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC){
                     /* If the device has been in the scanned list for at
@@ -506,7 +505,6 @@ struct ScannedDevice *check_is_in_list(char address[],
 #endif
                         mp_free(&mempool, temp);
                     }
-
 
                 }else if (0 == compare_mac_address(address, temp,
                                                    NUM_DIGITS_TO_COMPARE)){
@@ -1285,16 +1283,6 @@ ErrorCode manage_communication(){
                 if(WORK_SUCCESSFULLY == send_join_request()){
                     latest_join_request_time = current_time;
                 }
-                /* Because network connection has failed for long time,
-                we should notify timeout_cleanup thread to remove nodes
-                from all lists.
-                */
-                pthread_mutex_lock(&exec_lock);
-
-                is_time_cleanup_all_lists = true;
-                pthread_cond_signal(&cond_cleanup_all_lists);
-
-                pthread_mutex_unlock(&exec_lock);
             }else{
                 /* sleep a short time to prevent occupying CPU in this
                 busy while loop.
@@ -2202,25 +2190,24 @@ ErrorCode *timeout_cleanup(void* param){
 #endif
 
     while(true == ready_to_work){
-	      /* Use pthread mutex, cond and signal to control the flow,
-        instead of using busy while loop and sleep mechanism.
+
+        /* sleep a short time to prevent occupying CPU in this
+        busy while loop.
         */
-        pthread_mutex_lock(&exec_lock);
+        sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
 
-        while(true != is_time_cleanup_all_lists){
-            pthread_cond_wait(&cond_cleanup_all_lists, &exec_lock);
-        }
-        is_time_cleanup_all_lists = false;
-
-        pthread_mutex_unlock(&exec_lock);
+        if(mp_slots_usage_percentage(&mempool) >=
+           MEMPOOL_USAGE_THRESHOLD){
 
 #ifdef Debugging
-        zlog_info(category_debug,
-                  "cleanup all lists in timeout_cleanup function");
+            zlog_info(category_debug,
+                      "cleanup all lists in timeout_cleanup function");
 #endif
-        cleanup_lists(&scanned_list_head, true);
-        cleanup_lists(&BR_object_list_head, false);
-        cleanup_lists(&BLE_object_list_head, false);
+            cleanup_lists(&scanned_list_head, true);
+            cleanup_lists(&BR_object_list_head, false);
+            cleanup_lists(&BLE_object_list_head, false);
+        }
+
     }
 
 #ifdef Debugging
@@ -2257,8 +2244,6 @@ ErrorCode cleanup_exit(){
     }
 
     pthread_mutex_destroy(&list_lock);
-    pthread_mutex_destroy(&exec_lock);
-    pthread_cond_destroy(&cond_cleanup_all_lists);
 
     Wifi_free(&udp_config);
 
@@ -2340,11 +2325,6 @@ int main(int argc, char **argv) {
 
     /* Initialize the lock for accessing the lists */
     pthread_mutex_init(&list_lock,NULL);
-
-    /* Initialize the lock for execution flows between threads */
-    is_time_cleanup_all_lists = false;
-    pthread_mutex_init(&exec_lock, NULL);
-    pthread_cond_init(&cond_cleanup_all_lists, NULL);
 
     /* Initialize the memory pool */
     if(MEMORY_POOL_SUCCESS !=

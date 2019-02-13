@@ -69,6 +69,7 @@ int mp_init(Memory_Pool *mp, size_t size, size_t slots)
     mp->head = NULL;
     mp->size = size;
     mp->slots = slots;
+    mp->used_slots = 0;
     mp->alloc_time = 1;
 
     //add every slot to the free list
@@ -161,6 +162,9 @@ void *mp_alloc(Memory_Pool *mp){
     //link one past it
     mp->head = *mp->head;
 
+    // count the slots usage
+    mp->used_slots = mp->used_slots + 1;
+
     pthread_mutex_unlock(&mp->mem_lock);
 
     //return the first address
@@ -206,7 +210,18 @@ int mp_free(Memory_Pool *mp, void *mem){
     //link to the list from new node
     *mp->head = temp;
 
+    // count the slots usage
+    mp->used_slots = mp->used_slots - 1;
+
     pthread_mutex_unlock(&mp->mem_lock);
 
     return MEMORY_POOL_SUCCESS;
+}
+
+float mp_slots_usage_percentage(Memory_Pool *mp){
+    float usage_percentage = 0;
+    
+    usage_percentage = (mp->used_slots*1.0) / (mp->alloc_time * mp->slots);
+
+    return usage_percentage;
 }

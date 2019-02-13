@@ -64,8 +64,11 @@ typedef struct {
     int alloc_time;
     /* A per list lock */
     pthread_mutex_t mem_lock;
+    /* define the size of each memory expand */
     int size;
     int slots;
+    /* counter for calculating the slots usage */
+    int used_slots;
 } Memory_Pool;
 
 
@@ -176,5 +179,20 @@ void *mp_alloc(Memory_Pool *mp);
      Errorcode - error code or sucessful message
 */
 int mp_free(Memory_Pool *mp, void *mem);
+
+/*
+  mp_slots_usage_percentage:
+
+     This function calculates the memory pool slots usage in percentage
+
+  Parameters:
+
+     mp - the pointer to the specific memory pool
+
+  Return value:
+
+     float - the memory pool slots usage in percentage
+*/
+float mp_slots_usage_percentage(Memory_Pool *mp);
 
 #endif

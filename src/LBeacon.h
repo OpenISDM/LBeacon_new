@@ -132,7 +132,7 @@ https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile
 made by check_is_in_list. When the function checks for duplicated devices
 in the scanned list, it will remove the timed out devices as well.
 */
-#define INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC 60
+#define INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC 600
 
 /* Time interval in seconds for idle status in Wifi connection between
 LBeacon and gateway. Usually, the Wifi connection being idle for longer than
@@ -145,6 +145,10 @@ packets and notifies timeout_cleanup thread to do the cleanup task.
 
 /* RSSI value of TX power for calibration and broadcast  */
 #define RSSI_VALUE -50
+
+/* Mempool usage threshold for cleaning up all lists. This threshold is used
+to determine whether to cleanup all lists. */
+#define MEMPOOL_USAGE_THRESHOLD 0.70
 
 /* Number of characters in the name of a Bluetooth device */
 #define LENGTH_OF_DEVICE_NAME 30
@@ -327,19 +331,6 @@ Memory_Pool mempool;
 
 /* The pthread lock that controls access to lists */
 pthread_mutex_t  list_lock;
-
-/* The pthread lock that controls execution of threads */
-pthread_mutex_t  exec_lock;
-
-/* The pthread condition variable identifing that the network connection has
-failed for too long, and we should cleanup all lists.
-*/
-pthread_cond_t  cond_cleanup_all_lists;
-
-/* The flag used to identify that the LBeacon has reached the condition in which
-we need clean up all lists to have more free memory space.
-*/
-bool is_time_cleanup_all_lists;
 
 #ifdef Bluetooth_classic
 
