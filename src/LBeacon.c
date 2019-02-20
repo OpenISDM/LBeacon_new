@@ -110,25 +110,24 @@ ErrorCode single_running_instance(char *file_name){
 }
 
 ErrorCode generate_uuid(Config *config){
-    int coordinate_X_uint;
-    int coordinate_Y_uint;
-    int coordinate_Z_uint;
+    double coordinate_X_double;
+    double coordinate_Y_double;
+    int coordinate_Z_int;
 
     char coordinate[CONFIG_BUFFER_SIZE];
     char *temp_coordinate = NULL;
 
-    /* construct UUID as 000000ZZ0000XXXXXXXX0000YYYYYYYY format */
+    /* construct UUID as 000000ZZ0000xxxxxxxx0000yyyyyyyy format */
     memset(config->uuid, 0, sizeof(config->uuid));
 
-    coordinate_X_uint = (int)atof(config->coordinate_X);
-    coordinate_Y_uint = (int)atof(config->coordinate_Y);
+    coordinate_X_double = (double)atof(config->coordinate_X);
+    coordinate_Y_double = (double)atof(config->coordinate_Y);
+    coordinate_Z_int = config->lowest_basement_level +
+                       (int)atoi(config->coordinate_Z);
 
-    coordinate_Z_uint = config->lowest_basement_level +
-                        (int)atof(config->coordinate_Z);
-
-    if( coordinate_X_uint < 0 ||
-        coordinate_Y_uint < 0 ||
-        coordinate_Z_uint < 0){
+    if( coordinate_X_double < 0 ||
+        coordinate_Y_double < 0 ||
+        coordinate_Z_int < 0){
 
         zlog_error(category_health_report,
                    "Invalid 3D coordinates. X-, Y- or Z- are not "
@@ -145,26 +144,20 @@ ErrorCode generate_uuid(Config *config){
         return E_INPUT_PARAMETER;
     }
 
-    sprintf(config->uuid, "000000%X%X0000%X%X",
-            coordinate_Z_uint/16,
-            coordinate_Z_uint%16,
-            coordinate_X_uint/16,
-            coordinate_X_uint%16);
+    sprintf(config->uuid, "000000%X%X0000",
+            coordinate_Z_int/16,
+            coordinate_Z_int%16);
 
     memset(coordinate, 0, sizeof(coordinate));
-    sprintf(coordinate, "%.6f", atof(config->coordinate_X));
+    sprintf(coordinate, "%.8f", atof(config->coordinate_X));
     temp_coordinate = strstr(coordinate, FRACTION_DOT);
     temp_coordinate = temp_coordinate + strlen(FRACTION_DOT);
     strcat(config->uuid, temp_coordinate);
 
-    memset(coordinate, 0, sizeof(coordinate));
-    sprintf(coordinate, "0000%X%X",
-            coordinate_Y_uint/16,
-            coordinate_Y_uint%16);
-    strcat(config->uuid, coordinate);
+    strcat(config->uuid, "0000");
 
     memset(coordinate, 0, sizeof(coordinate));
-    sprintf(coordinate, "%.6f", atof(config->coordinate_Y));
+    sprintf(coordinate, "%.8f", atof(config->coordinate_Y));
     temp_coordinate = strstr(coordinate, FRACTION_DOT);
     temp_coordinate = temp_coordinate + strlen(FRACTION_DOT);
     strcat(config->uuid, temp_coordinate);
@@ -2021,7 +2014,7 @@ ErrorCode *start_br_scanning(void* param) {
         /* No limit on number of responses per scan */
         inquiry_copy.num_rsp = 0;
         /* Time unit is 1.28 seconds */
-        inquiry_copy.length = 0x08; /* 8*1.28 = 10.24 seconds */
+        inquiry_copy.length = 0x06; /* 6*1.28 = 7.68 seconds */
 
 #ifdef Debugging
         zlog_debug(category_debug, "Starting inquiry with RSSI...");
