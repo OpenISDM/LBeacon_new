@@ -502,7 +502,8 @@ struct ScannedDevice *check_is_in_list(char address[],
                   fails or WORK SUCCESSFULLY otherwise
 */
 
-ErrorCode enable_advertising(int advertising_interval,
+ErrorCode enable_advertising(int dongle_device_id,
+							 int advertising_interval,
                              char *advertising_uuid,
                              int major_number,
                              int minor_number,
@@ -523,7 +524,7 @@ ErrorCode enable_advertising(int advertising_interval,
                   fails or WORK SUCCESSFULLY otherwise
 */
 
-ErrorCode disable_advertising();
+ErrorCode disable_advertising(int dongle_device_id);
 
 /*
   beacon_basic_info
