@@ -489,6 +489,8 @@ struct ScannedDevice *check_is_in_list(char address[],
 
   Parameters:
 
+      dongle_device_id - the bluetooth dongle device which the LBeacon uses
+                         to advertise
       advertising_interval - the time interval during which the LBeacon can
                          advertise
       advertising_uuid - universally unique identifier of advertiser
@@ -502,7 +504,8 @@ struct ScannedDevice *check_is_in_list(char address[],
                   fails or WORK SUCCESSFULLY otherwise
 */
 
-ErrorCode enable_advertising(int advertising_interval,
+ErrorCode enable_advertising(int dongle_device_id,
+                             int advertising_interval,
                              char *advertising_uuid,
                              int major_number,
                              int minor_number,
@@ -515,7 +518,8 @@ ErrorCode enable_advertising(int advertising_interval,
 
   Parameters:
 
-      None
+      dongle_device_id - the bluetooth dongle device which the LBeacon needs to
+                         disable advertising function
 
   Return value:
 
@@ -523,7 +527,7 @@ ErrorCode enable_advertising(int advertising_interval,
                   fails or WORK SUCCESSFULLY otherwise
 */
 
-ErrorCode disable_advertising();
+ErrorCode disable_advertising(int dongle_device_id);
 
 /*
   beacon_basic_info

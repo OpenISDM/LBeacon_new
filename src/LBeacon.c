@@ -503,7 +503,10 @@ struct ScannedDevice *check_is_in_list(char address[],
                                                    NUM_DIGITS_TO_COMPARE)){
                     /* Update the final scan time */
                     temp->final_scanned_time = get_system_time();
-                    temp->rssi = rssi;
+                    /* use the strongest singal strength */
+                    if(rssi > temp->rssi){
+                        temp->rssi = rssi;
+                    }
                     temp_is_null = false;
                     break;
                 }
@@ -528,7 +531,10 @@ struct ScannedDevice *check_is_in_list(char address[],
 
                     /* Update the final scan time */
                     temp->final_scanned_time = get_system_time();
-                    temp->rssi = rssi;
+                    /* use the strongest singal strength */
+                    if(rssi > temp->rssi){
+                        temp->rssi = rssi;
+                    }
                     temp_is_null = false;
                     break;
                 }
@@ -558,12 +564,15 @@ struct ScannedDevice *check_is_in_list(char address[],
     return temp;
 }
 
-ErrorCode enable_advertising(int advertising_interval,
+ErrorCode enable_advertising(int dongle_device_id,
+                             int advertising_interval,
                              char *advertising_uuid,
                              int major_number,
                              int minor_number,
                              int rssi_value) {
-    int dongle_device_id = 0;
+#ifdef Debugging
+    zlog_debug(category_debug, ">> enable_advertising ");
+#endif
     int device_handle = 0;
     int retry_time = 0;
     uint8_t status;
@@ -573,15 +582,10 @@ ErrorCode enable_advertising(int advertising_interval,
     unsigned int *uuid = NULL;
     int uuid_iterator;
 
-    /* Open Bluetooth device */
-    retry_time = DONGLE_GET_RETRY;
-    while(retry_time--){
-        dongle_device_id = hci_get_route(NULL);
+#ifdef Debugging
+    zlog_info(category_debug, "Using dongle id [%d]\n", dongle_device_id);
+#endif
 
-        if(dongle_device_id >= 0){
-            break;
-        }
-    }
     if (dongle_device_id < 0){
         zlog_error(category_health_report,
                    "Error openning the device");
@@ -850,13 +854,14 @@ ErrorCode enable_advertising(int advertising_interval,
 #endif
         return E_ADVERTISE_STATUS;
     }
-
+#ifdef Debugging
+    zlog_debug(category_debug, "<< enable_advertising ");
+#endif
     return WORK_SUCCESSFULLY;
 }
 
 
-ErrorCode disable_advertising() {
-    int dongle_device_id = 0;
+ErrorCode disable_advertising(int dongle_device_id) {
     int device_handle = 0;
     int retry_time = 0;
     uint8_t status;
@@ -865,13 +870,6 @@ ErrorCode disable_advertising() {
 
     /* Open Bluetooth device */
     retry_time = DONGLE_GET_RETRY;
-    while(retry_time--){
-        dongle_device_id = hci_get_route(NULL);
-
-        if(dongle_device_id >= 0){
-            break;
-        }
-    }
 
     if (dongle_device_id < 0) {
         zlog_error(category_health_report,
@@ -1719,7 +1717,7 @@ ErrorCode *start_ble_scanning(void *param){
                 break;
             }
         }
-
+        
         if (dongle_device_id < 0) {
             zlog_error(category_health_report,
                        "Error openning the device");
@@ -2354,6 +2352,7 @@ int main(int argc, char **argv) {
     }
 
     /* Create the thread for track BR_EDR device */
+
     return_value = startThread(&br_scanning_thread,
                                start_br_scanning, NULL);
 
@@ -2368,7 +2367,9 @@ int main(int argc, char **argv) {
         exit(return_value);
     }
 
+
     /* Create the thread for track BLE device */
+
     return_value = startThread(&ble_scanning_thread,
                                start_ble_scanning, NULL);
 
@@ -2384,7 +2385,8 @@ int main(int argc, char **argv) {
     }
 
     /* Start bluetooth advertising */
-    return_value = enable_advertising(INTERVAL_ADVERTISING_IN_MS,
+    return_value = enable_advertising(0,
+                                      INTERVAL_ADVERTISING_IN_MS,
                                       g_config.uuid,
                                       LBEACON_MAJOR_VER,
                                       LBEACON_MINOR_VER,
@@ -2392,11 +2394,11 @@ int main(int argc, char **argv) {
 
     if (WORK_SUCCESSFULLY != return_value){
         zlog_error(category_health_report,
-                   "Unable to enable advertising. Please make sure "
+                   "Unable to enable advertising donegle id 0. Please make sure "
                    "all the hardware devices are ready and try again.");
 #ifdef Debugging
         zlog_error(category_debug,
-                   "Unable to enable advertising. Please make sure "
+                   "Unable to enable advertising donegle id 0. Please make sure "
                    "all the hardware devices are ready and try again.");
 #endif
         cleanup_exit();
@@ -2471,7 +2473,7 @@ int main(int argc, char **argv) {
     }
 
     /* When signal is received, disable message advertising */
-    disable_advertising();
+    disable_advertising(0);
 
     cleanup_exit();
     return WORK_SUCCESSFULLY;
