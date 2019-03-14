@@ -143,9 +143,6 @@ packets and notifies timeout_cleanup thread to do the cleanup task.
 */
 #define INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC 180
 
-/* RSSI value of TX power for calibration and broadcast  */
-#define RSSI_VALUE -50
-
 /* Mempool usage threshold for cleaning up all lists. This threshold is used
 to determine whether to cleanup all lists. */
 #define MEMPOOL_USAGE_THRESHOLD 0.70
@@ -207,8 +204,11 @@ typedef struct Config {
     /* The dongle used to advertise */
     int advertise_dongle_id;
 
+    /* The rssi value used to advertise */
+    int advertise_rssi_value;
+
     /* The required signal strength */
-    int rssi_coverage;
+    int scan_rssi_coverage;
 
     /* The IPv4 network address of the gateway */
     char gateway_addr[NETWORK_ADDR_LENGTH];

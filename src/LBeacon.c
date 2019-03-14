@@ -258,9 +258,16 @@ ErrorCode get_config(Config *config, char *file_name) {
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
-    config->rssi_coverage = atoi(config_message);
+    config->advertise_rssi_value = atoi(config_message);
 
     /* item 8 */
+    fgets(config_setting, sizeof(config_setting), file);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    trim_string_tail(config_message);
+    config->scan_rssi_coverage = atoi(config_message);
+
+    /* item 9 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -268,14 +275,14 @@ ErrorCode get_config(Config *config, char *file_name) {
     memset(config->gateway_addr, 0, sizeof(config->gateway_addr));
     memcpy(config->gateway_addr, config_message, strlen(config_message));
 
-    /* item 9 */
+    /* item 10 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
     config->gateway_port = atoi(config_message);
 
-    /* item 10 */
+    /* item 11 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -743,7 +750,7 @@ ErrorCode enable_advertising(int dongle_device_id,
     https://www.bluetooth.com/specifications/assigned-numbers/company-identifiers
 
     For Raspberry Pi, we should use 0x000F to specify the manufacturer as
-    Broadcom Corporation
+    Broadcom Corporation. 
     */
     advertisement_data_copy
         .data[advertisement_data_copy.length + segment_length] =
@@ -1845,7 +1852,7 @@ ErrorCode *start_ble_scanning(void *param){
                 rssi = (signed char)info->data[info->length];
 
                 /* If the rssi vaule is within the threshold */
-                if(rssi > g_config.rssi_coverage){
+                if(rssi > g_config.scan_rssi_coverage){
                     memset(name, 0, sizeof(name));
                     eir_parse_name(info->data,
                                info->length,
@@ -2085,7 +2092,7 @@ ErrorCode *start_br_scanning(void* param) {
                         info_rssi = (void *)event_buffer_pointer +
                                     (sizeof(*info_rssi) * results_id) + 1;
 
-                        if (info_rssi->rssi > g_config.rssi_coverage) {
+                        if (info_rssi->rssi > g_config.scan_rssi_coverage) {
 #ifdef Debugging
 /* For testing BR scanning parameters
                             char address[LENGTH_OF_MAC_ADDRESS];
@@ -2397,16 +2404,18 @@ int main(int argc, char **argv) {
                                       g_config.uuid,
                                       LBEACON_MAJOR_VER,
                                       LBEACON_MINOR_VER,
-                                      RSSI_VALUE);
+                                      g_config.advertise_rssi_value);
 
     if (WORK_SUCCESSFULLY != return_value){
         zlog_error(category_health_report,
-                   "Unable to enable advertising donegle id 0. Please make sure "
-                   "all the hardware devices are ready and try again.");
+                   "Unable to enable advertising donegle id [%d]. Please make "
+                   "sure all the hardware devices are ready and try again.",
+                    g_config.advertise_dongle_id);
 #ifdef Debugging
         zlog_error(category_debug,
-                   "Unable to enable advertising donegle id 0. Please make sure "
-                   "all the hardware devices are ready and try again.");
+                   "Unable to enable advertising donegle id [%d]. Please make "
+                   "sure all the hardware devices are ready and try again.",
+                   g_config.advertise_dongle_id);
 #endif
         cleanup_exit();
         exit(return_value);
@@ -2481,6 +2490,7 @@ int main(int argc, char **argv) {
 
     /* When signal is received, disable message advertising */
     disable_advertising(0);
+    disable_advertising(1);
 
     cleanup_exit();
     return WORK_SUCCESSFULLY;
