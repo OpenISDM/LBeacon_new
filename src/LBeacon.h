@@ -204,6 +204,9 @@ typedef struct Config {
     /* String representation of the universally unique identifer */
     char uuid[CONFIG_BUFFER_SIZE];
 
+    /* The dongle used to advertise */
+    int advertise_dongle_id;
+
     /* The required signal strength */
     int rssi_coverage;
 

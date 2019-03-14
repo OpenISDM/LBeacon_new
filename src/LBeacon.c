@@ -251,9 +251,16 @@ ErrorCode get_config(Config *config, char *file_name) {
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
-    config->rssi_coverage = atoi(config_message);
+    config->advertise_dongle_id = atoi(config_message);
 
     /* item 7 */
+    fgets(config_setting, sizeof(config_setting), file);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    trim_string_tail(config_message);
+    config->rssi_coverage = atoi(config_message);
+
+    /* item 8 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -261,14 +268,14 @@ ErrorCode get_config(Config *config, char *file_name) {
     memset(config->gateway_addr, 0, sizeof(config->gateway_addr));
     memcpy(config->gateway_addr, config_message, strlen(config_message));
 
-    /* item 8 */
+    /* item 9 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
     config->gateway_port = atoi(config_message);
 
-    /* item 9 */
+    /* item 10 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -1717,7 +1724,7 @@ ErrorCode *start_ble_scanning(void *param){
                 break;
             }
         }
-        
+
         if (dongle_device_id < 0) {
             zlog_error(category_health_report,
                        "Error openning the device");
@@ -2385,7 +2392,7 @@ int main(int argc, char **argv) {
     }
 
     /* Start bluetooth advertising */
-    return_value = enable_advertising(0,
+    return_value = enable_advertising(g_config.advertise_dongle_id,
                                       INTERVAL_ADVERTISING_IN_MS,
                                       g_config.uuid,
                                       LBEACON_MAJOR_VER,
