@@ -121,20 +121,13 @@ ErrorCode startThread(pthread_t *thread, void *( *start_routine)(void *),
 
 
 int get_system_time() {
-    /* A struct that stores the time */
-    struct timeb t;
-
     /* Return value as a long long type */
     int system_time;
 
-    /* Convert time from Epoch to time in milliseconds of a long long type */
-    ftime(&t);
-
-    /* millisecond ver. */
-    /* system_time = 1000 * (long long)t.time + (long long)t.millitm; */
-
+    time_t now = time(NULL);
+    
     /* second ver. */
-    system_time = (int)t.time;
+    system_time = (int)now;
 
     return system_time;
 }
