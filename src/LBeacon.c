@@ -750,7 +750,7 @@ ErrorCode enable_advertising(int dongle_device_id,
     https://www.bluetooth.com/specifications/assigned-numbers/company-identifiers
 
     For Raspberry Pi, we should use 0x000F to specify the manufacturer as
-    Broadcom Corporation. 
+    Broadcom Corporation.
     */
     advertisement_data_copy
         .data[advertisement_data_copy.length + segment_length] =
@@ -1279,7 +1279,7 @@ ErrorCode manage_communication(){
             if((current_time - gateway_latest_time >
                 INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC) &&
                 (current_time - latest_join_request_time >
-                INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC)){
+                INTERVAL_FOR_RECONNECT_GATEWAY_IN_SEC)){
 
 #ifdef Debugging
                 zlog_info(category_debug,
