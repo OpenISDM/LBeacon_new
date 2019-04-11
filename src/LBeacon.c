@@ -634,8 +634,8 @@ ErrorCode enable_advertising(int dongle_device_id,
            sizeof(advertising_parameters_copy));
     advertising_parameters_copy.min_interval = htobs(advertising_interval);
     advertising_parameters_copy.max_interval = htobs(advertising_interval);
-    advertising_parameters_copy.advtype = 3; /* advertising
-                                                non-connectable */
+    /* advertising non-connectable */
+    advertising_parameters_copy.advtype = 3; 
     /*set bitmap to 111 (i.e., circulate on channels 37,38,39) */
     advertising_parameters_copy.chan_map = 7; /* all three advertising
                                               channels*/
@@ -1704,11 +1704,12 @@ ErrorCode *start_ble_scanning(void *param){
     struct hci_filter new_filter; /* Filter for controlling the events*/
     evt_le_meta_event *meta;
     le_advertising_info *info;
+    le_set_event_mask_cp event_mask_cp;
     int retry_time = 0;
     struct hci_request scan_params_rq;
     struct hci_request set_mask_rq;
-    struct hci_request enable_adv_rq;
-    struct hci_request disable_adv_rq;
+    struct hci_request enable_scan_rq;
+    struct hci_request disable_scan_rq;
     /* Time interval is 0.625ms */
     uint16_t interval = htobs(0x0010); /* 16*0.625ms = 10ms */
     uint16_t window = htobs(0x0010); /* 16*0.625ms = 10ms */
@@ -1787,7 +1788,7 @@ ErrorCode *start_ble_scanning(void *param){
 */
         }
 
-        le_set_event_mask_cp event_mask_cp;
+
         memset(&event_mask_cp, 0, sizeof(le_set_event_mask_cp));
 
         for (i = 0 ; i < 8 ; i++ ){
@@ -1811,11 +1812,11 @@ ErrorCode *start_ble_scanning(void *param){
         scan_cp.enable      = 0x01; // Enable flag.
         scan_cp.filter_dup  = 0x00; // Filtering disabled.
 
-        enable_adv_rq = ble_hci_request(OCF_LE_SET_SCAN_ENABLE,
+        enable_scan_rq = ble_hci_request(OCF_LE_SET_SCAN_ENABLE,
                                         LE_SET_SCAN_ENABLE_CP_SIZE,
                                         &status, &scan_cp);
 
-        ret = hci_send_req(socket, &enable_adv_rq,
+        ret = hci_send_req(socket, &enable_scan_rq,
                            HCI_SEND_REQUEST_TIMEOUT_IN_MS);
         if ( ret < 0 ) {
             hci_close_dev(socket);
@@ -1878,11 +1879,11 @@ ErrorCode *start_ble_scanning(void *param){
         memset(&scan_cp, 0, sizeof(scan_cp));
         scan_cp.enable = 0x00;  // Disable flag.
 
-        disable_adv_rq = ble_hci_request(OCF_LE_SET_SCAN_ENABLE,
+        disable_scan_rq = ble_hci_request(OCF_LE_SET_SCAN_ENABLE,
                                          LE_SET_SCAN_ENABLE_CP_SIZE,
                                          &status, &scan_cp);
 
-        ret = hci_send_req(socket, &disable_adv_rq,
+        ret = hci_send_req(socket, &disable_scan_rq,
                            HCI_SEND_REQUEST_TIMEOUT_IN_MS);
 
         if ( ret < 0 ) {

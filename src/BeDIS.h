@@ -132,16 +132,13 @@
 #define LENGTH_OF_EPOCH_TIME 11
 
 /* Time interval in seconds for busy-wait checking in threads */
-#define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC 3
+#define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC 1
 
 /* Time interval in seconds for reconnect to Gateway */
 #define INTERVAL_FOR_RECONNECT_GATEWAY_IN_SEC 120
 
 /* Timeout in seconds for UDP recevie socket */
 #define TIMEOUT_UDP_RECEIVCE_IN_SEC 5
-
-/* Timeout interval in seconds */
-#define WAITING_TIME 10
 
 
 typedef enum _ErrorCode{
