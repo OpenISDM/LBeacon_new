@@ -635,7 +635,7 @@ ErrorCode enable_advertising(int dongle_device_id,
     advertising_parameters_copy.min_interval = htobs(advertising_interval);
     advertising_parameters_copy.max_interval = htobs(advertising_interval);
     /* advertising non-connectable */
-    advertising_parameters_copy.advtype = 3; 
+    advertising_parameters_copy.advtype = 3;
     /*set bitmap to 111 (i.e., circulate on channels 37,38,39) */
     advertising_parameters_copy.chan_map = 7; /* all three advertising
                                               channels*/
@@ -881,6 +881,7 @@ ErrorCode disable_advertising(int dongle_device_id) {
     uint8_t status;
     struct hci_request request;
     int return_value = 0;
+    le_set_advertise_enable_cp advertisement_copy;
 
     /* Open Bluetooth device */
     retry_time = DONGLE_GET_RETRY;
@@ -913,8 +914,6 @@ ErrorCode disable_advertising(int dongle_device_id) {
 #endif
         return E_OPEN_DEVICE;
     }
-
-    le_set_advertise_enable_cp advertisement_copy;
 
     memset(&advertisement_copy, 0, sizeof(advertisement_copy));
 
@@ -2367,7 +2366,7 @@ int main(int argc, char **argv) {
     }
 
     /* Create the thread for track BR_EDR device */
-
+/*
     return_value = startThread(&br_scanning_thread,
                                start_br_scanning, NULL);
 
@@ -2381,7 +2380,7 @@ int main(int argc, char **argv) {
         cleanup_exit();
         exit(return_value);
     }
-
+*/
 
     /* Create the thread for track BLE device */
 
