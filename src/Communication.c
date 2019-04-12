@@ -266,8 +266,9 @@ ErrorCode send_data(void *udp_config){
 #endif
                 }
             }
+        }else{
+            usleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_MICRO_SECONDS);
         }
-        sleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_SEC);
     }
     // 3. close the send socket
     close(send_socket);
