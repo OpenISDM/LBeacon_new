@@ -150,6 +150,9 @@ to determine whether to cleanup all lists. */
 /* Number of characters in the name of a Bluetooth device */
 #define LENGTH_OF_DEVICE_NAME 30
 
+/* Number of characters in the uuid of a Bluetooth device */
+#define LENGTH_OF_UUID 33
+
 /* Number of characters in a Bluetooth MAC address */
 #define LENGTH_OF_MAC_ADDRESS 18
 
@@ -723,9 +726,9 @@ const struct hci_request ble_hci_request(uint16_t ocf,
                                          void * cparam);
 
 /*
-  eir_parse_name:
+  eir_parse_uuid:
 
-      This function parses the name from bluetooth BLE device
+      This function parses the uuid from bluetooth BLE device
 
   Parameters:
 
@@ -740,7 +743,7 @@ const struct hci_request ble_hci_request(uint16_t ocf,
       None
 */
 
-static void eir_parse_name(uint8_t *eir,
+static void eir_parse_uuid(uint8_t *eir,
                            size_t eir_len,
                            char *buf,
                            size_t buf_len);

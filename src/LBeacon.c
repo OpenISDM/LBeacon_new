@@ -883,6 +883,10 @@ ErrorCode disable_advertising(int dongle_device_id) {
     int return_value = 0;
     le_set_advertise_enable_cp advertisement_copy;
 
+#ifdef Debugging
+    zlog_debug(category_debug, ">> disable_advertising ");
+#endif
+
     /* Open Bluetooth device */
     retry_time = DONGLE_GET_RETRY;
 
@@ -956,6 +960,9 @@ ErrorCode disable_advertising(int dongle_device_id) {
         return E_ADVERTISE_STATUS;
     }
 
+#ifdef Debugging
+    zlog_debug(category_debug, "<< disable_advertising ");
+#endif
     return WORK_SUCCESSFULLY;
 }
 
@@ -1651,8 +1658,8 @@ const struct hci_request ble_hci_request(uint16_t ocf,
     return rq;
 }
 
-/* A static function to prase the name from the BLE device. */
-static void eir_parse_name(uint8_t *eir,
+/* A static function to prase the uuid from the BLE device. */
+static void eir_parse_uuid(uint8_t *eir,
                            size_t eir_len,
                            char *buf,
                            size_t buf_len){
@@ -1662,7 +1669,7 @@ static void eir_parse_name(uint8_t *eir,
 
     while (offset < eir_len) {
         uint8_t field_len = eir[0];
-        size_t name_len;
+        size_t uuid_len;
 
         /* Check for the end of EIR */
         if (field_len == 0)
@@ -1672,18 +1679,20 @@ static void eir_parse_name(uint8_t *eir,
             goto failed;
 
         switch (eir[1]) {
+            case EIR_MANUFACTURE_SPECIFIC_DATA:
+                uuid_len = field_len - 1;
 
-            case EIR_NAME_SHORT:
-            case EIR_NAME_COMPLETE:
-
-                name_len = field_len - 1;
-
-                if (name_len > buf_len)
+                if (uuid_len > buf_len)
                     goto failed;
 
-                memcpy(buf, &eir[2], name_len);
+                int count = 0;
+                for(int i = 4 ; i < 20 ; i++){
+                    buf[count] = eir[2+i] / 16 + '0';
+                    buf[count+1] = eir[2+i] % 16 + '0';
+                    count=count+2;
+                }
                 return;
-            }
+        }
 
         offset += field_len + 1;
         eir += field_len + 1;
@@ -1716,6 +1725,9 @@ ErrorCode *start_ble_scanning(void *param){
     uint8_t reports_count;
     char name[LENGTH_OF_DEVICE_NAME];
     int rssi;
+    char address[LENGTH_OF_MAC_ADDRESS];
+    char uuid[LENGTH_OF_UUID];
+
 
 #ifdef Debugging
     zlog_debug(category_debug, ">> start_ble_scanning... ");
@@ -1765,26 +1777,25 @@ ErrorCode *start_ble_scanning(void *param){
         if( 0> hci_le_set_scan_parameters(socket, 0x01, interval,
                                           window, 0x00, 0x00,
                                           HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
-/*
+
             zlog_info(category_health_report,
                       "Error setting parameters of BLE scanning");
 #ifdef Debugging
             zlog_debug(category_debug,
                       "Error setting parameters of BLE scanning");
 #endif
-*/
+
         }
 
         if( 0> hci_le_set_scan_enable(socket, 0x01, 1,
                                       HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
-/*
+
             zlog_info(category_health_report,
                       "Error enabling BLE scanning");
 #ifdef Debugging
             zlog_debug(category_debug,
                        "Error enabling BLE scanning");
 #endif
-*/
         }
 
 
@@ -1839,8 +1850,9 @@ ErrorCode *start_ble_scanning(void *param){
 #endif
         }
 
-        while(HCI_EVENT_HDR_SIZE <=
-            read(socket, ble_buffer, sizeof(ble_buffer)) ){
+        while(true == ready_to_work &&
+              HCI_EVENT_HDR_SIZE <=
+              read(socket, ble_buffer, sizeof(ble_buffer)) ){
 
             meta = (evt_le_meta_event*)
                 (ble_buffer + HCI_EVENT_HDR_SIZE + 1);
@@ -1853,23 +1865,19 @@ ErrorCode *start_ble_scanning(void *param){
 
                 /* If the rssi vaule is within the threshold */
                 if(rssi > g_config.scan_rssi_coverage){
-                    memset(name, 0, sizeof(name));
-                    eir_parse_name(info->data,
-                               info->length,
-                               name,
-                               sizeof(name) - 1);
-
-#ifdef Debugging
-/* For testing BLE scanning parameters
-                    char address[LENGTH_OF_MAC_ADDRESS];
                     ba2str(&info->bdaddr, address);
                     strcat(address, "\0");
-                    zlog_debug(category_debug,
-                               "Detected device: %s - RSSI %4d",
-                               address, rssi);
-*/
-#endif
-                    send_to_push_dongle(&info->bdaddr, BLE, name, rssi);
+                    if(0 == strncmp(address, "C1:", 3)){
+                        memset(name, 0, sizeof(name));
+                        memset(uuid, 0, sizeof(uuid));
+                        eir_parse_uuid(info->data,
+                                       info->length,
+                                       uuid,
+                                       sizeof(uuid));
+                        if(0 == strncmp(uuid, g_config.uuid, LENGTH_OF_UUID)){
+                            send_to_push_dongle(&info->bdaddr, BLE, name, rssi);
+                        }
+                    }
                 }
             }
         } // end while (HCI_EVENT_HDR_SIZE)
@@ -2489,8 +2497,7 @@ int main(int argc, char **argv) {
     }
 
     /* When signal is received, disable message advertising */
-    disable_advertising(0);
-    disable_advertising(1);
+    disable_advertising(g_config.advertise_dongle_id);
 
     cleanup_exit();
     return WORK_SUCCESSFULLY;
