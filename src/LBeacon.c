@@ -1716,8 +1716,6 @@ ErrorCode *start_ble_scanning(void *param){
     int retry_time = 0;
     struct hci_request scan_params_rq;
     struct hci_request set_mask_rq;
-    struct hci_request enable_scan_rq;
-    struct hci_request disable_scan_rq;
     /* Time interval is 0.625ms */
     uint16_t interval = htobs(0x0010); /* 16*0.625ms = 10ms */
     uint16_t window = htobs(0x0010); /* 16*0.625ms = 10ms */
@@ -1727,7 +1725,6 @@ ErrorCode *start_ble_scanning(void *param){
     int rssi;
     char address[LENGTH_OF_MAC_ADDRESS];
     char uuid[LENGTH_OF_UUID];
-
 
 #ifdef Debugging
     zlog_debug(category_debug, ">> start_ble_scanning... ");
@@ -1784,7 +1781,6 @@ ErrorCode *start_ble_scanning(void *param){
             zlog_debug(category_debug,
                       "Error setting parameters of BLE scanning");
 #endif
-
         }
 
         if( 0> hci_le_set_scan_enable(socket, 0x01, 1,
@@ -1797,7 +1793,6 @@ ErrorCode *start_ble_scanning(void *param){
                        "Error enabling BLE scanning");
 #endif
         }
-
 
         memset(&event_mask_cp, 0, sizeof(le_set_event_mask_cp));
 
@@ -1815,22 +1810,6 @@ ErrorCode *start_ble_scanning(void *param){
         if ( ret < 0 ) {
             hci_close_dev(socket);
             return E_SCAN_SET_EVENT_MASK;
-        }
-
-        le_set_scan_enable_cp scan_cp;
-        memset(&scan_cp, 0, sizeof(scan_cp));
-        scan_cp.enable      = 0x01; // Enable flag.
-        scan_cp.filter_dup  = 0x00; // Filtering disabled.
-
-        enable_scan_rq = ble_hci_request(OCF_LE_SET_SCAN_ENABLE,
-                                        LE_SET_SCAN_ENABLE_CP_SIZE,
-                                        &status, &scan_cp);
-
-        ret = hci_send_req(socket, &enable_scan_rq,
-                           HCI_SEND_REQUEST_TIMEOUT_IN_MS);
-        if ( ret < 0 ) {
-            hci_close_dev(socket);
-            return E_SCAN_SET_ENABLE;
         }
 
         hci_filter_clear(&new_filter);
@@ -1882,35 +1861,7 @@ ErrorCode *start_ble_scanning(void *param){
             }
         } // end while (HCI_EVENT_HDR_SIZE)
 
-        /* Close the process of scanning BLE device, and close the socket. */
-        memset(&scan_cp, 0, sizeof(scan_cp));
-        scan_cp.enable = 0x00;  // Disable flag.
-
-        disable_scan_rq = ble_hci_request(OCF_LE_SET_SCAN_ENABLE,
-                                         LE_SET_SCAN_ENABLE_CP_SIZE,
-                                         &status, &scan_cp);
-
-        ret = hci_send_req(socket, &disable_scan_rq,
-                           HCI_SEND_REQUEST_TIMEOUT_IN_MS);
-
-        if ( ret < 0 ) {
-            hci_close_dev(socket);
-
-	          zlog_error(category_health_report,
-            	         "Error sending HCI request");
-#ifdef Debugging
-	          zlog_error(category_debug,
-                       "Error sending HCI request");
-#endif
-            return E_SCAN_SET_ENABLE;
-        }
-
         hci_close_dev(socket);
-
-#ifdef Debugging
-        zlog_debug(category_debug,
-                   "Scanning done of BLE devices");
-#endif
 
     } // end while (ready_to_work)
 
