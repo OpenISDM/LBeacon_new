@@ -54,12 +54,12 @@
 #define Debugging
 
 ErrorCode single_running_instance(char *file_name){
-    int retry_time = 0;
+    int retry_times = 0;
     int lock_file = 0;
     struct flock fl;
 
-    retry_time = FILE_OPEN_RETRY;
-    while(retry_time--){
+    retry_times = FILE_OPEN_RETRY;
+    while(retry_times--){
         lock_file = open(file_name, O_RDWR | O_CREAT | O_TRUNC, 0644);
 
         if(-1 != lock_file){
@@ -171,15 +171,15 @@ ErrorCode generate_uuid(Config *config){
 
 ErrorCode get_config(Config *config, char *file_name) {
     /* Return value is a struct containing all config information */
-    int retry_time = 0;
+    int retry_times = 0;
     FILE *file = NULL;
 
     /* Create spaces for storing the string of the current line being read */
     char config_setting[CONFIG_BUFFER_SIZE];
     char *config_message = NULL;
 
-    retry_time = FILE_OPEN_RETRY;
-    while(retry_time--){
+    retry_times = FILE_OPEN_RETRY;
+    while(retry_times--){
         file = fopen(file_name, "r");
 
         if(NULL != file){
@@ -318,11 +318,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
     ba2str(bluetooth_device_address, address);
     strcat(address, "\0");
 
-    /* Check whether the MAC address has been seen recently by the LBeacon.
-       If the address is already in the list, we just update its final
-       scanned time inside the function of check_is_in_list().
-    */
-
+    /* Check whether the MAC address has been seen recently by the LBeacon.*/
     switch(device_type){
         case BLE:
             temp_node = check_is_in_list(address, &BLE_object_list_head, rssi);
@@ -342,68 +338,77 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
             return;
     }
 
-    if (NULL == temp_node) {
-        /* The address is new. */
-
-        /* Allocate memory from memory pool for a new node, initialize the
-        node, and insert the new node to the scanned_list_head and
-        BR_object_list_head if the address is that of a BR/EDR device;
-        else if it is a BLE device, insert the new node into the
-        BLE_object_list_head. */
-
-#ifdef Debugging
-        zlog_debug(category_debug,
-                   "New device: device_type[%d] - %17s - %20s - RSSI %4d",
-                   device_type, address, name, rssi);
-#endif
-
-        temp_node = (struct ScannedDevice*) mp_alloc(&mempool);
-        if(NULL == temp_node){
-            zlog_error(category_health_report,
-                       "Unable to get memory from mp_alloc(). "
-                       "Skip this new device.");
-#ifdef Debugging
-            zlog_error(category_debug,
-                       "Unable to get memory from mp_alloc(). "
-                       "Skip this new device.");
-#endif
-            return;
+    if(NULL != temp_node){
+        /* Update the final scan time */
+        temp_node->final_scanned_time = get_system_time();
+        /* use the strongest singal strength */
+        if(rssi > temp_node->rssi){
+            temp_node->rssi = rssi;
         }
-
-        /* Initialize the list entries */
-        init_entry(&temp_node->sc_list_entry);
-        init_entry(&temp_node->tr_list_entry);
-
-        /* Get the initial scan time for the new node. */
-        temp_node->initial_scanned_time = get_system_time();
-        temp_node->final_scanned_time = temp_node->initial_scanned_time;
-        temp_node->rssi = rssi;
-
-        /* Copy the MAC address to the node */
-        strncpy(temp_node->scanned_mac_address, address,
-                LENGTH_OF_MAC_ADDRESS);
-
-        /* Insert the new node into the right lists. */
-        pthread_mutex_lock(&list_lock);
-
-        if(BLE == device_type){
-
-            /* Insert the new node to the BLE_object_list_head */
-            insert_list_tail(&temp_node->tr_list_entry,
-                             &BLE_object_list_head.list_entry);
-
-        }else if(BR_EDR == device_type){
-
-            /* Insert the new node to the scanned list */
-            insert_list_first(&temp_node->sc_list_entry,
-                              &scanned_list_head.list_entry);
-
-            /* Insert the new node to the BR_object_list_head  */
-            insert_list_tail(&temp_node->tr_list_entry,
-                             &BR_object_list_head.list_entry);
-        }
-        pthread_mutex_unlock(&list_lock);
+        return;
     }
+
+    /* The address is new. */
+
+    /* Allocate memory from memory pool for a new node, initialize the
+    node, and insert the new node to the scanned_list_head and
+    BR_object_list_head if the address is that of a BR/EDR device;
+    else if it is a BLE device, insert the new node into the
+    BLE_object_list_head. */
+
+#ifdef Debugging
+    zlog_debug(category_debug,
+               "New device: device_type[%d] - %17s - %20s - RSSI %4d",
+               device_type, address, name, rssi);
+#endif
+
+    temp_node = (struct ScannedDevice*) mp_alloc(&mempool);
+    if(NULL == temp_node){
+        zlog_error(category_health_report,
+                   "Unable to get memory from mp_alloc(). "
+                   "Skip this new device.");
+#ifdef Debugging
+        zlog_error(category_debug,
+                   "Unable to get memory from mp_alloc(). "
+                   "Skip this new device.");
+#endif
+        return;
+    }
+
+    /* Initialize the list entries */
+    init_entry(&temp_node->sc_list_entry);
+    init_entry(&temp_node->tr_list_entry);
+
+    /* Get the initial scan time for the new node. */
+    temp_node->initial_scanned_time = get_system_time();
+    temp_node->final_scanned_time = temp_node->initial_scanned_time;
+    temp_node->rssi = rssi;
+
+    /* Copy the MAC address to the node */
+    strncpy(temp_node->scanned_mac_address, address,
+            LENGTH_OF_MAC_ADDRESS);
+
+    /* Insert the new node into the right lists. */
+    pthread_mutex_lock(&list_lock);
+
+    if(BLE == device_type){
+
+        /* Insert the new node to the BLE_object_list_head */
+        insert_list_tail(&temp_node->tr_list_entry,
+                         &BLE_object_list_head.list_entry);
+
+    }else if(BR_EDR == device_type){
+
+        /* Insert the new node to the scanned list */
+        insert_list_first(&temp_node->sc_list_entry,
+                          &scanned_list_head.list_entry);
+
+        /* Insert the new node to the BR_object_list_head  */
+        insert_list_tail(&temp_node->tr_list_entry,
+                         &BR_object_list_head.list_entry);
+    }
+    pthread_mutex_unlock(&list_lock);
+
     return;
 }
 
@@ -412,7 +417,7 @@ int compare_mac_address(char address[],
                         int number_digits_compared){
     int ret_val;
 
-    /* Compare the first NUM_DIGITS_TO_COMPARE characters
+    /* Compare the first NUMBER_DIGITS_TO_COMPARE characters
     and only compare the whole MAC address if it matches
     the first part.
     */
@@ -432,7 +437,7 @@ int compare_mac_address(char address[],
 struct ScannedDevice *check_is_in_list(char address[],
                                        ObjectListHead *list,
                                        int rssi) {
-    struct List_Entry *list_pointers, *save_list_pointers;
+    struct List_Entry *list_pointer, *save_list_pointers;
     ScannedDevice *temp = NULL;
     bool temp_is_null = true;
     bool is_empty = false;
@@ -456,17 +461,17 @@ struct ScannedDevice *check_is_in_list(char address[],
         case BR_EDR:
             pthread_mutex_lock(&list_lock);
 
-            list_for_each_safe(list_pointers, save_list_pointers,
+            list_for_each_safe(list_pointer, save_list_pointers,
                                &list->list_entry) {
 
                 /* BR_EDR device, e.g a BR_EDR phone (feature phone):
                 Use scanned_list_head for checking the existance of MAC
                 address here.
                 */
-                temp = ListEntry(list_pointers,ScannedDevice,
+                temp = ListEntry(list_pointer, ScannedDevice,
                                  sc_list_entry);
 
-                if(is_to_remove_from_scanned_list){
+                if(true == is_to_remove_from_scanned_list){
 
                     /* The node has been in the scanned list for more than
                     INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC seconds. Remove
@@ -500,8 +505,8 @@ struct ScannedDevice *check_is_in_list(char address[],
                     is_to_remove_from_scanned_list = true;
                     remove_list_node(&temp->sc_list_entry);
 
-                    /* If the node no longer is in the BR_object_list_head,
-                    free the space back to the memory pool.
+                    /* If the node no longer is in the BR object list, free
+                    the space back to the memory pool.
                     */
                     if(is_isolated_node(&temp->tr_list_entry)){
 #ifdef Debugging
@@ -514,13 +519,9 @@ struct ScannedDevice *check_is_in_list(char address[],
                     }
 
                 }else if (0 == compare_mac_address(address, temp,
-                                                   NUM_DIGITS_TO_COMPARE)){
-                    /* Update the final scan time */
-                    temp->final_scanned_time = get_system_time();
-                    /* use the strongest singal strength */
-                    if(rssi > temp->rssi){
-                        temp->rssi = rssi;
-                    }
+                                                   NUMBER_DIGITS_TO_COMPARE) &&
+                          0 == compare_mac_address(address, temp,
+                                                   LENGTH_OF_MAC_ADDRESS)){
                     temp_is_null = false;
                     break;
                 }
@@ -534,21 +535,16 @@ struct ScannedDevice *check_is_in_list(char address[],
 
             pthread_mutex_lock(&list_lock);
 
-            list_for_each_safe(list_pointers, save_list_pointers,
+            list_for_each_safe(list_pointer, save_list_pointers,
                                &list->list_entry) {
 
-                temp = ListEntry(list_pointers, ScannedDevice,
+                temp = ListEntry(list_pointer, ScannedDevice,
                                  tr_list_entry);
 
                 if (0 == compare_mac_address(address, temp,
-                                             NUM_DIGITS_TO_COMPARE)){
-
-                    /* Update the final scan time */
-                    temp->final_scanned_time = get_system_time();
-                    /* use the strongest singal strength */
-                    if(rssi > temp->rssi){
-                        temp->rssi = rssi;
-                    }
+                                             NUMBER_DIGITS_TO_COMPARE) &&
+                    0 == compare_mac_address(address, temp,
+                                             LENGTH_OF_MAC_ADDRESS)){
                     temp_is_null = false;
                     break;
                 }
@@ -588,7 +584,7 @@ ErrorCode enable_advertising(int dongle_device_id,
     zlog_debug(category_debug, ">> enable_advertising ");
 #endif
     int device_handle = 0;
-    int retry_time = 0;
+    int retry_times = 0;
     uint8_t status;
     struct hci_request request;
     int return_value = 0;
@@ -610,8 +606,8 @@ ErrorCode enable_advertising(int dongle_device_id,
         return E_OPEN_DEVICE;
     }
 
-    retry_time = SOCKET_OPEN_RETRY;
-    while(retry_time--){
+    retry_times = SOCKET_OPEN_RETRY;
+    while(retry_times--){
         device_handle = hci_open_dev(dongle_device_id);
 
         if(device_handle >= 0){
@@ -877,7 +873,7 @@ ErrorCode enable_advertising(int dongle_device_id,
 
 ErrorCode disable_advertising(int dongle_device_id) {
     int device_handle = 0;
-    int retry_time = 0;
+    int retry_times = 0;
     uint8_t status;
     struct hci_request request;
     int return_value = 0;
@@ -888,7 +884,7 @@ ErrorCode disable_advertising(int dongle_device_id) {
 #endif
 
     /* Open Bluetooth device */
-    retry_time = DONGLE_GET_RETRY;
+    retry_times = DONGLE_GET_RETRY;
 
     if (dongle_device_id < 0) {
         zlog_error(category_health_report,
@@ -900,8 +896,8 @@ ErrorCode disable_advertising(int dongle_device_id) {
         return E_OPEN_DEVICE;
     }
 
-    retry_time = SOCKET_OPEN_RETRY;
-    while(retry_time--){
+    retry_times = SOCKET_OPEN_RETRY;
+    while(retry_times--){
         device_handle = hci_open_dev(dongle_device_id);
 
         if(device_handle >= 0){
@@ -1169,11 +1165,11 @@ ErrorCode handle_health_report(){
     char msg_temp_one[WIFI_MESSAGE_LENGTH];
     char temp_buf[WIFI_MESSAGE_LENGTH];
     FILE *health_file = NULL;
-    int retry_time = 0;
+    int retry_times = 0;
     int ret_val = 0;
 
-    retry_time = FILE_OPEN_RETRY;
-    while(retry_time--){
+    retry_times = FILE_OPEN_RETRY;
+    while(retry_times--){
         health_file =
         fopen(HEALTH_REPORT_LOG_FILE_NAME, "r");
 
@@ -1192,7 +1188,7 @@ ErrorCode handle_health_report(){
         return E_OPEN_FILE;
     }
 
-    /* contruct the content for UDP packet*/
+    /* contructs the content for UDP packet*/
     memset(message, 0, sizeof(message));
 
     if(0!=beacon_basic_info(message, sizeof(message), health_report)){
@@ -1273,7 +1269,7 @@ ErrorCode manage_communication(){
 
     while(true == ready_to_work){
         if(true == is_null(&udp_config.recv_pkt_queue)){
-            /* When LBeacon has not gotten packet from the gateway for
+            /* When LBeacon has not gotten packets from the gateway for
             INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC seconds or longer,
             LBeacon sends request_to_join to gateway again. The purpose
             is to handle the gateway version upgrade scenario. In this case if
@@ -1286,7 +1282,7 @@ ErrorCode manage_communication(){
                 INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC) &&
                 (current_time - latest_join_request_time >
                 INTERVAL_FOR_RECONNECT_GATEWAY_IN_SEC)){
-
+;
 #ifdef Debugging
                 zlog_info(category_debug,
                           "Send requets_to_join to gateway again");
@@ -1363,14 +1359,14 @@ ErrorCode copy_object_data_to_file(char *file_name,
                                    const int max_num_objects,
                                    int *used_objects ) {
     FILE *track_file = NULL;;
-    struct List_Entry *list_pointers, *save_list_pointers;
-    struct List_Entry *head_pointers, *tail_pointers;
+    struct List_Entry *list_pointer, *save_list_pointers;
+    struct List_Entry *head_pointer, *tail_pointer;
     ScannedDevice *temp;
     int number_in_list;
     int number_to_send;
     char basic_info[MAX_LENGTH_RESP_BASIC_INFO];
     char response_buf[MAX_LENGTH_RESP_DEVICE_INFO];
-    int retry_time = 0;
+    int retry_times = 0;
     int node_count;
     unsigned timestamp_init;
     unsigned timestamp_end;
@@ -1378,8 +1374,8 @@ ErrorCode copy_object_data_to_file(char *file_name,
     List_Entry local_list_head;
     DeviceType device_type = list->device_type;
 
-    retry_time = FILE_OPEN_RETRY;
-    while(retry_time--){
+    retry_times = FILE_OPEN_RETRY;
+    while(retry_times--){
         track_file = fopen(file_name, "w");
 
         if(NULL != track_file){
@@ -1388,8 +1384,8 @@ ErrorCode copy_object_data_to_file(char *file_name,
     }
 
     if(NULL == track_file){
-        retry_time = FILE_OPEN_RETRY;
-        while(retry_time--){
+        retry_times = FILE_OPEN_RETRY;
+        while(retry_times--){
             track_file = fopen(file_name, "wt");
 
             if(NULL != track_file){
@@ -1442,48 +1438,48 @@ ErrorCode copy_object_data_to_file(char *file_name,
 
 #ifdef Debugging
 
-    list_for_each(list_pointers, &list->list_entry){
+    list_for_each(list_pointer, &list->list_entry){
         zlog_debug(category_debug,
-                   "Input list: list->list_entry %d list_pointers %d "
+                   "Input list: list->list_entry %d list_pointer %d "
                    "prev %d next %d",
                    &list->list_entry,
-                   list_pointers,
-                   list_pointers->prev,
-                   list_pointers->next);
+                   list_pointer,
+                   list_pointer->prev,
+                   list_pointer->next);
     }
 
 #endif
 */
 
     /* Set temporary pointer to point to the head of the input list */
-    head_pointers = list->list_entry.next;
-    list_pointers = list->list_entry.next;
+    head_pointer = list->list_entry.next;
+    list_pointer = list->list_entry.next;
 
     /* Go through the input tracked_object list to move
-    number_to_send nodes in the list to local list
+    number_to_send nodes in the list to a local list
     */
     for (node_count = 1; node_count <= number_to_send;
-         list_pointers = list_pointers->next, node_count++){
+         list_pointer = list_pointer->next, node_count++){
 
         /* If the node is the last in the list */
         if(node_count == number_to_send){
             /* Set a marker for the last pointer of the last node */
-            tail_pointers = list_pointers;
+            tail_pointer = list_pointer;
         }
     }
 
     /* Set the head of the input list to point to the last node */
-    list->list_entry.next = tail_pointers->next;
-    tail_pointers->next->prev = &list->list_entry;
-
-    /* Initilize the local list */
-    init_entry(&local_list_head);
-    local_list_head.next = head_pointers;
-    head_pointers->prev = &local_list_head;
-    local_list_head.prev = tail_pointers;
-    tail_pointers->next = &local_list_head;
+    list->list_entry.next = tail_pointer->next;
+    tail_pointer->next->prev = &list->list_entry;
 
     pthread_mutex_unlock(&list_lock);
+
+    /* Initialize the local list */
+    init_entry(&local_list_head);
+    local_list_head.next = head_pointer;
+    head_pointer->prev = &local_list_head;
+    local_list_head.prev = tail_pointer;
+    tail_pointer->next = &local_list_head;
 
     /* This code block is for debugging the linked list operations. In release
     version, we should not waste resource in iterating the linked list only
@@ -1491,12 +1487,12 @@ ErrorCode copy_object_data_to_file(char *file_name,
 
 #ifdef Debugging
 
-    list_for_each(list_pointers, &local_list_entry){
+    list_for_each(list_pointer, &local_list_entry){
         zlog_debug(category_debug,
-                   "local list:  list_pointers %d prev %d next %d",
-                   list_pointers,
-                   list_pointers->prev,
-                   list_pointers->next);
+                   "local list:  list_pointer %d prev %d next %d",
+                   list_pointer,
+                   list_pointer->prev,
+                   list_pointer->next);
     }
 
 #endif
@@ -1505,9 +1501,9 @@ ErrorCode copy_object_data_to_file(char *file_name,
     /* Go throngh the local object list to get the content and write the
     content to file
     */
-    list_for_each(list_pointers, &local_list_head){
+    list_for_each(list_pointer, &local_list_head){
 
-        temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+        temp = ListEntry(list_pointer, ScannedDevice, tr_list_entry);
 
         /* sprintf() is the function to set a format and convert the
         datatype to char
@@ -1524,15 +1520,15 @@ ErrorCode copy_object_data_to_file(char *file_name,
     }
 
     /* Remove nodes from the local list. If the node is no longer in the scan
-    list, we need to release the allocated memory as well.
+    list, release the allocated memory as well.
     */
     if(BLE == device_type){
 
-        list_for_each_safe(list_pointers,
+        list_for_each_safe(list_pointer,
                            save_list_pointers,
                            &local_list_head){
 
-            temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+            temp = ListEntry(list_pointer, ScannedDevice, tr_list_entry);
 
             remove_list_node(&temp->tr_list_entry);
 
@@ -1545,21 +1541,23 @@ ErrorCode copy_object_data_to_file(char *file_name,
         tr_list_entry. We should lock list_lock here to prevent scanned list
         is operated in other places at the same time.
         */
-        pthread_mutex_lock(&list_lock);
 
-        list_for_each_safe(list_pointers,
+        list_for_each_safe(list_pointer,
                            save_list_pointers,
                            &local_list_head){
 
-            temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+            temp = ListEntry(list_pointer, ScannedDevice, tr_list_entry);
 
             remove_list_node(&temp->tr_list_entry);
+
+            pthread_mutex_lock(&list_lock);
 
             if(is_isolated_node(&temp->sc_list_entry)){
                 mp_free(&mempool, temp);
             }
+
+            pthread_mutex_unlock(&list_lock);
         }
-        pthread_mutex_unlock(&list_lock);
     }
 
     /* Close the file for storing data in the input list */
@@ -1577,7 +1575,7 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list,
     ErrorCode ret_val;
     FILE *file_fd = NULL;
     char *file_name = NULL;
-    int retry_time = 0;
+    int retry_times = 0;
 
     /* Check input parameters to determine whether they are valid */
     if(list != &BR_object_list_head && list != &BLE_object_list_head){
@@ -1615,8 +1613,8 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list,
 
     if(WORK_SUCCESSFULLY == ret_val){
         /* Open the file that is going to be sent to the gateway */
-        retry_time = FILE_OPEN_RETRY;
-        while(retry_time--){
+        retry_times = FILE_OPEN_RETRY;
+        while(retry_times--){
             file_fd = fopen(file_name, "r");
 
             if(NULL != file_fd){
@@ -1713,7 +1711,7 @@ ErrorCode *start_ble_scanning(void *param){
     evt_le_meta_event *meta;
     le_advertising_info *info;
     le_set_event_mask_cp event_mask_cp;
-    int retry_time = 0;
+    int retry_times = 0;
     struct hci_request scan_params_rq;
     struct hci_request set_mask_rq;
     /* Time interval is 0.625ms */
@@ -1732,8 +1730,8 @@ ErrorCode *start_ble_scanning(void *param){
 
     while(true == ready_to_work){
         /* Get the dongle id */
-        retry_time = DONGLE_GET_RETRY;
-        while(retry_time--){
+        retry_times = DONGLE_GET_RETRY;
+        while(retry_times--){
             dongle_device_id = hci_get_route(NULL);
 
             if(dongle_device_id >= 0){
@@ -1752,8 +1750,8 @@ ErrorCode *start_ble_scanning(void *param){
         }
 
         /* Open Bluetooth device */
-        retry_time = SOCKET_OPEN_RETRY;
-        while(retry_time--){
+        retry_times = SOCKET_OPEN_RETRY;
+        while(retry_times--){
             socket = hci_open_dev(dongle_device_id);
 
             if(socket >= 0){
@@ -1846,7 +1844,8 @@ ErrorCode *start_ble_scanning(void *param){
                 if(rssi > g_config.scan_rssi_coverage){
                     ba2str(&info->bdaddr, address);
                     strcat(address, "\0");
-                    if(0 == strncmp(address, "C1:", 3)){
+                    if(0 == strncmp(address, MAC_ADDRESS_PREFIX,
+                                    strlen(MAC_ADDRESS_PREFIX))){
                         memset(name, 0, sizeof(name));
                         memset(uuid, 0, sizeof(uuid));
                         eir_parse_uuid(info->data,
@@ -1888,7 +1887,7 @@ ErrorCode *start_br_scanning(void* param) {
     int socket = 0; /*socket number*/
     int results; /*the result returned via the socket */
     int results_id; /*ID of the result */
-    int retry_time = 0;
+    int retry_times = 0;
     bool keep_scanning;
     char name[LENGTH_OF_DEVICE_NAME];
     int rssi;
@@ -1899,8 +1898,8 @@ ErrorCode *start_br_scanning(void* param) {
 
     while(true == ready_to_work){
         /* Open Bluetooth device */
-        retry_time = DONGLE_GET_RETRY;
-        while(retry_time--){
+        retry_times = DONGLE_GET_RETRY;
+        while(retry_times--){
             dongle_device_id = hci_get_route(NULL);
 
             if(dongle_device_id >= 0){
@@ -1919,8 +1918,8 @@ ErrorCode *start_br_scanning(void* param) {
             return E_OPEN_DEVICE;
         }
 
-        retry_time = SOCKET_OPEN_RETRY;
-        while(retry_time--){
+        retry_times = SOCKET_OPEN_RETRY;
+        while(retry_times--){
             socket = hci_open_dev(dongle_device_id);
 
             if(socket >= 0){
@@ -2100,24 +2099,24 @@ ErrorCode *start_br_scanning(void* param) {
 }
 
 ErrorCode cleanup_lists(ObjectListHead *list_head, bool is_scanned_list_head){
-    struct List_Entry *list_pointers, *save_list_pointers;
+    struct List_Entry *list_pointer, *save_list_pointers;
     ScannedDevice *temp;
 
     pthread_mutex_lock(&list_lock);
 
     if(false == is_entry_list_empty(&list_head->list_entry)){
 
-        list_for_each_safe(list_pointers, save_list_pointers,
+        list_for_each_safe(list_pointer, save_list_pointers,
                            &list_head->list_entry){
             /* If the input list is the scanned list, we should remove the node
             using sc_list_entry first. Otherwise, we remove the node using
             tr_list_entry.
             */
             if(is_scanned_list_head){
-                temp = ListEntry(list_pointers, ScannedDevice, sc_list_entry);
+                temp = ListEntry(list_pointer, ScannedDevice, sc_list_entry);
                 remove_list_node(&temp->sc_list_entry);
             }else{
-                temp = ListEntry(list_pointers, ScannedDevice, tr_list_entry);
+                temp = ListEntry(list_pointer, ScannedDevice, tr_list_entry);
                 remove_list_node(&temp->tr_list_entry);
             }
 
@@ -2182,7 +2181,7 @@ ErrorCode *timeout_cleanup(void* param){
 
 
 ErrorCode cleanup_exit(){
-    struct List_Entry *list_pointers, *save_list_pointers;
+    struct List_Entry *list_pointer, *save_list_pointers;
     ScannedDevice *temp;
 
 #ifdef Debugging
@@ -2409,18 +2408,15 @@ int main(int argc, char **argv) {
     }
 
     /* Initialize the thread pool and worker threads */
-    thpool = thpool_init(NUM_WORK_THREADS);
+    thpool = thpool_init(NUMBER_WORK_THREADS);
 
     if(NULL != thpool){
-        /* Four worker threads for receive
-        */
-        for(id = 0; id < 4; id++){
+        for(id = 0; id < NUMBER_RECEIVE_THREAD; id++){
             thpool_add_work(thpool,(void*)receive_data,
                             (sudp_config_beacon *) &udp_config, 0);
         }
-        /* Other worker threads for send
-        */
-        for(id = 4; id < NUM_WORK_THREADS; id++){
+
+        for(id = NUMBER_RECEIVE_THREAD; id < NUMBER_WORK_THREADS; id++){
             thpool_add_work(thpool,(void*)send_data ,
                             (sudp_config_beacon *) &udp_config, 0);
         }

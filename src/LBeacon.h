@@ -93,7 +93,7 @@ Authors:
 /* The log file for LBeacon health history */
 #define HEALTH_REPORT_LOG_FILE_NAME "/home/pi/LBeacon/log/Health_Report.log"
 
-/* The term used by zlog libarry to indicate error category. We will report
+/* The term used by zlog library to indicate error category. We will report
 LBeacon's health report as errors, if we find this term in the last line of
 Health_Report.log. */
 #define HEALTH_REPORT_ERROR_SIGN "ERROR"
@@ -101,7 +101,7 @@ Health_Report.log. */
 /* The lock file for LBeacon  */
 #define LBEACON_LOCK_FILE "/home/pi/LBeacon/bin/LBeacon.pid"
 
-/* For following EIR_ constants, please refer to Bluetooth specifications for
+/* For following EIR_ constants, refer to Bluetooth specifications for
 the defined values.
 https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile
 */
@@ -134,12 +134,11 @@ in the scanned list, it will remove the timed out devices as well.
 */
 #define INTERVAL_FOR_CLEANUP_SCANNED_LIST_IN_SEC 600
 
-/* Time interval in seconds for idle status in Wifi connection between
+/* Time interval in seconds for idle status of the Wifi connection between the
 LBeacon and gateway. Usually, the Wifi connection being idle for longer than
 the specified time interval is impossible in BeDIS Object tracker solution. So
-we treat the condition as network connection failure scenario. When this
-happens, LBeacon sends UDP join_request to gateway again to receive gateway's
-packets and notifies timeout_cleanup thread to do the cleanup task.
+we treat the condition as a network connection failure. When this happens,
+LBeacon sends UDP join_request to the gateway again.
 */
 #define INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC 180
 
@@ -157,10 +156,17 @@ to determine whether to cleanup all lists. */
 #define LENGTH_OF_MAC_ADDRESS 18
 
 /* Number of digits of MAC address to compare */
-#define NUM_DIGITS_TO_COMPARE 4
+#define NUMBER_DIGITS_TO_COMPARE 4
 
 /* Number of worker threads in the thread pool used by communication unit */
-#define NUM_WORK_THREADS 16
+#define NUMBER_WORK_THREADS 16
+
+/* Number of worker threads in the thread pool to receive requests from gateway
+used by communication unit */
+#define NUMBER_RECEIVE_THREAD 4
+
+/* The prefix of MAC address specifies our tags */
+#define MAC_ADDRESS_PREFIX "C1:"
 
 /* Maximum length in number of bytes of basic info of each response from
 LBeacon to gateway.
@@ -420,14 +426,14 @@ ErrorCode get_config(Config *config, char *file_name);
       if the device is of BR/EDR type, and tail of the tracked object list
       for the device type. If a struct with MAC address matching the input
       device address is found, this function sets the final scanned time of
-      the struct to current time.
+      the struct to the current time.
 
   Parameters:
 
       bluetooth_device_address - MAC address of a bluetooth device discovered
                                  during inquiry
       device_type - the indicator to show the device type of the input address
-      name - the name of the BR_EDR / BLE devices
+      name - the name of the BR_EDR / BLE device
       rssi - the RSSI value of this device
 
   Return value:
@@ -443,17 +449,17 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
 /*
   compare_mac_address:
 
-     This function compares the two input MAC addresses.
+     This function compares two input MAC addresses specified by input
+     parameters
 
   Parameters:
 
-    address - MAC address of a bluetooth device
-    node - the node containing the MAC address to compare
-    number_digits_compared - number of digits to be compared before we
-                             compare two addresses entries
+    address - the MAC address of a bluetooth device
+    node - the node containing the other MAC address to compare
+    number_digits_compared - number of digits in the addresses to be compared
 
   Return value:
-    0: the MAC address is exactly matches
+    0: if the MAC addresses exactly match
 
 */
 
@@ -499,7 +505,7 @@ struct ScannedDevice *check_is_in_list(char address[],
                          to advertise
       advertising_interval - the time interval during which the LBeacon can
                          advertise
-      advertising_uuid - universally unique identifier of advertiser
+      advertising_uuid - universally unique identifier of the advertiser
       major_number - major version number of LBeacon
       minor_number - minor version number of LBeacon
       rssi_value - RSSI value of the bluetooth device
@@ -540,7 +546,7 @@ ErrorCode disable_advertising(int dongle_device_id);
 
       This function prepares the basic information about the LBeacon which aims
       to help BeDIS server identify packets received from various gateways.
-      [Note: The resulted message will be in the format of
+      [Note: The resulted message is in the format of
       "Packet type(one byte):<LBeacon UUID>:<Gateway IP address>"]
       Once the basic information is produced, the caller of this function can
       append more response content at the end of message.
@@ -566,8 +572,8 @@ ErrorCode beacon_basic_info(char *message, size_t message_size, int poll_type);
 /*
   send_join_request:
 
-      This function sends join_request to Gateway when there is no packets
-      from Gateway for long time.
+      This function sends join_request to gateway when there is no packets
+      from the gateway for a specified long time.
 
   Parameters:
 
@@ -585,7 +591,7 @@ ErrorCode send_join_request();
   handle_tracked_object_data:
 
       This function consolidates all the BLE and BR_EDR devices information
-      and sends the information to Gateway.
+      and sends the information to the gateway.
 
   Parameters:
 
@@ -602,8 +608,8 @@ ErrorCode handle_tracked_object_data();
 /*
   handle_health_report:
 
-      This function reads the Health_Report.log and send its content to
-      Gateway.
+      This function reads the Health_Report.log and send its content to the
+      gateway.
 
   Parameters:
 
@@ -620,11 +626,10 @@ ErrorCode handle_health_report();
 /*
   manage_communication:
 
-      This function waits for polling from the gateway and process
+      This function waits for polling message from the gateway and process
       the corresponding polling types. When there is no polling from
       gateway for long time, this function submits join_request to
-      gateway again to re-establish the connection between gateway and
-      cleans up all the three lists in the meantime.
+      gateway again to re-establish the connection between the gateway.
 
   Parameters:
 
@@ -735,7 +740,7 @@ const struct hci_request ble_hci_request(uint16_t ocf,
       eir - the data member of the advertising information result
             from bluetooth BLE scan result
       eir_len - the length in number of bytes of the eir argument
-      buf - the output buffer to receive the parsing result
+      buf - the output buffer to receive the parsed result
       buf_len - the length in number of bytes of the buf argument
 
   Return value:
@@ -753,11 +758,11 @@ static void eir_parse_uuid(uint8_t *eir,
 
       This function scans continuously for BLE bluetooth devices under the
       coverage of the beacon until scanning is cancelled. To reduce the
-      traffic among BeDIS system, this function only tracks the tags with
-      our specific name. When a tag with specific name is found, this
-      function calls send_to_push_dongle to either add a new ScannedDevice
-      struct of the device to ble_object_list or update the final scan time
-      of a struct in the list.
+      traffic within BeDIS system, this function only tracks the tags with
+      the specific prefix MAX address. When a tag with specific prefix MAC
+      address is found, this function calls send_to_push_dongle to either add
+      a new ScannedDevice struct of the device to ble_object_list or update
+      the final scan time of a struct in the list.
       [N.B. This function is executed by the main thread. ]
 
   Parameters:
@@ -778,10 +783,10 @@ ErrorCode *start_br_scanning(void *param);
 /*
   cleanup_lists:
 
-      This function first removes every node from the speicified list. If the
-      node is also linked by other lists, this function will remove the node
-      from the lists as well. Once the node is isolated, this function calls
-      memory pool to release memory used by the node.
+      This function first removes every node from the specified list. If the
+      node is also linked by other lists, this function removes the node from
+      the lists as well. Once the node is isolated, this function calls memory
+      pool to release memory used by the node.
 
   Parameters:
 
