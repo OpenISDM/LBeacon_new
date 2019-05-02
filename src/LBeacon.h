@@ -745,13 +745,14 @@ const struct hci_request ble_hci_request(uint16_t ocf,
 
   Return value:
 
-      None
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise
 */
 
-static void eir_parse_uuid(uint8_t *eir,
-                           size_t eir_len,
-                           char *buf,
-                           size_t buf_len);
+static ErrorCode eir_parse_uuid(uint8_t *eir,
+                                size_t eir_len,
+                                char *buf,
+                                size_t buf_len);
 
 /*
   start_ble_scanning:

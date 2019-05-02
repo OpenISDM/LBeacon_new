@@ -183,7 +183,8 @@ typedef enum _ErrorCode{
     E_ADD_PACKET_TO_QUEUE = 37,
     E_SQL_PARSE = 38,
     E_SQL_RESULT_EXCEED = 39,
-    MAX_ERROR_CODE = 40
+    E_PARSE_UUID = 40,
+    MAX_ERROR_CODE = 41
 
 } ErrorCode;
 

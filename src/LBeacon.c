@@ -1657,17 +1657,20 @@ const struct hci_request ble_hci_request(uint16_t ocf,
 }
 
 /* A static function to prase the uuid from the BLE device. */
-static void eir_parse_uuid(uint8_t *eir,
+static ErrorCode eir_parse_uuid(uint8_t *eir,
                            size_t eir_len,
                            char *buf,
                            size_t buf_len){
     size_t offset;
+    uint8_t field_len;
+    size_t uuid_len;
+    int index;
+    int i;
 
     offset = 0;
 
     while (offset < eir_len) {
-        uint8_t field_len = eir[0];
-        size_t uuid_len;
+        field_len = eir[0];
 
         /* Check for the end of EIR */
         if (field_len == 0)
@@ -1683,13 +1686,17 @@ static void eir_parse_uuid(uint8_t *eir,
                 if (uuid_len > buf_len)
                     goto failed;
 
-                int count = 0;
-                for(int i = 4 ; i < 20 ; i++){
-                    buf[count] = eir[2+i] / 16 + '0';
-                    buf[count+1] = eir[2+i] % 16 + '0';
-                    count=count+2;
+                // Ensure the Beacon is our LBeacon
+                if(eir[2] == 15 && eir[3] == 0 && eir[4] == 2 && eir[5] == 21){
+                    index = 0;
+                    for(i = 4 ; i < 20 ; i++){
+                    buf[index] = eir[2+i] / 16 + '0';
+                    buf[index+1] = eir[2+i] % 16 + '0';
+                    index=index+2;
                 }
-                return;
+                buf[index] = '\0';
+                return WORK_SUCCESSFULLY;
+              }
         }
 
         offset += field_len + 1;
@@ -1698,6 +1705,7 @@ static void eir_parse_uuid(uint8_t *eir,
 
 failed:
     snprintf(buf, buf_len, NULL);
+    return E_PARSE_UUID;
 }
 
 
@@ -1848,11 +1856,12 @@ ErrorCode *start_ble_scanning(void *param){
                                     strlen(MAC_ADDRESS_PREFIX))){
                         memset(name, 0, sizeof(name));
                         memset(uuid, 0, sizeof(uuid));
-                        eir_parse_uuid(info->data,
-                                       info->length,
-                                       uuid,
-                                       sizeof(uuid));
-                        if(0 == strncmp(uuid, g_config.uuid, LENGTH_OF_UUID)){
+                        if(WORK_SUCCESSFULLY ==
+                           eir_parse_uuid(info->data, info->length,
+                                          uuid, sizeof(uuid)) &&
+                           0 == strncmp(uuid, g_config.uuid, LENGTH_OF_UUID)){
+                            send_to_push_dongle(&info->bdaddr, BLE, name, rssi);
+                        }else{
                             send_to_push_dongle(&info->bdaddr, BLE, name, rssi);
                         }
                     }
