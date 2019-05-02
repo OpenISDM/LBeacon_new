@@ -1858,10 +1858,14 @@ ErrorCode *start_ble_scanning(void *param){
                         memset(uuid, 0, sizeof(uuid));
                         if(WORK_SUCCESSFULLY ==
                            eir_parse_uuid(info->data, info->length,
-                                          uuid, sizeof(uuid)) &&
-                           0 == strncmp(uuid, g_config.uuid, LENGTH_OF_UUID)){
-                            send_to_push_dongle(&info->bdaddr, BLE, name, rssi);
+                                          uuid, sizeof(uuid))){
+                            if(0 == strncmp(uuid, g_config.uuid,
+                                            LENGTH_OF_UUID)){
+                                send_to_push_dongle(&info->bdaddr, BLE, name,
+                                                    rssi);
+                            }
                         }else{
+
                             send_to_push_dongle(&info->bdaddr, BLE, name, rssi);
                         }
                     }
