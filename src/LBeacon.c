@@ -282,6 +282,8 @@ ErrorCode get_config(Config *config, char *file_name) {
     trim_string_tail(config_message);
     config->gateway_port = atoi(config_message);
 
+    memset(g_config.local_addr, 0, sizeof(g_config.local_addr));
+
     /* item 11 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
@@ -964,6 +966,8 @@ ErrorCode disable_advertising(int dongle_device_id) {
 
 
 ErrorCode beacon_basic_info(char *message, size_t message_size, int poll_type){
+    char datetime_buf[LENGTH_OF_EPOCH_TIME];
+
     // packet type
     message[0] = 0x0F & poll_type;
     message[1] = '\0';
@@ -972,8 +976,14 @@ ErrorCode beacon_basic_info(char *message, size_t message_size, int poll_type){
     strcat(message, g_config.uuid);
     strcat(message, ";");
 
-    // Gateway IP address
-    strcat(message, g_config.gateway_addr);
+    // LBeacon datetime
+    memset(datetime_buf, 0, sizeof(datetime_buf));
+    snprintf(datetime_buf, sizeof(datetime_buf), "%d", get_system_time());
+    strcat(message, datetime_buf);
+    strcat(message, ";");
+
+    // Local IP address
+    strcat(message, g_config.local_addr);
     strcat(message, ";");
 
     /* Make sure the resulted message (basic information) does not
@@ -1030,6 +1040,27 @@ ErrorCode send_join_request(){
 #endif
         return E_ADD_PACKET_TO_QUEUE;
     }
+    return WORK_SUCCESSFULLY;
+}
+
+
+ErrorCode handle_join_response(char *resp_payload){
+    char buf[WIFI_MESSAGE_LENGTH];
+    char *tail = NULL;
+
+    memset(buf, 0, sizeof(buf));
+    strcpy(buf, resp_payload);
+    tail = strstr(buf, ";");
+    tail = '\0';
+
+    memset(g_config.local_addr, 0, sizeof(g_config.local_addr));
+    strcpy(g_config.local_addr, buf);
+
+#ifdef Debugging
+    zlog_debug(category_debug, "LBeacon IP address: [%s]\n",
+               g_config.local_addr);
+#endif
+
     return WORK_SUCCESSFULLY;
 }
 
@@ -1317,6 +1348,7 @@ ErrorCode manage_communication(){
                     zlog_info(category_debug,
                               "Receive join_request_ack from gateway");
 #endif
+                    handle_join_response(&tmp_pkt.content[1]);
                     break; // join_request_ack case
 
                 case tracked_object_data:

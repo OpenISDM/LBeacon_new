@@ -225,6 +225,9 @@ typedef struct Config {
     /* The UDP port of gateway connection*/
     int gateway_port;
 
+    /* The IPv4 network address of LBeacon */
+    char local_addr[NETWORK_ADDR_LENGTH];
+
     /* The UDP port for LBeacon to listen and receive UDP from gateway*/
     int local_client_port;
 
@@ -586,6 +589,26 @@ ErrorCode beacon_basic_info(char *message, size_t message_size, int poll_type);
 */
 
 ErrorCode send_join_request();
+
+/*
+  handle_join_response:
+
+      This function parses the payload of join_request_ack response returned
+      from the gateway to get public network address of this LBeacon. The
+      network address is saved into g_config struct for further uses in
+      communicating with the gateway.
+
+  Parameters:
+
+      resp_payload - message buffer to contain the payload of response data
+
+  Return value:
+
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise
+*/
+
+ErrorCode handle_join_response(char *resp_payload);
 
 /*
   handle_tracked_object_data:
