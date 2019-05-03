@@ -1915,18 +1915,27 @@ ErrorCode *start_ble_scanning(void *param){
                     strcat(address, "\0");
                     if(0 == strncmp(address, MAC_ADDRESS_PREFIX,
                                     strlen(MAC_ADDRESS_PREFIX))){
-                        memset(name, 0, sizeof(name));
                         memset(uuid, 0, sizeof(uuid));
                         if(WORK_SUCCESSFULLY ==
                            eir_parse_uuid(info->data, info->length,
                                           uuid, sizeof(uuid))){
                             if(0 == strncmp(uuid, g_config.uuid,
                                             LENGTH_OF_UUID)){
+
+#ifdef Debugging
+                                zlog_debug(category_debug,
+                                           "Detected s-tag[LE]: %s - RSSI %4d",
+                                           address, rssi);
+#endif
                                 send_to_push_dongle(&info->bdaddr, BLE, name,
                                                     rssi);
                             }
                         }else{
-
+#ifdef Debugging
+                            zlog_debug(category_debug,
+                                       "Detected tag[LE]: %s - RSSI %4d",
+                                       address, rssi);
+#endif
                             send_to_push_dongle(&info->bdaddr, BLE, name, rssi);
                         }
                     }
