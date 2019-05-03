@@ -184,7 +184,8 @@ typedef enum _ErrorCode{
     E_SQL_PARSE = 38,
     E_SQL_RESULT_EXCEED = 39,
     E_PARSE_UUID = 40,
-    MAX_ERROR_CODE = 41
+    E_PARSE_JOIN_RESPONSE = 41,
+    MAX_ERROR_CODE = 42
 
 } ErrorCode;
 

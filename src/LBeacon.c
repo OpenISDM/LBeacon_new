@@ -1051,20 +1051,36 @@ ErrorCode handle_join_response(char *resp_payload){
     char *lbeacon_ip = NULL;
     char *tail = NULL;
 
+#ifdef Debugging
+    zlog_info(category_debug,
+              "Received join_request_ack payload=[%s]", resp_payload);
+#endif
     memset(buf, 0, sizeof(buf));
     strcpy(buf, resp_payload);
 
     lbeacon_uuid = buf;
     tail = strstr(lbeacon_uuid, ";");
-    tail = '\0';
+    if(NULL == tail)
+        return E_PARSE_JOIN_RESPONSE;
+    *tail = '\0';
 
     lbeacon_timestamp = tail + 1;
     tail = strstr(lbeacon_timestamp, ";");
-    tail = '\0';
+    if(NULL == tail)
+        return E_PARSE_JOIN_RESPONSE;
+    *tail = '\0';
 
     lbeacon_ip = tail + 1;
     tail = strstr(lbeacon_ip, ";");
-    tail = '\0';
+    if(NULL == tail)
+        return E_PARSE_JOIN_RESPONSE;
+    *tail = '\0';
+
+#ifdef Debugging
+    zlog_debug(category_debug, "Parsed results: uuid=[%s], "\
+               "timestamp=[%s], ip=[%s]\n", lbeacon_uuid,
+               lbeacon_timestamp, lbeacon_ip);
+#endif
 
     memset(g_config.local_addr, 0, sizeof(g_config.local_addr));
     strcpy(g_config.local_addr, lbeacon_ip);
