@@ -966,7 +966,7 @@ ErrorCode disable_advertising(int dongle_device_id) {
 
 
 ErrorCode beacon_basic_info(char *message, size_t message_size, int poll_type){
-    char datetime_buf[LENGTH_OF_EPOCH_TIME];
+    char timestamp[LENGTH_OF_EPOCH_TIME];
 
     // packet type
     message[0] = 0x0F & poll_type;
@@ -977,9 +977,9 @@ ErrorCode beacon_basic_info(char *message, size_t message_size, int poll_type){
     strcat(message, ";");
 
     // LBeacon datetime
-    memset(datetime_buf, 0, sizeof(datetime_buf));
-    snprintf(datetime_buf, sizeof(datetime_buf), "%d", get_system_time());
-    strcat(message, datetime_buf);
+    memset(timestamp, 0, sizeof(timestamp));
+    snprintf(timestamp, sizeof(timestamp), "%d", get_system_time());
+    strcat(message, timestamp);
     strcat(message, ";");
 
     // Local IP address
@@ -1046,15 +1046,28 @@ ErrorCode send_join_request(){
 
 ErrorCode handle_join_response(char *resp_payload){
     char buf[WIFI_MESSAGE_LENGTH];
+    char *lbeacon_uuid = NULL;
+    char *lbeacon_timestamp = NULL;
+    char *lbeacon_ip = NULL;
     char *tail = NULL;
 
     memset(buf, 0, sizeof(buf));
     strcpy(buf, resp_payload);
-    tail = strstr(buf, ";");
+
+    lbeacon_uuid = buf;
+    tail = strstr(lbeacon_uuid, ";");
+    tail = '\0';
+
+    lbeacon_timestamp = tail + 1;
+    tail = strstr(lbeacon_timestamp, ";");
+    tail = '\0';
+
+    lbeacon_ip = tail + 1;
+    tail = strstr(lbeacon_ip, ";");
     tail = '\0';
 
     memset(g_config.local_addr, 0, sizeof(g_config.local_addr));
-    strcpy(g_config.local_addr, buf);
+    strcpy(g_config.local_addr, lbeacon_ip);
 
 #ifdef Debugging
     zlog_debug(category_debug, "LBeacon IP address: [%s]\n",
