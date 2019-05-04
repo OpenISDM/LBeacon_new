@@ -1859,7 +1859,7 @@ ErrorCode *start_ble_scanning(void *param){
 #endif
         }
 
-        if( 0> hci_le_set_scan_enable(socket, 0x01, 0,
+        if( 0> hci_le_set_scan_enable(socket, 0x01, 1,
                                       HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
 
             zlog_info(category_health_report,
