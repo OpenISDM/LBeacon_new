@@ -1727,6 +1727,7 @@ static ErrorCode eir_parse_uuid(uint8_t *eir,
     size_t uuid_len;
     int index;
     int i;
+	bool has_uuid = false;
 
     offset = 0;
 
@@ -1746,18 +1747,26 @@ static ErrorCode eir_parse_uuid(uint8_t *eir,
 
                 if (uuid_len > buf_len)
                     goto failed;
-
-                // Ensure the Beacon is our LBeacon
+            
+			    // according to advertising payload, payload content of 
+				// index 6-21 is uuid
+			    index = 0;
                 if(eir[2] == 15 && eir[3] == 0 && eir[4] == 2 && eir[5] == 21){
-                    index = 0;
-                    for(i = 4 ; i < 20 ; i++){
-                    buf[index] = eir[2+i] / 16 + '0';
-                    buf[index+1] = eir[2+i] % 16 + '0';
-                    index=index+2;
+                    if(eir[6] == 0 && eir[7] == 0 && eir[8] == 0){
+                        for(i = 6 ; i < 22 ; i++){
+                            buf[index] = eir[i] / 16 + '0';
+                            buf[index+1] = eir[i] % 16 + '0';
+                            index=index+2;
+                        }
+                        buf[index] = '\0';
+                        has_uuid = true;
+					}
                 }
-                buf[index] = '\0';
-                return WORK_SUCCESSFULLY;
-              }
+				
+				if(true == has_uuid){
+					return WORK_SUCCESSFULLY;
+				}
+			return E_PARSE_UUID;
         }
 
         offset += field_len + 1;
