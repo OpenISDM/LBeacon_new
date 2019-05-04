@@ -1859,7 +1859,7 @@ ErrorCode *start_ble_scanning(void *param){
 #endif
         }
 
-        if( 0> hci_le_set_scan_enable(socket, 0x01, 1,
+        if( 0> hci_le_set_scan_enable(socket, 0x01, 0,
                                       HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
 
             zlog_info(category_health_report,
@@ -1952,6 +1952,16 @@ ErrorCode *start_ble_scanning(void *param){
             }
         } // end while (HCI_EVENT_HDR_SIZE)
 
+        if( 0> hci_le_set_scan_enable(socket, 0, 0,
+		                              HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
+
+            zlog_error(category_health_report,
+                       "Error disabling BLE scanning");
+#ifdef Debugging
+            zlog_error(category_debug,
+                       "Error disabling BLE scanning");
+#endif
+        }
         hci_close_dev(socket);
 
     } // end while (ready_to_work)
