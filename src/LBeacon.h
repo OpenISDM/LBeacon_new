@@ -152,6 +152,9 @@ to determine whether to cleanup all lists. */
 /* Number of characters in the uuid of a Bluetooth device */
 #define LENGTH_OF_UUID 33
 
+/* Number of characters in the advertising payload of a Bluetooth device */
+#define LENGTH_OF_ADVERTISEMENT 33
+
 /* Number of characters in a Bluetooth MAC address */
 #define LENGTH_OF_MAC_ADDRESS 18
 
@@ -274,6 +277,7 @@ typedef struct ScannedDevice {
     int initial_scanned_time;
     int final_scanned_time;
     int rssi;
+    int is_button_pressed;
     /* List entries for linking the struct to scanned_list and
        tracked_BR_object_list or to tracked_BLE_object_list, depending
        whether the device type is BR_EDR or BLE. */
@@ -436,8 +440,8 @@ ErrorCode get_config(Config *config, char *file_name);
       bluetooth_device_address - MAC address of a bluetooth device discovered
                                  during inquiry
       device_type - the indicator to show the device type of the input address
-      name - the name of the BR_EDR / BLE device
       rssi - the RSSI value of this device
+      is_button_pressed - the push_button is pressed
 
   Return value:
 
@@ -446,8 +450,8 @@ ErrorCode get_config(Config *config, char *file_name);
 
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
                          DeviceType device_type,
-                         char* name,
-                         int rssi);
+                         int rssi,
+                         int is_button_pressed);
 
 /*
   compare_mac_address:
@@ -482,8 +486,6 @@ int compare_mac_address(char address[],
 
       address - MAC address of a bluetooth device
       list_head - the head of a specified list
-      rssi - the rssi value of the input device
-
 
   Return value:
 
@@ -493,8 +495,7 @@ int compare_mac_address(char address[],
 */
 
 struct ScannedDevice *check_is_in_list(char address[],
-                                       ObjectListHead *list,
-                                       int rssi);
+                                       ObjectListHead *list);
 
 /*
   enable_advertising:
@@ -754,9 +755,9 @@ const struct hci_request ble_hci_request(uint16_t ocf,
                                          void * cparam);
 
 /*
-  eir_parse_uuid:
+  eir_parse_specific_data:
 
-      This function parses the uuid from bluetooth BLE device
+      This function parses the sepcific data from bluetooth BLE device
 
   Parameters:
 
@@ -772,10 +773,10 @@ const struct hci_request ble_hci_request(uint16_t ocf,
                   fails or WORK SUCCESSFULLY otherwise
 */
 
-static ErrorCode eir_parse_uuid(uint8_t *eir,
-                                size_t eir_len,
-                                char *buf,
-                                size_t buf_len);
+static ErrorCode eir_parse_specific_data(uint8_t *eir,
+                                         size_t eir_len,
+                                         char *buf,
+                                         size_t buf_len);
 
 /*
   start_ble_scanning:

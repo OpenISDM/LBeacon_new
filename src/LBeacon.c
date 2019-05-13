@@ -309,8 +309,8 @@ ErrorCode get_config(Config *config, char *file_name) {
 
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
                          DeviceType device_type,
-                         char *name,
-                         int rssi) {
+                         int rssi,
+                         int is_button_pressed) {
 
     /* Stores the MAC address as a string */
     char address[LENGTH_OF_MAC_ADDRESS];
@@ -323,14 +323,14 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
     /* Check whether the MAC address has been seen recently by the LBeacon.*/
     switch(device_type){
         case BLE:
-            temp_node = check_is_in_list(address, &BLE_object_list_head, rssi);
+            temp_node = check_is_in_list(address, &BLE_object_list_head);
             break;
         case BR_EDR:
             /* BR_EDR devices including BR_EDR phone (feature phone):
             scanned_list should have distinct nodes. So we use scanned_list_head
             for checking the existance of MAC address here.
             */
-            temp_node = check_is_in_list(address, &scanned_list_head, rssi);
+            temp_node = check_is_in_list(address, &scanned_list_head);
             break;
         default:
 #ifdef Debugging
@@ -343,6 +343,9 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
     if(NULL != temp_node){
         /* Update the final scan time */
         temp_node->final_scanned_time = get_system_time();
+        if(is_button_pressed == 1){
+            temp_node->is_button_pressed = is_button_pressed;
+        }
         /* use the strongest singal strength */
         if(rssi > temp_node->rssi){
             temp_node->rssi = rssi;
@@ -360,8 +363,8 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
 
 #ifdef Debugging
     zlog_debug(category_debug,
-               "New device: device_type[%d] - %17s - %20s - RSSI %4d",
-               device_type, address, name, rssi);
+               "New device: device_type[%d] - %17s - RSSI %4d",
+               device_type, address, rssi);
 #endif
 
     temp_node = (struct ScannedDevice*) mp_alloc(&mempool);
@@ -385,6 +388,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
     temp_node->initial_scanned_time = get_system_time();
     temp_node->final_scanned_time = temp_node->initial_scanned_time;
     temp_node->rssi = rssi;
+    temp_node->is_button_pressed = is_button_pressed;
 
     /* Copy the MAC address to the node */
     strncpy(temp_node->scanned_mac_address, address,
@@ -437,8 +441,7 @@ int compare_mac_address(char address[],
 }
 
 struct ScannedDevice *check_is_in_list(char address[],
-                                       ObjectListHead *list,
-                                       int rssi) {
+                                       ObjectListHead *list) {
     struct List_Entry *list_pointer, *save_list_pointers;
     ScannedDevice *temp = NULL;
     bool temp_is_null = true;
@@ -1570,11 +1573,12 @@ ErrorCode copy_object_data_to_file(char *file_name,
         datatype to char
         */
         memset(response_buf, 0, sizeof(response_buf));
-        sprintf(response_buf, "%s;%d;%d;%d;",
+        sprintf(response_buf, "%s;%d;%d;%d;%d;",
                 temp->scanned_mac_address,
                 temp->initial_scanned_time,
                 temp->final_scanned_time,
-                temp->rssi);
+                temp->rssi,
+                temp->is_button_pressed);
 
         /* Write the content to the file */
         fputs(response_buf, track_file);
@@ -1717,17 +1721,17 @@ const struct hci_request ble_hci_request(uint16_t ocf,
     return rq;
 }
 
-/* A static function to prase the uuid from the BLE device. */
-static ErrorCode eir_parse_uuid(uint8_t *eir,
-                           size_t eir_len,
-                           char *buf,
-                           size_t buf_len){
+/* A static function to prase the specific data from the BLE device. */
+static ErrorCode eir_parse_specific_data(uint8_t *eir,
+                                         size_t eir_len,
+                                         char *buf,
+                                         size_t buf_len){
     size_t offset;
     uint8_t field_len;
     size_t uuid_len;
     int index;
     int i;
-	bool has_uuid = false;
+    bool has_specific_data = false;
 
     offset = 0;
 
@@ -1747,27 +1751,42 @@ static ErrorCode eir_parse_uuid(uint8_t *eir,
 
                 if (uuid_len > buf_len)
                     goto failed;
-            
-			    // according to advertising payload, payload content of 
-				// index 6-21 is uuid
-			    index = 0;
-                if(eir[2] == 15 && eir[3] == 0 && eir[4] == 2 && eir[5] == 21){
-                    if(eir[6] == 0 && eir[7] == 0 && eir[8] == 0){
-                        for(i = 6 ; i < 22 ; i++){
+
+                // 0x0F00 as first 2 bytes to be "Broadcom Corporation" which
+                // is our RPiZW tag, and 0x5900 as first 2 bytes to be "Nodric"
+                // which is our push button tag.
+                if((eir[2] == 15 && eir[3] == 0) ||
+                   (eir[2] == 89 && eir[3] == 0) ){
+                    /* The LBeacon uuid format is defined in LBeacon
+                       implementation. For LBeacon uuid identifier
+                       carried in the advertising payload of LE devices, the
+                       following 4 bytes is LBeacon uuid X coordinate with
+                       the eighth digit after the decimal part, and the
+                       next following 4 bytes is LBeacon uuid & coordinate
+                       with the eighth digit after the decimal part. For easy
+                       comparison, we convert each 4 bits data to one character.
+                    */
+                    index = 0;
+                    for(i = 4 ; i < 12 ; i++){
                             buf[index] = eir[i] / 16 + '0';
                             buf[index+1] = eir[i] % 16 + '0';
                             index=index+2;
-                        }
-                        buf[index] = '\0';
-                        has_uuid = true;
-					}
+                    }
+                    /* The next 1 byte is push-button data */
+                    buf[index] = eir[12];
+                    index++;
+                    /* Add a null terminate for easy debugging in the caller
+                       function. */
+                    buf[index] = '\0';
+                    has_specific_data = true;
                 }
-				
-				if(true == has_uuid){
-					return WORK_SUCCESSFULLY;
-				}
-			return E_PARSE_UUID;
-        }
+
+                if(true == has_specific_data){
+                    return WORK_SUCCESSFULLY;
+                }
+
+                return E_PARSE_UUID;
+            }
 
         offset += field_len + 1;
         eir += field_len + 1;
@@ -1797,10 +1816,10 @@ ErrorCode *start_ble_scanning(void *param){
     uint16_t window = htobs(0x0010); /* 16*0.625ms = 10ms */
     int i=0;
     uint8_t reports_count;
-    char name[LENGTH_OF_DEVICE_NAME];
     int rssi;
     char address[LENGTH_OF_MAC_ADDRESS];
-    char uuid[LENGTH_OF_UUID];
+    char payload[LENGTH_OF_ADVERTISEMENT];
+    int is_button_pressed;
 
 #ifdef Debugging
     zlog_debug(category_debug, ">> start_ble_scanning... ");
@@ -1922,30 +1941,50 @@ ErrorCode *start_ble_scanning(void *param){
                 if(rssi > g_config.scan_rssi_coverage){
                     ba2str(&info->bdaddr, address);
                     strcat(address, "\0");
+                    is_button_pressed = 0;
                     if(0 == strncmp(address, MAC_ADDRESS_PREFIX,
                                     strlen(MAC_ADDRESS_PREFIX))){
-                        memset(uuid, 0, sizeof(uuid));
+                        memset(payload, 0, sizeof(payload));
                         if(WORK_SUCCESSFULLY ==
-                           eir_parse_uuid(info->data, info->length,
-                                          uuid, sizeof(uuid))){
-                            if(0 == strncmp(uuid, g_config.uuid,
-                                            LENGTH_OF_UUID)){
-
+                           eir_parse_specific_data(info->data, info->length,
+                                                   payload, sizeof(payload))){
+                            /* The LBeacon uuid format is defined in LBeacon
+                               implementation. If the device is smart device,
+                               the first 16 characters in the buffer extracted
+                               from the advertising payload are LBeacon X and Y
+                               coordinates with the eighth digit after the
+                               decimal point. Otherwise, the normal device will
+                               have value 0 for the first 16 characters.
+                            */
+                            /* The 17 byte in the extracted payload is
+                               push-button data.
+                            */
+                            is_button_pressed = payload[16];
+                            if(0 == strncmp(&payload[0],
+                                            &g_config.uuid[6+2+4], 8) &&
+                               0 == strncmp(&payload[8],
+                                            &g_config.uuid[6+2+4+8+4], 8)){
 #ifdef Debugging
                                 zlog_debug(category_debug,
-                                           "Detected s-tag[LE]: %s - RSSI %4d",
-                                           address, rssi);
+                                           "Detected s-tag[LE]: %s - " \
+                                           "RSSI %4d, pushed=[%d]",
+                                           address, rssi, is_button_pressed);
 #endif
-                                send_to_push_dongle(&info->bdaddr, BLE, name,
-                                                    rssi);
-                            }
-                        }else{
+                                send_to_push_dongle(&info->bdaddr, BLE,
+                                                    rssi, is_button_pressed);
+
+                            }else if(0 == strncmp(&payload[0],
+                                                  "0000000000000000", 16)){
 #ifdef Debugging
-                            zlog_debug(category_debug,
-                                       "Detected tag[LE]: %s - RSSI %4d",
-                                       address, rssi);
+                                zlog_debug(category_debug,
+                                           "Detected tag[LE]: %s - " \
+                                           "RSSI %4d, pushed=[%d]",
+                                           address, rssi, is_button_pressed);
 #endif
-                            send_to_push_dongle(&info->bdaddr, BLE, name, rssi);
+                                send_to_push_dongle(&info->bdaddr, BLE,
+                                                    rssi, is_button_pressed);
+                                                    
+                            }
                         }
                     }
                 }
@@ -1991,8 +2030,8 @@ ErrorCode *start_br_scanning(void* param) {
     int results_id; /*ID of the result */
     int retry_times = 0;
     bool keep_scanning;
-    char name[LENGTH_OF_DEVICE_NAME];
     int rssi;
+    int is_button_pressed = 0;
 
 #ifdef Debugging
     zlog_debug(category_debug, ">> start_br_scanning... ");
@@ -2163,10 +2202,10 @@ ErrorCode *start_br_scanning(void* param) {
                                        address, info_rssi->rssi);
 */
 #endif
-                            memset(name, 0, sizeof(name));
                             send_to_push_dongle(&info_rssi->bdaddr,
-                                                BR_EDR, name,
-                                                info_rssi->rssi);
+                                                BR_EDR,
+                                                info_rssi->rssi,
+                                                is_button_pressed);
                         }
                     }
                 }
