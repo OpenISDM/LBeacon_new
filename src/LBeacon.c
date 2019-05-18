@@ -265,9 +265,16 @@ ErrorCode get_config(Config *config, char *file_name) {
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
+    config->scan_dongle_id = atoi(config_message);
+	
+    /* item 9 */
+    fgets(config_setting, sizeof(config_setting), file);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    trim_string_tail(config_message);
     config->scan_rssi_coverage = atoi(config_message);
 
-    /* item 9 */
+    /* item 10 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -275,7 +282,7 @@ ErrorCode get_config(Config *config, char *file_name) {
     memset(config->gateway_addr, 0, sizeof(config->gateway_addr));
     memcpy(config->gateway_addr, config_message, strlen(config_message));
 
-    /* item 10 */
+    /* item 11 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -284,7 +291,7 @@ ErrorCode get_config(Config *config, char *file_name) {
 
     memset(g_config.local_addr, 0, sizeof(g_config.local_addr));
 
-    /* item 11 */
+    /* item 12 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -1827,6 +1834,8 @@ ErrorCode *start_ble_scanning(void *param){
 
     while(true == ready_to_work){
         /* Get the dongle id */
+		dongle_device_id = g_config.scan_dongle_id;
+		/*
         retry_times = DONGLE_GET_RETRY;
         while(retry_times--){
             dongle_device_id = hci_get_route(NULL);
@@ -1834,7 +1843,7 @@ ErrorCode *start_ble_scanning(void *param){
             if(dongle_device_id >= 0){
                 break;
             }
-        }
+        }*/
 
         if (dongle_device_id < 0) {
             zlog_error(category_health_report,
@@ -1878,7 +1887,7 @@ ErrorCode *start_ble_scanning(void *param){
 #endif
         }
 
-        if( 0> hci_le_set_scan_enable(socket, 0x01, 1,
+        if( 0> hci_le_set_scan_enable(socket, 0x01, 0,
                                       HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
 
             zlog_info(category_health_report,

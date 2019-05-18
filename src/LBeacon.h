@@ -219,6 +219,8 @@ typedef struct Config {
     /* The rssi value used to advertise */
     int advertise_rssi_value;
 
+    /* The dongle used to scan */
+    int scan_dongle_id;
     /* The required signal strength */
     int scan_rssi_coverage;
 
