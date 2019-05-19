@@ -640,8 +640,8 @@ ErrorCode enable_advertising(int dongle_device_id,
     le_set_advertising_parameters_cp advertising_parameters_copy;
     memset(&advertising_parameters_copy, 0,
            sizeof(advertising_parameters_copy));
-    advertising_parameters_copy.min_interval = htobs(advertising_interval);
-    advertising_parameters_copy.max_interval = htobs(advertising_interval);
+    advertising_parameters_copy.min_interval = htobs(0x01E0);
+    advertising_parameters_copy.max_interval = htobs(0x01E0);
     /* advertising non-connectable */
     advertising_parameters_copy.advtype = 3;
     /*set bitmap to 111 (i.e., circulate on channels 37,38,39) */
@@ -1819,8 +1819,8 @@ ErrorCode *start_ble_scanning(void *param){
     struct hci_request scan_params_rq;
     struct hci_request set_mask_rq;
     /* Time interval is 0.625ms */
-    uint16_t interval = htobs(0x00F4); /* 244*0.625ms = 152.5ms */
-    uint16_t window = htobs(0x00F4); /* 244*0.625ms = 152.5ms */
+    uint16_t interval = htobs(0x01E0); /* 480*0.625ms = 300ms */
+    uint16_t window = htobs(0x01E0); /* 480*0.625ms = 300ms */
     int i=0;
     uint8_t reports_count;
     int rssi;
