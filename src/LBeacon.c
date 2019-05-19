@@ -1819,8 +1819,8 @@ ErrorCode *start_ble_scanning(void *param){
     struct hci_request scan_params_rq;
     struct hci_request set_mask_rq;
     /* Time interval is 0.625ms */
-    uint16_t interval = htobs(0x0010); /* 16*0.625ms = 10ms */
-    uint16_t window = htobs(0x0010); /* 16*0.625ms = 10ms */
+    uint16_t interval = htobs(0x00F4); /* 244*0.625ms = 152.5ms */
+    uint16_t window = htobs(0x00F4); /* 244*0.625ms = 152.5ms */
     int i=0;
     uint8_t reports_count;
     int rssi;
