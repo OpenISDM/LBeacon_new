@@ -177,6 +177,13 @@ ErrorCode get_config(Config *config, char *file_name) {
     /* Create spaces for storing the string of the current line being read */
     char config_setting[CONFIG_BUFFER_SIZE];
     char *config_message = NULL;
+    char temp_buf[CONFIG_BUFFER_SIZE];
+    char *current_ptr = NULL;
+    char *save_current_ptr = NULL;
+    int number_mac_prefix = 0;
+    int i;
+    struct PrefixString *mac_prefix_node;
+    struct List_Entry *current_list_entry;
 
     retry_times = FILE_OPEN_RETRY;
     while(retry_times--){
@@ -266,7 +273,7 @@ ErrorCode get_config(Config *config, char *file_name) {
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
     config->scan_dongle_id = atoi(config_message);
-	
+
     /* item 9 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
@@ -279,10 +286,43 @@ ErrorCode get_config(Config *config, char *file_name) {
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
+    memset(temp_buf, 0, sizeof(temp_buf));
+    memcpy(temp_buf, config_message, strlen(config_message));
+
+    /* construct the list of acceptable mac prefixes*/
+    init_entry(&config->mac_prefix_list_head);
+
+    current_ptr = strtok_r(temp_buf, DELIMITER_COMMA, &save_current_ptr);
+    sscanf(current_ptr, "%d", &number_mac_prefix);
+
+    for(i = 0; i < number_mac_prefix ; i++){
+        current_ptr = strtok_r(NULL, DELIMITER_COMMA, &save_current_ptr);
+        mac_prefix_node = malloc(sizeof(PrefixString));
+        init_entry(&mac_prefix_node->list_entry);
+        memset(mac_prefix_node->prefix, 0, sizeof(mac_prefix_node->prefix));
+        strncpy(mac_prefix_node->prefix, current_ptr, strlen(current_ptr));
+        insert_list_tail(&mac_prefix_node->list_entry,
+                         &config->mac_prefix_list_head);
+    }
+
+    list_for_each(current_list_entry, &config->mac_prefix_list_head){
+        mac_prefix_node = ListEntry(current_list_entry, PrefixString,
+                                    list_entry);
+#ifdef Debugging
+        zlog_debug(category_debug, "mac address with prefix [%s]",
+                   mac_prefix_node->prefix);
+#endif
+    }
+
+    /* item 11 */
+    fgets(config_setting, sizeof(config_setting), file);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    trim_string_tail(config_message);
     memset(config->gateway_addr, 0, sizeof(config->gateway_addr));
     memcpy(config->gateway_addr, config_message, strlen(config_message));
 
-    /* item 11 */
+    /* item 12 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -291,7 +331,7 @@ ErrorCode get_config(Config *config, char *file_name) {
 
     memset(g_config.local_addr, 0, sizeof(g_config.local_addr));
 
-    /* item 12 */
+    /* item 13 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -1827,6 +1867,9 @@ ErrorCode *start_ble_scanning(void *param){
     char address[LENGTH_OF_MAC_ADDRESS];
     char payload[LENGTH_OF_ADVERTISEMENT];
     int is_button_pressed;
+    struct List_Entry *current_list_entry;
+    struct PrefixString *mac_prefix_node;
+
 
 #ifdef Debugging
     zlog_debug(category_debug, ">> start_ble_scanning... ");
@@ -1951,49 +1994,77 @@ ErrorCode *start_ble_scanning(void *param){
                     ba2str(&info->bdaddr, address);
                     strcat(address, "\0");
                     is_button_pressed = 0;
-                    if(0 == strncmp(address, MAC_ADDRESS_PREFIX,
-                                    strlen(MAC_ADDRESS_PREFIX))){
-                        memset(payload, 0, sizeof(payload));
-                        if(WORK_SUCCESSFULLY ==
-                           eir_parse_specific_data(info->data, info->length,
-                                                   payload, sizeof(payload))){
-                            /* The LBeacon uuid format is defined in LBeacon
-                               implementation. If the device is smart device,
-                               the first 16 characters in the buffer extracted
-                               from the advertising payload are LBeacon X and Y
-                               coordinates with the eighth digit after the
-                               decimal point. Otherwise, the normal device will
-                               have value 0 for the first 16 characters.
-                            */
-                            /* The 17 byte in the extracted payload is
-                               push-button data.
-                            */
-                            is_button_pressed = payload[16];
-                            if(0 == strncmp(&payload[0],
+
+                    list_for_each(current_list_entry,
+                                  &g_config.mac_prefix_list_head){
+                        mac_prefix_node = ListEntry(current_list_entry,
+                                                    PrefixString,
+                                                    list_entry);
+                        if(0 == strncmp(address, mac_prefix_node->prefix,
+                                        strlen(mac_prefix_node->prefix))){
+
+                            memset(payload, 0, sizeof(payload));
+
+                            if(WORK_SUCCESSFULLY ==
+                               eir_parse_specific_data(info->data,
+                                                       info->length,
+                                                       payload,
+                                                       sizeof(payload))){
+                                /* The LBeacon uuid format is defined in LBeacon
+                                implementation. If the device is smart device,
+                                the first 16 characters in the buffer extracted
+                                from the advertising payload are LBeacon X and Y
+                                coordinates with the eighth digit after the
+                                decimal point. Otherwise, the normal device will
+                                have value 0 for the first 16 characters.
+                                */
+                                /* The 17 byte in the extracted payload is
+                                push-button data.
+                                */
+                                is_button_pressed = payload[16];
+                                if(0 == strncmp(&payload[0],
                                             &g_config.uuid[6+2+4], 8) &&
-                               0 == strncmp(&payload[8],
+                                   0 == strncmp(&payload[8],
                                             &g_config.uuid[6+2+4+8+4], 8)){
 #ifdef Debugging
-                                zlog_debug(category_debug,
-                                           "Detected s-tag[LE]: %s - " \
-                                           "RSSI %4d, pushed=[%d]",
-                                           address, rssi, is_button_pressed);
+                                    zlog_debug(category_debug,
+                                               "Detected s-tag[LE]: %s - " \
+                                               "RSSI %4d, pushed=[%d]",
+                                               address, rssi,
+                                               is_button_pressed);
 #endif
-                                send_to_push_dongle(&info->bdaddr, BLE,
-                                                    rssi, is_button_pressed);
+                                    send_to_push_dongle(&info->bdaddr, BLE,
+                                                        rssi,
+                                                        is_button_pressed);
 
-                            }else if(0 == strncmp(&payload[0],
-                                                  "0000000000000000", 16)){
+                                }else if(0 == strncmp(&payload[0],
+                                                      "0000000000000000", 16)){
+#ifdef Debugging
+                                    zlog_debug(category_debug,
+                                               "Detected p-tag[LE]: %s - " \
+                                               "RSSI %4d, pushed=[%d]",
+                                               address, rssi,
+                                               is_button_pressed);
+#endif
+                                    send_to_push_dongle(&info->bdaddr, BLE,
+                                                        rssi,
+                                                        is_button_pressed);
+
+                                }
+                            }else{
+                                is_button_pressed = 0;
 #ifdef Debugging
                                 zlog_debug(category_debug,
-                                           "Detected tag[LE]: %s - " \
+                                           "Detected o-tag[LE]: %s - " \
                                            "RSSI %4d, pushed=[%d]",
-                                           address, rssi, is_button_pressed);
+                                           address, rssi,
+                                           is_button_pressed);
 #endif
                                 send_to_push_dongle(&info->bdaddr, BLE,
-                                                    rssi, is_button_pressed);
-                                                    
+                                                    rssi,
+                                                    is_button_pressed);
                             }
+                            break;
                         }
                     }
                 }
@@ -2332,7 +2403,7 @@ ErrorCode *timeout_cleanup(void* param){
 
 ErrorCode cleanup_exit(){
     struct List_Entry *list_pointer, *save_list_pointers;
-    ScannedDevice *temp;
+    struct PrefixString *temp;
 
 #ifdef Debugging
     zlog_debug(category_debug, ">> cleanup_exit... ");
@@ -2352,6 +2423,15 @@ ErrorCode cleanup_exit(){
         cleanup_lists(&scanned_list_head, true);
         cleanup_lists(&BR_object_list_head, false);
         cleanup_lists(&BLE_object_list_head, false);
+
+        list_for_each_safe(list_pointer, save_list_pointers,
+                           &g_config.mac_prefix_list_head) {
+
+            temp = ListEntry(list_pointer, PrefixString,
+                             list_entry);
+            remove_list_node(&temp->list_entry);
+            free(temp);
+        }
 
         mp_destroy(&mempool);
     }

@@ -168,9 +168,6 @@ to determine whether to cleanup all lists. */
 used by communication unit */
 #define NUMBER_RECEIVE_THREAD 4
 
-/* The prefix of MAC address specifies our tags */
-#define MAC_ADDRESS_PREFIX "C1:"
-
 /* Maximum length in number of bytes of basic info of each response from
 LBeacon to gateway.
 */
@@ -221,8 +218,12 @@ typedef struct Config {
 
     /* The dongle used to scan */
     int scan_dongle_id;
+
     /* The required signal strength */
     int scan_rssi_coverage;
+
+    /* The list of all acceptable mac address prefixes */
+    struct List_Entry mac_prefix_list_head;
 
     /* The IPv4 network address of the gateway */
     char gateway_addr[NETWORK_ADDR_LENGTH];
@@ -291,11 +292,17 @@ typedef struct ScannedDevice {
 /* struct for device list head. */
 typedef struct object_list_head{
 
-  struct List_Entry list_entry;
-  DeviceType device_type;
+    struct List_Entry list_entry;
+    DeviceType device_type;
 
 } ObjectListHead;
 
+typedef struct PrefixString{
+
+    char prefix[LENGTH_OF_MAC_ADDRESS];
+    struct List_Entry list_entry;
+
+} PrefixString;
 /*
   EXTERN STRUCTS
 */
