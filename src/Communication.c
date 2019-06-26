@@ -45,7 +45,6 @@
 */
 
 #include "Communication.h"
-#define Debugging
 
 ErrorCode Wifi_init(sudp_config_beacon *udp_config){
     int optval = 0;
@@ -63,10 +62,8 @@ ErrorCode Wifi_init(sudp_config_beacon *udp_config){
     if(udp_config->recv_socket < 0){
         zlog_error(category_health_report,
                    "Unable to intitialize receive socket");
-#ifdef Debugging
         zlog_error(category_debug,
                    "Unable to intitialize receive socket");
-#endif
         return E_WIFI_INIT_FAIL;
     }
     optval=1;
@@ -91,10 +88,8 @@ ErrorCode Wifi_init(sudp_config_beacon *udp_config){
 
         zlog_error(category_health_report,
                    "Unable to bind to listen port");
-#ifdef Debugging
         zlog_error(category_debug,
                    "Unable to bind to listen port");
-#endif
         return E_WIFI_INIT_FAIL;
     }
 
@@ -102,10 +97,8 @@ ErrorCode Wifi_init(sudp_config_beacon *udp_config){
     if(pkt_Queue_SUCCESS != init_Packet_Queue(&udp_config->recv_pkt_queue)){
         zlog_error(category_health_report,
                    "Unable to intitialize receive packet queue");
-#ifdef Debugging
         zlog_error(category_debug,
                    "Unable to intitialize receive packet queue");
-#endif
         return E_WIFI_INIT_FAIL;
     }
 
@@ -113,10 +106,8 @@ ErrorCode Wifi_init(sudp_config_beacon *udp_config){
     if(pkt_Queue_SUCCESS != init_Packet_Queue(&udp_config->send_pkt_queue)){
         zlog_error(category_health_report,
                    "Unable to initialze send packet queue");
-#ifdef Debugging
         zlog_error(category_debug,
                    "Unable to initialze send packet queue");
-#endif
         return E_WIFI_INIT_FAIL;
     }
 
@@ -146,12 +137,10 @@ ErrorCode receive_data(void *udp_config){
                        "Unable to receive data from gateway "
                        "via recvfrom(), strerror(errno)=[%s]",
                        strerror(errno));
-#ifdef Debugging
             zlog_error(category_debug,
                        "Unable to receive data from gateway "
                        "via recvfrom(), strerror(errno)=[%s]",
                        strerror(errno));
-#endif
 */
         }else{
             ret_val = addpkt(&udp_config_ptr->recv_pkt_queue, UDP,
@@ -162,11 +151,9 @@ ErrorCode receive_data(void *udp_config){
                 zlog_error(category_health_report,
                            "Unable to add receive packet to receive "
                            "packet queue. error=[%d]", ret_val);
-#ifdef Debugging
                 zlog_error(category_debug,
                            "Unable to add receive packet to receive "
                            "packet queue. error=[%d]", ret_val);
-#endif
             }
         }
     }
@@ -190,11 +177,9 @@ ErrorCode send_data(void *udp_config){
         zlog_error(category_health_report,
                    "Unable to gethostbyname(), addr=[%s]",
                    udp_config_ptr->send_ipv4_addr);
-#ifdef Debugging
         zlog_error(category_debug,
                    "Unable to gethostbyname(), addr=[%s]",
                    udp_config_ptr->send_ipv4_addr);
-#endif
         return E_OPEN_SOCKET;
     }
 
@@ -209,10 +194,8 @@ ErrorCode send_data(void *udp_config){
     if(send_socket < 0){
         zlog_error(category_health_report,
                    "Unable to intitialize send socket");
-#ifdef Debugging
         zlog_error(category_debug,
                    "Unable to intitialize send socket");
-#endif
         return E_OPEN_SOCKET;
     }
 
@@ -230,11 +213,9 @@ ErrorCode send_data(void *udp_config){
             sPkt tmp_pkt = get_pkt(&udp_config_ptr->send_pkt_queue);
             if(NONE != tmp_pkt.type){
                 // 2.2 send data to gateway
-#ifdef Debugging
                 zlog_debug(category_debug,
                            "prepare to send message =[%s] len=[%d]",
                            tmp_pkt.content, strlen(tmp_pkt.content));
-#endif
 
                 numbytes=sendto(send_socket, tmp_pkt.content,
                                 strlen(tmp_pkt.content), 0,
@@ -247,23 +228,19 @@ ErrorCode send_data(void *udp_config){
 
                         zlog_info(category_health_report,
                                   "send_data returns back to work");
-#ifdef debugging
                         zlog_info(category_debug,
                                   "send_data returns back to work");
                     }
-#endif
                 }else{
                     is_in_failure_state = true;
                     zlog_error(category_health_report,
                                "Unable to send data to gateway via "
                                "sendto(), strerror(errno)=[%s]",
                                strerror(errno));
-#ifdef Debugging
                     zlog_error(category_debug,
                                "Unable to send data to gateway via "
                                "sendto(), strerror(errno)=[%s]",
                                strerror(errno));
-#endif
                 }
             }
         }else{
