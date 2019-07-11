@@ -247,23 +247,30 @@ ErrorCode get_config(Config *config, char *file_name) {
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
-    config->advertise_rssi_value = atoi(config_message);
-
+    config->advertise_interval_in_units_0625_ms = atoi(config_message);
+	
     /* item 8 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
-    config->scan_dongle_id = atoi(config_message);
+    config->advertise_rssi_value = atoi(config_message);
 
     /* item 9 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
-    config->scan_rssi_coverage = atoi(config_message);
+    config->scan_dongle_id = atoi(config_message);
 
     /* item 10 */
+    fgets(config_setting, sizeof(config_setting), file);
+    config_message = strstr((char *)config_setting, DELIMITER);
+    config_message = config_message + strlen(DELIMITER);
+    trim_string_tail(config_message);
+    config->scan_rssi_coverage = atoi(config_message);
+
+    /* item 11 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -294,7 +301,7 @@ ErrorCode get_config(Config *config, char *file_name) {
                    mac_prefix_node->prefix);
     }
 
-    /* item 11 */
+    /* item 12 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -302,7 +309,7 @@ ErrorCode get_config(Config *config, char *file_name) {
     memset(config->gateway_addr, 0, sizeof(config->gateway_addr));
     memcpy(config->gateway_addr, config_message, strlen(config_message));
 
-    /* item 12 */
+    /* item 13 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -311,7 +318,7 @@ ErrorCode get_config(Config *config, char *file_name) {
 
     memset(g_config.local_addr, 0, sizeof(g_config.local_addr));
 
-    /* item 13 */
+    /* item 14 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
     config_message = config_message + strlen(DELIMITER);
@@ -593,7 +600,7 @@ struct ScannedDevice *check_is_in_list(char address[],
 }
 
 ErrorCode enable_advertising(int dongle_device_id,
-                             int advertising_interval,
+                             int advertising_interval_in_units_0625_ms,
                              char *advertising_uuid,
                              int major_number,
                              int minor_number,
@@ -638,8 +645,8 @@ ErrorCode enable_advertising(int dongle_device_id,
     le_set_advertising_parameters_cp advertising_parameters_copy;
     memset(&advertising_parameters_copy, 0,
            sizeof(advertising_parameters_copy));
-    advertising_parameters_copy.min_interval = htobs(0x01E0);
-    advertising_parameters_copy.max_interval = htobs(0x01E0);
+    advertising_parameters_copy.min_interval = advertising_interval_in_units_0625_ms;
+    advertising_parameters_copy.max_interval = advertising_interval_in_units_0625_ms;
     /* advertising non-connectable */
     advertising_parameters_copy.advtype = 3;
     /*set bitmap to 111 (i.e., circulate on channels 37,38,39) */
@@ -2394,7 +2401,7 @@ int main(int argc, char **argv) {
 
     /* Start bluetooth advertising */
     return_value = enable_advertising(g_config.advertise_dongle_id,
-                                      INTERVAL_ADVERTISING_IN_MS,
+                                      g_config.advertise_interval_in_units_0625_ms,
                                       g_config.uuid,
                                       LBEACON_MAJOR_VER,
                                       LBEACON_MINOR_VER,

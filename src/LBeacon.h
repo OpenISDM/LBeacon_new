@@ -125,9 +125,6 @@ https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile
 /* Timeout in milliseconds of hci_send_req funtion */
 #define HCI_SEND_REQUEST_TIMEOUT_IN_MS 1000
 
-/* Time interval in milliseconds between advertising by a LBeacon */
-#define INTERVAL_ADVERTISING_IN_MS 500
-
 /* Time interval in seconds for cleaning up scanned list. The decision is
 made by check_is_in_list. When the function checks for duplicated devices
 in the scanned list, it will remove the timed out devices as well.
@@ -212,6 +209,9 @@ typedef struct Config {
 
     /* The dongle used to advertise */
     int advertise_dongle_id;
+	
+	/* Time interval in units of 0.625ms between advertising by a LBeacon */
+	int advertise_interval_in_units_0625_ms;
 
     /* The rssi value used to advertise */
     int advertise_rssi_value;
@@ -516,8 +516,8 @@ struct ScannedDevice *check_is_in_list(char address[],
 
       dongle_device_id - the bluetooth dongle device which the LBeacon uses
                          to advertise
-      advertising_interval - the time interval during which the LBeacon can
-                         advertise
+      advertising_interval_in_units_0625_ms - the time interval in units of 0.625ms 
+	                     during which the LBeacon can advertise
       advertising_uuid - universally unique identifier of the advertiser
       major_number - major version number of LBeacon
       minor_number - minor version number of LBeacon
@@ -530,7 +530,7 @@ struct ScannedDevice *check_is_in_list(char address[],
 */
 
 ErrorCode enable_advertising(int dongle_device_id,
-                             int advertising_interval,
+                             int advertising_interval_in_units_0625_ms,
                              char *advertising_uuid,
                              int major_number,
                              int minor_number,
