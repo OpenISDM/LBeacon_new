@@ -1279,9 +1279,9 @@ ErrorCode handle_health_report(){
 }
 
 ErrorCode manage_communication(){
-    int gateway_latest_time = 0;
-    int current_time = 0;
-    int latest_join_request_time = 0;
+	struct timespec current_time;
+	struct timespec gateway_latest_time;
+	int latest_join_request_time = 0;
     int poll_type;
 
     zlog_debug(category_debug, ">> manage_communication ");
@@ -1296,16 +1296,16 @@ ErrorCode manage_communication(){
             LBeacon ID map. So LBeacon needs to send request_to_join again to
             establish the relationship with the gateway.
             */
-            current_time = get_system_time();
-            if((current_time - gateway_latest_time >
+			clock_gettime(CLOCK_MONOTONIC, &current_time);
+            if((current_time.tv_sec - gateway_latest_time.tv_sec >
                 INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC) &&
-                (current_time - latest_join_request_time >
+                (current_time.tv_sec - latest_join_request_time >
                 INTERVAL_FOR_RECONNECT_GATEWAY_IN_SEC)){
 ;
                 zlog_info(category_debug,
                           "Send requets_to_join to gateway again");
                 if(WORK_SUCCESSFULLY == send_join_request()){
-                    latest_join_request_time = current_time;
+                    latest_join_request_time = current_time.tv_sec;
                 }
             }else{
                 /* sleep a short time to prevent occupying CPU in this
@@ -1317,7 +1317,7 @@ ErrorCode manage_communication(){
             /* Update gateway_latest_time to make LBeacon aware that
             its connection to gateway is still okay.
             */
-            gateway_latest_time = get_system_time();
+			clock_gettime(CLOCK_MONOTONIC, &gateway_latest_time);
 
             poll_type = undefined;
             /* Get one packet from receive packet queue

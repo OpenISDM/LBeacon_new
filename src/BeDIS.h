@@ -230,21 +230,6 @@ typedef enum pkt_types {
     tracked_object_data = 4,
     /* A pkt containing health report */
     health_report = 5,
-    /* A pkt for LBeacon */
-    data_for_LBeacon = 6,
-
-    /* For Gayeway */
-
-    /* For the Gateway polling health reports from LBeacons */
-    RFHR_from_gateway = 8,
-
-    /* For server */
-
-    /* For the Gateway polling tracked object data from LBeacons */
-    poll_for_tracked_object_data_from_server = 9,
-    /* A polling request for health report from server */
-    RFHR_from_server = 10
-
 } PktType;
 
 
