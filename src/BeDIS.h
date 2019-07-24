@@ -80,6 +80,9 @@
 /* Parameter that marks the start of the config file */
 #define DELIMITER "="
 
+/* Delimiter used to separate multiple parameters in the payload */
+#define DELIMITER_SEMICOLON ";"
+
 /* Delimiter used to separate multiple items of the same type */
 #define DELIMITER_COMMA ","
 

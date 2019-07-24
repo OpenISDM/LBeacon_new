@@ -967,17 +967,17 @@ ErrorCode beacon_basic_info(char *message, size_t message_size, int poll_type){
 
     // LBeacon UUID
     strcat(message, g_config.uuid);
-    strcat(message, ";");
+    strcat(message, DELIMITER_SEMICOLON);
 
     // LBeacon datetime
     memset(timestamp, 0, sizeof(timestamp));
     snprintf(timestamp, sizeof(timestamp), "%d", get_system_time());
     strcat(message, timestamp);
-    strcat(message, ";");
+    strcat(message, DELIMITER_SEMICOLON);
 
     // Local IP address
     strcat(message, g_config.local_addr);
-    strcat(message, ";");
+    strcat(message, DELIMITER_SEMICOLON);
 
     /* Make sure the resulted message (basic information) does not
 	exceed our expected length
@@ -1044,19 +1044,19 @@ ErrorCode handle_join_response(char *resp_payload){
     strcpy(buf, resp_payload);
 
     lbeacon_uuid = buf;
-    tail = strstr(lbeacon_uuid, ";");
+    tail = strstr(lbeacon_uuid, DELIMITER_SEMICOLON);
     if(NULL == tail)
         return E_PARSE_JOIN_RESPONSE;
     *tail = '\0';
 
     lbeacon_timestamp = tail + 1;
-    tail = strstr(lbeacon_timestamp, ";");
+    tail = strstr(lbeacon_timestamp, DELIMITER_SEMICOLON);
     if(NULL == tail)
         return E_PARSE_JOIN_RESPONSE;
     *tail = '\0';
 
     lbeacon_ip = tail + 1;
-    tail = strstr(lbeacon_ip, ";");
+    tail = strstr(lbeacon_ip, DELIMITER_SEMICOLON);
     if(NULL == tail)
         return E_PARSE_JOIN_RESPONSE;
     *tail = '\0';
