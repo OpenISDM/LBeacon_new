@@ -1889,10 +1889,24 @@ ErrorCode *start_ble_scanning(void *param){
                                 decimal point. Otherwise, the normal device will
                                 have value 0 for the first 16 characters.
                                 */
+
                                 /* The 17 byte in the extracted payload is
                                 push-button data.
-                                */
+                                */                                
                                 is_button_pressed = payload[16];
+                                /*
+                                Compare LBeacon X and Y coordinates. 
+                                For LBeacon X coordinate, we compare the eight
+                                bytes starting from index 0 of payload[] with 
+                                the eight bytes starting from index 12 of 
+                                g_config.uuid[], because LBeacon X coordinate
+                                is stored at the index 12 of uuid format.
+                                For LBeacon Y coordinate, we compare the eight
+                                bytes starting from index 8 of payload[] with 
+                                the eight bytes starting from index 24 of 
+                                g_config.uuid[], because LBeacon Y coordinate
+                                is stored at the index 24 of uuid format.
+                                */
                                 if(0 == strncmp(&payload[0],
                                             &g_config.uuid[6+2+4], 8) &&
                                    0 == strncmp(&payload[8],
