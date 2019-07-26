@@ -10,13 +10,17 @@
 
      BeDIS
 
+  File Name:
+
+     pkt_Queue.h
+
   File Description:
 
      This file contains the header of function declarations used in pkt_Queue.c
 
-  File Name:
+  Version:
 
-     pkt_Queue.h
+     2.0, 20190201
 
   Abstract:
 
@@ -30,7 +34,7 @@
      area.
 
   Authors:
-     Gary Xiao		, garyh0205@hotmail.com
+     Gary Xiao      , garyh0205@hotmail.com
  */
 
 #ifndef pkt_Queue_H
@@ -44,8 +48,9 @@
 #include <pthread.h>
 #include <sys/time.h>
 
-// If need to debug.
-#define debugging
+
+/* If need to debug. */
+//#define debugging
 
 /* Length of address of the network */
 #define NETWORK_ADDR_LENGTH 16
@@ -149,7 +154,7 @@ int Free_Packet_Queue(pkt_ptr pkt_queue);
 
   Parameter:
 
-      pkt_Queue: The Queue we store pkt.
+      pkt_Queue : The Queue we store pkt.
       type      : Record the type of packets working environment.
       raw_addr  : The destnation address of the packet.
       content   : The content we decided to send.
@@ -260,13 +265,15 @@ void char_to_hex(char *raw, unsigned char *raw_hex, int size);
 
       hex  : A array stored in Hex.
       size : size of the hex length.
+      buf  : an output char array to store the output converted from
+             the input hex array
 
   Return Value:
 
-      char pointer : A pointer stored char array convert from hex.
+      0: success
 
  */
-char *hex_to_char(unsigned char *hex, int size);
+int hex_to_char(unsigned char *hex, int size, char * buf);
 
 
 /* display_pkt

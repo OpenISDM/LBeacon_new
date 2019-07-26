@@ -10,13 +10,17 @@
 
      BeDIS
 
+  File Name:
+
+     pkt_Queue.c
+
   File Description:
 
      This file contains functions for the waiting queue.
 
-  File Name:
+  Version:
 
-     pkt_Queue.c
+     2.0, 20190201
 
   Abstract:
 
@@ -30,13 +34,14 @@
      area.
 
   Authors:
-     Gary Xiao		, garyh0205@hotmail.com
+     Gary Xiao      , garyh0205@hotmail.com
  */
 
 #include "pkt_Queue.h"
 
 
 /* Queue initialize and free */
+
 
 int init_Packet_Queue(pkt_ptr pkt_queue){
 
@@ -59,6 +64,7 @@ int init_Packet_Queue(pkt_ptr pkt_queue){
 
 }
 
+
 int Free_Packet_Queue(pkt_ptr pkt_queue){
 
     pthread_mutex_lock( &pkt_queue -> mutex);
@@ -76,7 +82,9 @@ int Free_Packet_Queue(pkt_ptr pkt_queue){
 
 }
 
+
 /* New : add pkts */
+
 
 int addpkt(pkt_ptr pkt_queue, unsigned int type, char *raw_addr, char *content
                                                            , int content_size) {
@@ -185,6 +193,7 @@ sPkt get_pkt(pkt_ptr pkt_queue){
 
 /* Delete : delete pkts */
 
+
 int delpkt(pkt_ptr pkt_queue) {
 
     if(is_null(pkt_queue)) {
@@ -228,6 +237,8 @@ int delpkt(pkt_ptr pkt_queue) {
 
 
 int display_pkt(char *display_title, pkt_ptr pkt_queue, int pkt_num){
+    char char_addr[NETWORK_ADDR_LENGTH];
+    char address_char[NETWORK_ADDR_LENGTH];
 
     if(pkt_num < 0 && pkt_num >= MAX_QUEUE_LENGTH){
         return pkt_Queue_display_over_range;
@@ -235,8 +246,8 @@ int display_pkt(char *display_title, pkt_ptr pkt_queue, int pkt_num){
 
     pPkt current_pkt = &pkt_queue -> Queue[pkt_num];
 
-    char *char_addr = hex_to_char(current_pkt -> address
-                                , NETWORK_ADDR_LENGTH_HEX);
+    memset(char_addr, 0, sizeof(char_addr));
+    hex_to_char(current_pkt -> address, NETWORK_ADDR_LENGTH_HEX, char_addr);
 
     printf("==================\n");
 
@@ -250,8 +261,8 @@ int display_pkt(char *display_title, pkt_ptr pkt_queue, int pkt_num){
 
     printf("===== address ====\n");
 
-    char *address_char = hex_to_char(current_pkt -> address
-                                   , NETWORK_ADDR_LENGTH_HEX);
+    memset(address_char, 0, sizeof(address_char));
+    hex_to_char(current_pkt -> address, NETWORK_ADDR_LENGTH_HEX, address_char);
 
     print_content(address_char, NETWORK_ADDR_LENGTH);
 
@@ -264,15 +275,13 @@ int display_pkt(char *display_title, pkt_ptr pkt_queue, int pkt_num){
     printf("\n");
     printf("==================\n");
 
-    free(address_char);
-    free(char_addr);
-
     return pkt_Queue_SUCCESS;
 
 }
 
 
 /* Tools */
+
 
 char *type_to_str(int type){
 
@@ -295,6 +304,7 @@ char *type_to_str(int type){
     }
 }
 
+
 int str_to_type(const char *conType){
 
     if(memcmp(conType, "Transmit Status"
@@ -306,6 +316,7 @@ int str_to_type(const char *conType){
         return UNKNOWN;
 
 }
+
 
 void char_to_hex(char *raw, unsigned char *raw_hex, int size){
 
@@ -319,18 +330,17 @@ void char_to_hex(char *raw, unsigned char *raw_hex, int size){
     }
 }
 
-char *hex_to_char(unsigned char *hex, int size){
 
-    int char_size = size * 2;
-    char *char_addr = malloc(sizeof(char) * (char_size + 1));
-
-    memset(char_addr, 0, sizeof(char) * (char_size + 1));
+int hex_to_char(unsigned char *hex, int size, char *buf){
+    int ret = 0;
+    int len;
 
     for(int len = 0;len < size;len ++)
-        sprintf( &char_addr[len * 2], "%02x", hex[len]);
+        sprintf( &buf[len * 2], "%02x", hex[len]);
 
-    return char_addr;
+    return ret;
 }
+
 
 void array_copy(unsigned char *src, unsigned char *dest, int size){
 
@@ -339,6 +349,7 @@ void array_copy(unsigned char *src, unsigned char *dest, int size){
     return;
 
 }
+
 
 bool address_compare(unsigned char *addr1,unsigned char *addr2){
 
@@ -358,6 +369,7 @@ bool is_null(pkt_ptr pkt_queue){
     return false;
 }
 
+
 bool is_full(pkt_ptr pkt_queue){
 
     if(pkt_queue -> front == pkt_queue -> rear + 1){
@@ -370,6 +382,7 @@ bool is_full(pkt_ptr pkt_queue){
         return false;
     }
 }
+
 
 int queue_len(pkt_ptr pkt_queue){
 
@@ -401,11 +414,13 @@ int queue_len(pkt_ptr pkt_queue){
     return queue_len_error;
 }
 
+
 void print_content(char *content, int size){
 
     for(int loc = 0; loc < size; loc ++)
         printf("%c", content[loc]);
 }
+
 
 void generate_identification(char *identification, int size){
 

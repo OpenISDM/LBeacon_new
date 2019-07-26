@@ -22,7 +22,7 @@
 
  Version:
 
-       2.0,  20190201
+       2.0,  20190724
 
  Abstract:
 
@@ -50,6 +50,33 @@
 #include "zlog.h"
 #include "Communication.h"
 #include "thpool.h"
+
+unsigned int *uuid_str_to_data(char *uuid) {
+    char conversion[] = "0123456789ABCDEF";
+    int uuid_length = strlen(uuid);
+    unsigned int *data =
+        (unsigned int *)malloc(sizeof(unsigned int) * uuid_length);
+
+    if (data == NULL) {
+        /* Error handling */
+        perror("Failed to allocate memory");
+        return NULL;
+    }
+
+    unsigned int *data_pointer = data;
+    char *uuid_counter = uuid;
+
+    for (; uuid_counter < uuid + uuid_length;
+
+         data_pointer++, uuid_counter += 2) {
+        *data_pointer =
+            ((strchr(conversion, toupper(*uuid_counter)) - conversion) * 16) +
+            (strchr(conversion, toupper(*(uuid_counter + 1))) - conversion);
+
+    }
+
+    return data;
+}
 
 ErrorCode single_running_instance(char *file_name){
     int retry_times = 0;
@@ -107,9 +134,11 @@ ErrorCode generate_uuid(Config *config){
     int coordinate_Z_int;
 
     char coordinate[CONFIG_BUFFER_SIZE];
-    char *temp_coordinate = NULL;
+    char *temp_string = NULL;
+    char *saveptr = NULL;
+    char *remain_string = NULL;
 
-    /* construct UUID as 000000ZZ0000xxxxxxxx0000yyyyyyyy format */
+    /* construct UUID as 000000zz0000xxxxxxxx0000yyyyyyyy format */
     memset(config->uuid, 0, sizeof(config->uuid));
 
     coordinate_X_double = (double)atof(config->coordinate_X);
@@ -140,17 +169,21 @@ ErrorCode generate_uuid(Config *config){
 
     memset(coordinate, 0, sizeof(coordinate));
     sprintf(coordinate, "%.8f", atof(config->coordinate_X));
-    temp_coordinate = strstr(coordinate, FRACTION_DOT);
-    temp_coordinate = temp_coordinate + strlen(FRACTION_DOT);
-    strcat(config->uuid, temp_coordinate);
+    remain_string = coordinate;
+    temp_string = strtok_save(coordinate, DELIMITER_DOT, &saveptr);
+    remain_string = remain_string + strlen(temp_string) + 
+                    strlen(DELIMITER_DOT);
+    strcat(config->uuid, remain_string);
 
     strcat(config->uuid, "0000");
 
     memset(coordinate, 0, sizeof(coordinate));
     sprintf(coordinate, "%.8f", atof(config->coordinate_Y));
-    temp_coordinate = strstr(coordinate, FRACTION_DOT);
-    temp_coordinate = temp_coordinate + strlen(FRACTION_DOT);
-    strcat(config->uuid, temp_coordinate);
+    remain_string = coordinate;
+    temp_string = strtok_save(coordinate, DELIMITER_DOT, &saveptr);
+    remain_string = remain_string + strlen(temp_string) + 
+                    strlen(DELIMITER_DOT);
+    strcat(config->uuid, remain_string);
 
     zlog_info(category_debug, "Generated UUID: [%s]", config->uuid);
 
@@ -248,7 +281,7 @@ ErrorCode get_config(Config *config, char *file_name) {
     config_message = config_message + strlen(DELIMITER);
     trim_string_tail(config_message);
     config->advertise_interval_in_units_0625_ms = atoi(config_message);
-	
+
     /* item 8 */
     fgets(config_setting, sizeof(config_setting), file);
     config_message = strstr((char *)config_setting, DELIMITER);
@@ -468,6 +501,7 @@ int compare_mac_address(char address[],
 
 struct ScannedDevice *check_is_in_list(char address[],
                                        ObjectListHead *list) {
+
     struct List_Entry *list_pointer, *save_list_pointers;
     ScannedDevice *temp = NULL;
     bool temp_is_null = true;
@@ -645,13 +679,18 @@ ErrorCode enable_advertising(int dongle_device_id,
     le_set_advertising_parameters_cp advertising_parameters_copy;
     memset(&advertising_parameters_copy, 0,
            sizeof(advertising_parameters_copy));
-    advertising_parameters_copy.min_interval = advertising_interval_in_units_0625_ms;
-    advertising_parameters_copy.max_interval = advertising_interval_in_units_0625_ms;
+
+    advertising_parameters_copy.min_interval = 
+        advertising_interval_in_units_0625_ms;
+
+    advertising_parameters_copy.max_interval = 
+        advertising_interval_in_units_0625_ms;
+
     /* advertising non-connectable */
     advertising_parameters_copy.advtype = 3;
     /*set bitmap to 111 (i.e., circulate on channels 37,38,39) */
-    advertising_parameters_copy.chan_map = 7; /* all three advertising
-                                              channels*/
+    advertising_parameters_copy.chan_map = 7; 
+    /* all three advertising channels*/
 
     memset(&request, 0, sizeof(request));
     request.ogf = OGF_LE_CTL;
@@ -961,9 +1000,9 @@ ErrorCode disable_advertising(int dongle_device_id) {
 ErrorCode beacon_basic_info(char *message, size_t message_size, int poll_type){
     char timestamp[LENGTH_OF_EPOCH_TIME];
 
-    // packet type
-    message[0] = 0x0F & poll_type;
-    message[1] = '\0';
+    // The beginning information is pkt_direction;pkt_type;GATEWAY_API_version;
+    snprintf(message, message_size, "%d;%d;%s;", 
+             from_beacon, poll_type, BOT_GATEWAY_API_VERSION);
 
     // LBeacon UUID
     strcat(message, g_config.uuid);
@@ -980,7 +1019,7 @@ ErrorCode beacon_basic_info(char *message, size_t message_size, int poll_type){
     strcat(message, DELIMITER_SEMICOLON);
 
     /* Make sure the resulted message (basic information) does not
-	exceed our expected length
+       exceed our expected length
     */
     if(strlen(message) > MAX_LENGTH_RESP_BASIC_INFO){
         zlog_error(category_health_report,
@@ -1014,8 +1053,8 @@ ErrorCode send_join_request(){
         return E_PREPARE_RESPONSE_BASIC_INFO;
     }
 
-    ret_val = addpkt(&udp_config.send_pkt_queue,
-                     UDP, udp_config.send_ipv4_addr, message,
+    ret_val = addpkt(&beacon_udp_config.send_pkt_queue,
+                     UDP, beacon_udp_config.send_ipv4_addr, message,
                      sizeof(message));
 
     if(pkt_Queue_SUCCESS != ret_val){
@@ -1031,45 +1070,32 @@ ErrorCode send_join_request(){
 }
 
 
-ErrorCode handle_join_response(char *resp_payload){
+ErrorCode handle_join_response(char *resp_payload, JoinStatus *join_status){
     char buf[WIFI_MESSAGE_LENGTH];
+    char *saveptr = NULL;
     char *lbeacon_uuid = NULL;
     char *lbeacon_timestamp = NULL;
     char *lbeacon_ip = NULL;
-    char *tail = NULL;
+    char *join_result = NULL;
 
     zlog_info(category_debug,
-              "Received join_request_ack payload=[%s]", resp_payload);
+              "Received join response payload=[%s]", resp_payload);
     memset(buf, 0, sizeof(buf));
     strcpy(buf, resp_payload);
 
-    lbeacon_uuid = buf;
-    tail = strstr(lbeacon_uuid, DELIMITER_SEMICOLON);
-    if(NULL == tail)
-        return E_PARSE_JOIN_RESPONSE;
-    *tail = '\0';
-
-    lbeacon_timestamp = tail + 1;
-    tail = strstr(lbeacon_timestamp, DELIMITER_SEMICOLON);
-    if(NULL == tail)
-        return E_PARSE_JOIN_RESPONSE;
-    *tail = '\0';
-
-    lbeacon_ip = tail + 1;
-    tail = strstr(lbeacon_ip, DELIMITER_SEMICOLON);
-    if(NULL == tail)
-        return E_PARSE_JOIN_RESPONSE;
-    *tail = '\0';
-
-    zlog_debug(category_debug, "Parsed results: uuid=[%s], "\
-               "timestamp=[%s], ip=[%s]\n", lbeacon_uuid,
-               lbeacon_timestamp, lbeacon_ip);
-
+    lbeacon_uuid = strtok_save(buf, DELIMITER_SEMICOLON, &saveptr);
+    
+    lbeacon_timestamp = strtok_save(NULL, DELIMITER_SEMICOLON, &saveptr);
+    
+    lbeacon_ip = strtok_save(NULL, DELIMITER_SEMICOLON, &saveptr);
     memset(g_config.local_addr, 0, sizeof(g_config.local_addr));
     strcpy(g_config.local_addr, lbeacon_ip);
-
+    
     zlog_debug(category_debug, "LBeacon IP address: [%s]\n",
                g_config.local_addr);
+
+    join_result = strtok_save(NULL, DELIMITER_SEMICOLON, &saveptr);
+    *join_status = (JoinStatus)atoi(join_result);
 
     return WORK_SUCCESSFULLY;
 }
@@ -1085,7 +1111,7 @@ ErrorCode handle_tracked_object_data(){
     int max_objects = 0;
     int used_objects = 0;
     int ret_val = 0;
-
+    
     /* return directly, if both BR and BLE tracked lists are emtpy
     */
     pthread_mutex_lock(&list_lock);
@@ -1174,8 +1200,9 @@ ErrorCode handle_tracked_object_data(){
 
     strcat(message, msg_temp_one);
     strcat(message, msg_temp_two);
-    ret_val = addpkt(&udp_config.send_pkt_queue, UDP,
-                     udp_config.send_ipv4_addr, message, sizeof(message));
+    ret_val = addpkt(&beacon_udp_config.send_pkt_queue, UDP,
+                     beacon_udp_config.send_ipv4_addr, message, 
+                     sizeof(message));
 
     if(pkt_Queue_SUCCESS != ret_val){
         zlog_error(category_health_report,
@@ -1196,7 +1223,7 @@ ErrorCode handle_health_report(){
     FILE *health_file = NULL;
     int retry_times = 0;
     int ret_val = 0;
-
+    
     retry_times = FILE_OPEN_RETRY;
     while(retry_times--){
         health_file =
@@ -1218,7 +1245,7 @@ ErrorCode handle_health_report(){
     /* contructs the content for UDP packet*/
     memset(message, 0, sizeof(message));
 
-    if(0!=beacon_basic_info(message, sizeof(message), health_report)){
+    if(0!=beacon_basic_info(message, sizeof(message), beacon_health_report)){
 
         zlog_error(category_health_report,
                    "Unable to prepare basic information for response. "
@@ -1241,9 +1268,9 @@ ErrorCode handle_health_report(){
     memset(msg_temp_one, 0, sizeof(msg_temp_one));
 
     if(NULL == strstr(temp_buf, HEALTH_REPORT_ERROR_SIGN)){
-        sprintf(msg_temp_one, "%d;", S_NORMAL);
+        sprintf(msg_temp_one, "%d;", S_NORMAL_STATUS);
     }else{
-        sprintf(msg_temp_one, "%d;", E_ERROR);
+        sprintf(msg_temp_one, "%d;", E_ERROR_STATUS);
     }
 
     if(sizeof(message) <= strlen(message) + strlen(msg_temp_one)){
@@ -1263,8 +1290,9 @@ ErrorCode handle_health_report(){
 
     strcat(message, msg_temp_one);
 
-    ret_val = addpkt(&udp_config.send_pkt_queue, UDP,
-                     udp_config.send_ipv4_addr, message, sizeof(message));
+    ret_val = addpkt(&beacon_udp_config.send_pkt_queue, UDP,
+                     beacon_udp_config.send_ipv4_addr, message, 
+                     sizeof(message));
 
     if(pkt_Queue_SUCCESS != ret_val){
         zlog_error(category_health_report,
@@ -1279,15 +1307,28 @@ ErrorCode handle_health_report(){
 }
 
 ErrorCode manage_communication(){
-	struct timespec current_time;
-	struct timespec gateway_latest_time;
-	int latest_join_request_time = 0;
-    int poll_type;
+    struct timespec current_time;
+    struct timespec gateway_latest_time;
+    
+    int last_join_request_time = 0;
+    JoinStatus join_status = JOIN_UNKNOWN;
+    char buf[WIFI_MESSAGE_LENGTH];
+    char *from_direction = NULL;
+    char *request_type = NULL;
+    char *API_version = NULL;
+    char *packet_content = NULL;
+
+    int pkt_direction = 0;
+    int pkt_type = 0;
+    char *saveptr = NULL;
+    char *remain_string = NULL;
 
     zlog_debug(category_debug, ">> manage_communication ");
+    clock_gettime(CLOCK_MONOTONIC, &current_time);
+    clock_gettime(CLOCK_MONOTONIC, &gateway_latest_time);
 
     while(true == ready_to_work){
-        if(true == is_null(&udp_config.recv_pkt_queue)){
+        if(true == is_null(&beacon_udp_config.recv_pkt_queue)){
             /* When LBeacon has not gotten packets from the gateway for
             INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC seconds or longer,
             LBeacon sends request_to_join to gateway again. The purpose
@@ -1296,16 +1337,18 @@ ErrorCode manage_communication(){
             LBeacon ID map. So LBeacon needs to send request_to_join again to
             establish the relationship with the gateway.
             */
-			clock_gettime(CLOCK_MONOTONIC, &current_time);
+            clock_gettime(CLOCK_MONOTONIC, &current_time);
+
             if((current_time.tv_sec - gateway_latest_time.tv_sec >
                 INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC) &&
-                (current_time.tv_sec - latest_join_request_time >
+                (current_time.tv_sec - last_join_request_time >
                 INTERVAL_FOR_RECONNECT_GATEWAY_IN_SEC)){
-;
+
                 zlog_info(category_debug,
                           "Send requets_to_join to gateway again");
+
                 if(WORK_SUCCESSFULLY == send_join_request()){
-                    latest_join_request_time = current_time.tv_sec;
+                    last_join_request_time = current_time.tv_sec;
                 }
             }else{
                 /* sleep a short time to prevent occupying CPU in this
@@ -1317,43 +1360,71 @@ ErrorCode manage_communication(){
             /* Update gateway_latest_time to make LBeacon aware that
             its connection to gateway is still okay.
             */
-			clock_gettime(CLOCK_MONOTONIC, &gateway_latest_time);
+            clock_gettime(CLOCK_MONOTONIC, &gateway_latest_time);
 
-            poll_type = undefined;
+            pkt_type = undefined;
             /* Get one packet from receive packet queue
             */
-            sPkt tmp_pkt = get_pkt(&udp_config.recv_pkt_queue);
-            poll_type = 0x0F & tmp_pkt.content[0];
+            sPkt tmp_pkt = get_pkt(&beacon_udp_config.recv_pkt_queue);
 
-            /* According to the polled data type, prepare a work item
-            */
-            switch(poll_type){
+            memset(buf, 0, sizeof(buf));
+            strcpy(buf, tmp_pkt.content); 
 
-                case join_request_ack:
-                    zlog_info(category_debug,
-                              "Receive join_request_ack from gateway");
-                    handle_join_response(&tmp_pkt.content[1]);
-                    break; // join_request_ack case
+            remain_string = buf;
+       
+            from_direction = strtok_save(buf, DELIMITER_SEMICOLON, &saveptr);
+            pkt_direction = atoi(from_direction);
+            remain_string = remain_string + strlen(from_direction) + 
+                            strlen(DELIMITER_SEMICOLON);
 
-                case tracked_object_data:
-                    zlog_info(category_debug,
-                              "Receive tracked_object_data from gateway");
-                    handle_tracked_object_data();
-                    break; // tracked_object_data case
+            request_type = strtok_save(NULL, DELIMITER_SEMICOLON, &saveptr);
+            pkt_type = atoi(request_type);
+            remain_string = remain_string + strlen(request_type) + 
+                            strlen(DELIMITER_SEMICOLON);
+                
+            API_version = strtok_save(NULL, DELIMITER_SEMICOLON, &saveptr);
+            remain_string = remain_string + strlen(API_version) + 
+                            strlen(DELIMITER_SEMICOLON);
 
-                case health_report:
-                    zlog_info(category_debug,
-                              "Receive health_report from gateway");
-                    handle_health_report();
-                    break; // health_report case
+            packet_content = remain_string;
+            zlog_info(category_debug, "pkt_direction=[%d], pkt_type=[%d], " \
+                      "content=[%s]", pkt_direction, pkt_type, 
+                      packet_content);
 
-                default:
-                    zlog_warn(category_debug,
-                              "Receive unknown packet type=[%d] from "
-                              "gateway",
-                              poll_type);
-                    break; // default case
-             } // switch
+            if(from_gateway == pkt_direction){
+
+                /* According to the polled data type, prepare a work item
+                */
+                switch(pkt_type){
+
+                    case join_response:
+                        zlog_info(category_debug,
+                                  "Receive join_response from gateway");
+                        handle_join_response(packet_content, &join_status);
+                        zlog_info(category_debug,
+                                  "join_status = [%d]", join_status);
+                        break; // join_response case
+
+                    case tracked_object_data:
+                        zlog_info(category_debug,
+                                  "Receive tracked_object_data from gateway");
+                        handle_tracked_object_data();
+                        break; // tracked_object_data case
+
+                    case beacon_health_report:
+                        zlog_info(category_debug,
+                                  "Receive health_report from gateway");
+                        handle_health_report();
+                        break; // health_report case
+
+                    default:
+                        zlog_warn(category_debug,
+                                  "Receive unknown packet type=[%d] from "
+                                  "gateway",
+                                  pkt_type);
+                        break; // default case
+                 } // switch
+            }
         }
     } // end of the while
 
@@ -1758,8 +1829,8 @@ ErrorCode *start_ble_scanning(void *param){
 
     while(true == ready_to_work){
         /* Get the dongle id */
-		dongle_device_id = g_config.scan_dongle_id;
-		/*
+        dongle_device_id = g_config.scan_dongle_id;
+        /*
         retry_times = DONGLE_GET_RETRY;
         while(retry_times--){
             dongle_device_id = hci_get_route(NULL);
@@ -1951,7 +2022,7 @@ ErrorCode *start_ble_scanning(void *param){
         } // end while (HCI_EVENT_HDR_SIZE)
 
         if( 0> hci_le_set_scan_enable(socket, 0, 0,
-		                              HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
+                                      HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
 
             zlog_error(category_health_report,
                        "Error disabling BLE scanning");
@@ -2283,7 +2354,7 @@ ErrorCode cleanup_exit(){
 
     pthread_mutex_destroy(&list_lock);
 
-    Wifi_free(&udp_config);
+    Wifi_free(&beacon_udp_config);
 
 #ifdef Bluetooth_classic
     /* Release the handler for Bluetooth */
@@ -2318,8 +2389,8 @@ int main(int argc, char **argv) {
             zlog_fini();
         }
 
-    	 category_debug =
-           zlog_get_category(LOG_CATEGORY_DEBUG);
+        category_debug =
+            zlog_get_category(LOG_CATEGORY_DEBUG);
 
        if (!category_debug) {
            zlog_fini();
@@ -2412,7 +2483,6 @@ int main(int argc, char **argv) {
         cleanup_exit();
         exit(return_value);
     }
-
     /* Start bluetooth advertising */
     return_value = enable_advertising(g_config.advertise_dongle_id,
                                       g_config.advertise_interval_in_units_0625_ms,
@@ -2446,11 +2516,11 @@ int main(int argc, char **argv) {
     }
 
     /* Initialize the wifi connection to gateway */
-    strcpy(udp_config.send_ipv4_addr, g_config.gateway_addr);
-    udp_config.send_portno = g_config.gateway_port;
-    udp_config.recv_portno = g_config.local_client_port;
+    strcpy(beacon_udp_config.send_ipv4_addr, g_config.gateway_addr);
+    beacon_udp_config.send_portno = g_config.gateway_port;
+    beacon_udp_config.recv_portno = g_config.local_client_port;
 
-    return_value = Wifi_init(&udp_config);
+    return_value = Wifi_init(&beacon_udp_config);
     if(WORK_SUCCESSFULLY != return_value){
         zlog_error(category_health_report,
                    "Error initializing network connection to gateway");
@@ -2464,12 +2534,12 @@ int main(int argc, char **argv) {
     if(NULL != thpool){
         for(id = 0; id < NUMBER_RECEIVE_THREAD; id++){
             thpool_add_work(thpool,(void*)receive_data,
-                            (sudp_config_beacon *) &udp_config, 0);
+                            (sudp_config_beacon *) &beacon_udp_config, 0);
         }
 
         for(id = NUMBER_RECEIVE_THREAD; id < NUMBER_WORK_THREADS; id++){
             thpool_add_work(thpool,(void*)send_data ,
-                            (sudp_config_beacon *) &udp_config, 0);
+                            (sudp_config_beacon *) &beacon_udp_config, 0);
         }
     }else{
         zlog_error(category_health_report,

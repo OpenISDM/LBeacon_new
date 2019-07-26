@@ -10,14 +10,14 @@
 
      BeDIS
 
+  File Name:
+
+     UDP_API.h
+
   File Description:
 
      This file contains the header of  function declarations and variable used
      in UDP_API.c
-
-  File Name:
-
-     UDP_API.h
 
   Abstract:
 
@@ -31,7 +31,8 @@
      area.
 
   Authors:
-     Gary Xiao		, garyh0205@hotmail.com
+
+     Gary Xiao      , garyh0205@hotmail.com
  */
 #ifndef UDP_API_H
 #define UDP_API_H
@@ -48,9 +49,12 @@
 
 
 #define UDP_SELECT_TIMEOUT 30    //second
-#define SEND_NULL_SLEEP 30
+#define SLEEP_TIME_IN_MS 100 //milliseconds
 
-typedef struct udp_config_beacon{
+/* If need to debug. */
+#define debugging
+
+typedef struct {
 
     char send_ipv4_addr[NETWORK_ADDR_LENGTH];
     int send_portno;
@@ -63,11 +67,13 @@ typedef struct udp_config_beacon{
 
 } sudp_config_beacon;
 
-typedef struct udp_config_{
+typedef struct {
 
     struct sockaddr_in si_server;
 
     int  send_socket, recv_socket;
+
+    int send_port;
 
     int recv_port;
 
@@ -86,7 +92,8 @@ typedef sudp_config *pudp_config;
 enum{File_OPEN_ERROR = -1, E_ADDPKT_OVERSIZE = -2};
 
 enum{socket_error = -1, send_socket_error = -2, recv_socket_error = -3,
-set_socketopt_error = -4, recv_socket_bind_error = -5, addpkt_msg_oversize = -6};
+set_socketopt_error = -4,recv_socket_bind_error = -5,addpkt_msg_oversize = -6};
+
 
 /*
   udp_initial
@@ -102,7 +109,8 @@ set_socketopt_error = -4, recv_socket_bind_error = -5, addpkt_msg_oversize = -6}
      int : If return 0, everything work successfully.
            If not 0   , somthing wrong.
  */
-int udp_initial(pudp_config udp_config, int recv_port);
+int udp_initial(pudp_config udp_config, int send_port, int recv_port);
+
 
 /*
   udp_addpkt
@@ -122,6 +130,7 @@ int udp_initial(pudp_config udp_config, int recv_port);
            If not 0   , something wrong.
  */
 int udp_addpkt(pudp_config udp_config, char *raw_addr, char *content, int size);
+
 
 /*
   udp_getrecv
@@ -154,6 +163,7 @@ sPkt udp_getrecv(pudp_config udp_config);
  */
 void *udp_send_pkt(void *udpconfig);
 
+
 /*
   udp_recv_pkt
 
@@ -168,6 +178,7 @@ void *udp_send_pkt(void *udpconfig);
      None
  */
 void *udp_recv_pkt(void *udpconfig);
+
 
 /*
   udp_release
@@ -185,6 +196,7 @@ void *udp_recv_pkt(void *udpconfig);
  */
 int udp_release(pudp_config udp_config);
 
+
 /*
   udp_address_reduce_point
 
@@ -193,12 +205,14 @@ int udp_release(pudp_config udp_config);
   Parameter:
 
      raw_addr: A array pointer point to the address we want to convert.
+     address: the output array pointer to store the network address reduced
+              point
 
   Return Value:
 
-     char : return char array of the converted address.
+     0: success
  */
-char *udp_address_reduce_point(char *raw_addr);
+int udp_address_reduce_point(char *raw_addr, char *address);
 
 
 /*
@@ -209,11 +223,13 @@ char *udp_address_reduce_point(char *raw_addr);
   Parameter:
 
      hex_addr: A array pointer point to the address we want to convert.
+     dest_address: the output array pointer to store the converted address
 
   Return Value:
 
-     char : return char array of the converted address.
+     0: success
  */
-char *udp_hex_to_address(unsigned char *hex_addr);
+ int udp_hex_to_address(unsigned char *hex_addr, char *dest_address);
+
 
 #endif

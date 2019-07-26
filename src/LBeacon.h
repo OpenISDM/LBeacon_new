@@ -66,23 +66,14 @@ Authors:
   CONSTANTS
 */
 
-/* Command opcode pack/unpack from HCI library. ogf and ocf stand for Opcode
-   group field and Opcofe command field, respectively. See Bluetooth
-   specification - core version 4.0, vol.2, part E Chapter 5.4 for details.
-*/
-//#define cmd_opcode_pack(ogf, ocf) (uint16_t)((ocf &amp; 0x03ff) | \
-//                                                        (ogf &lt;&lt; 10))
+/* Gateway API protocol version for communicate between Gateway and LBeacon. */
+#define BOT_GATEWAY_API_VERSION "1.0"
+
 /* File path of the config file of the LBeacon */
 #define CONFIG_FILE_NAME "/home/pi/LBeacon/config/config.conf"
 
 /* File path of the logging file*/
 #define LOG_FILE_NAME "/home/pi/LBeacon/config/zlog.conf"
-
-/* The category defined of log file used for health report */
-#define LOG_CATEGORY_HEALTH_REPORT "Health_Report"
-
-/* The category defined for the printf during debugging */
-#define LOG_CATEGORY_DEBUG "LBeacon_Debug"
 
 /* The temporary file for uploading tracked BR data */
 #define TRACKED_BR_TXT_FILE_NAME "tracked_br_txt.txt"
@@ -137,7 +128,18 @@ the specified time interval is impossible in BeDIS Object tracker solution. So
 we treat the condition as a network connection failure. When this happens,
 LBeacon sends UDP join_request to the gateway again.
 */
-#define INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC 180
+#define INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC 30
+
+/* Time interval in seconds for reconnect to Gateway */
+#define INTERVAL_FOR_RECONNECT_GATEWAY_IN_SEC 30
+
+/* Number of times to retry open file, because file openning operation may have
+   transient failure. */
+#define FILE_OPEN_RETRY 5
+
+/* Number of times to retry getting a dongle, because this operation may have
+   transient failure. */
+#define DONGLE_GET_RETRY 5
 
 /* Mempool usage threshold for cleaning up all lists. This threshold is used
 to determine whether to cleanup all lists. */
@@ -146,14 +148,8 @@ to determine whether to cleanup all lists. */
 /* Number of characters in the name of a Bluetooth device */
 #define LENGTH_OF_DEVICE_NAME 30
 
-/* Number of characters in the uuid of a Bluetooth device */
-#define LENGTH_OF_UUID 33
-
 /* Number of characters in the advertising payload of a Bluetooth device */
 #define LENGTH_OF_ADVERTISEMENT 33
-
-/* Number of characters in a Bluetooth MAC address */
-#define LENGTH_OF_MAC_ADDRESS 18
 
 /* Number of digits of MAC address to compare */
 #define NUMBER_DIGITS_TO_COMPARE 4
@@ -327,7 +323,7 @@ extern int errno;
 Config g_config;
 
 /* The struct of UDP configuration */
-sudp_config_beacon udp_config;
+sudp_config_beacon beacon_udp_config;
 
 /* Heads of three lists of structs for recording scanned devices */
 
@@ -373,6 +369,21 @@ ThreadStatus g_idle_handler[MAX_NUM_OBJECTS];
 /*
   FUNCTIONS
 */
+
+/*
+  uuid_str_to_data:
+
+     Convert uuid from string to unsigned integer.
+
+  Parameters:
+
+     uuid - The uuid in string type.
+
+  Return value:
+
+     unsigned int - The converted uuid in unsigned int type.
+ */
+unsigned int *uuid_str_to_data(char *uuid);
 
 /*
   single_running_instance:
@@ -611,6 +622,8 @@ ErrorCode send_join_request();
   Parameters:
 
       resp_payload - message buffer to contain the payload of response data
+      join_status - pointer to an enumerate variable to store the join result 
+                    from Gateway
 
   Return value:
 
@@ -618,7 +631,7 @@ ErrorCode send_join_request();
                   fails or WORK SUCCESSFULLY otherwise
 */
 
-ErrorCode handle_join_response(char *resp_payload);
+ErrorCode handle_join_response(char *resp_payload, JoinStatus *join_status);
 
 /*
   handle_tracked_object_data:
