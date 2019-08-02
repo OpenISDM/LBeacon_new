@@ -528,7 +528,7 @@ struct ScannedDevice *check_is_in_list(char address[],
       dongle_device_id - the bluetooth dongle device which the LBeacon uses
                          to advertise
       advertising_interval_in_units_0625_ms - the time interval in units of 0.625ms 
-	                     during which the LBeacon can advertise
+                                              during which the LBeacon can advertise
       advertising_uuid - universally unique identifier of the advertiser
       major_number - major version number of LBeacon
       minor_number - minor version number of LBeacon
