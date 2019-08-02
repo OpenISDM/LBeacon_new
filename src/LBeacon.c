@@ -42,7 +42,7 @@
       Jake Lee, jakelee@iis.sinica.edu.tw
       Joey Zhou, joeyzhou@iis.sinica.edu.tw
       Kenneth Tang, kennethtang@iis.sinica.edu.tw
-      Chun Yu Lai, chunyu1202@gmail.com
+      Chun-Yu Lai, chunyu1202@gmail.com
 
 */
 
@@ -1978,6 +1978,11 @@ ErrorCode *start_ble_scanning(void *param){
                                 g_config.uuid[], because LBeacon Y coordinate
                                 is stored at the index 24 of uuid format.
                                 */
+                                /* Comment out the UUID association relationship 
+                                   LBeacon and Tag, because this feature delays 
+                                   the detections of location changes and 
+                                   geo-fence violations.*/
+                                /*
                                 if(0 == strncmp(&payload[0],
                                             &g_config.uuid[6+2+4], 8) &&
                                    0 == strncmp(&payload[8],
@@ -1991,7 +1996,8 @@ ErrorCode *start_ble_scanning(void *param){
                                                         rssi,
                                                         is_button_pressed);
 
-                                }else if(0 == strncmp(&payload[0],
+                                }else */
+                                if(0 == strncmp(&payload[0],
                                                       "0000000000000000", 16)){
                                     zlog_debug(category_debug,
                                                "Detected p-tag[LE]: %s - " \
