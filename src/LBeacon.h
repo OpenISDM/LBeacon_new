@@ -205,9 +205,9 @@ typedef struct Config {
 
     /* The dongle used to advertise */
     int advertise_dongle_id;
-	
-	/* Time interval in units of 0.625ms between advertising by a LBeacon */
-	int advertise_interval_in_units_0625_ms;
+
+    /* Time interval in units of 0.625ms between advertising by a LBeacon */
+    int advertise_interval_in_units_0625_ms;
 
     /* The rssi value used to advertise */
     int advertise_rssi_value;
