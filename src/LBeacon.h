@@ -170,6 +170,12 @@ LBeacon to gateway.
 to gateway via wifi network link.*/
 #define MAX_LENGTH_RESP_DEVICE_INFO 50
 
+/* The BeDITech button tag identifer (0x0000000000000000) */
+#define BEDITECH_BUTTON_TAG_IDENTIFIER "0000000000000000" 
+
+/* The BeDITech button tag with battery voltage identifer 1478 (0x05C6) */
+#define BEDITECH_BUTTON_BATTERY_TAG_IDENTIFIER "05C6" 
+
 /* The macro of comparing two integer for minimum */
 #define min(a,b) \
    ({ __typeof__ (a) _a = (a); \

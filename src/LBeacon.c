@@ -1729,7 +1729,6 @@ static ErrorCode eir_parse_specific_data(uint8_t *eir,
                                          size_t buf_len){
     size_t offset;
     uint8_t field_len;
-    size_t uuid_len;
     int index;
     int i;
     bool has_specific_data = false;
@@ -1748,34 +1747,60 @@ static ErrorCode eir_parse_specific_data(uint8_t *eir,
 
         switch (eir[1]) {
             case EIR_MANUFACTURE_SPECIFIC_DATA:
-                uuid_len = field_len - 1;
-
-                if (uuid_len > buf_len)
+                
+                if (field_len > buf_len)
                     goto failed;
 
-                // 0x0F00 as first 2 bytes to be "Broadcom Corporation" which
-                // is our RPiZW tag, and 0x5900 as first 2 bytes to be "Nodric"
+                // 0x5900 as first 2 bytes to be "Nordic"
                 // which is our push button tag.
-                if((eir[2] == 15 && eir[3] == 0) ||
+                if(field_len == 12 && 
                    (eir[2] == 89 && eir[3] == 0) ){
-                    /* The LBeacon uuid format is defined in LBeacon
-                       implementation. For LBeacon uuid identifier
-                       carried in the advertising payload of LE devices, the
-                       following 4 bytes is LBeacon uuid X coordinate with
-                       the eighth digit after the decimal part, and the
-                       next following 4 bytes is LBeacon uuid & coordinate
-                       with the eighth digit after the decimal part. For easy
-                       comparison, we convert each 4 bits data to one character.
-                    */
+                       
                     index = 0;
-                    for(i = 4 ; i < 12 ; i++){
-                            buf[index] = eir[i] / 16 + '0';
-                            buf[index+1] = eir[i] % 16 + '0';
-                            index=index+2;
+                    // The first 8 bytes are the BeDITech tag 
+                    // identifier (0x0000000000000000) 
+                    for(int i = 4 ; i < 12 ; i++){
+                        buf[index] = decimal_to_hex(eir[i] / 16);
+                        buf[index + 1] = decimal_to_hex(eir[i] % 16);
+                        index=index+2;
                     }
+                    
                     /* The next 1 byte is push-button data */
                     buf[index] = eir[12];
                     index++;
+                    
+                    /* Add a null terminate for easy debugging in the caller
+                       function. */
+                    buf[index] = '\0';
+                    has_specific_data = true;
+                }
+                
+                if(true == has_specific_data){
+                    return WORK_SUCCESSFULLY;
+                }
+
+                // 0x5900 as first 2 bytes to be "Nordic"
+                // which is our push button tag.
+                if(field_len == 7 && 
+                   (eir[2] == 89 && eir[3] == 0) ){
+                       
+                    index = 0;
+                    // The first two bytes are the BeDITech tag 
+                    // identifier 1478 (0x05C6) 
+                    for(int i = 4 ; i < 6 ; i++){
+                        buf[index] = decimal_to_hex(eir[i] / 16);
+                        buf[index + 1] = decimal_to_hex(eir[i] % 16);
+                        index=index+2;
+                    }
+                    
+                    /* The next 1 byte is push-button data */
+                    buf[index] = eir[6];
+                    index++;
+                    
+                    /* The next 1 byte is battery-voltage data */
+                    buf[index] = eir[7];
+                    index++;
+
                     /* Add a null terminate for easy debugging in the caller
                        function. */
                     buf[index] = '\0';
@@ -1821,6 +1846,7 @@ ErrorCode *start_ble_scanning(void *param){
     char address[LENGTH_OF_MAC_ADDRESS];
     char payload[LENGTH_OF_ADVERTISEMENT];
     int is_button_pressed;
+    int battery_voltage;
     struct List_Entry *current_list_entry;
     struct PrefixString *mac_prefix_node;
 
@@ -1936,6 +1962,7 @@ ErrorCode *start_ble_scanning(void *param){
                     ba2str(&info->bdaddr, address);
                     strcat(address, "\0");
                     is_button_pressed = 0;
+                    battery_voltage = 0;
 
                     list_for_each(current_list_entry,
                                   &g_config.mac_prefix_list_head){
@@ -1952,58 +1979,38 @@ ErrorCode *start_ble_scanning(void *param){
                                                        info->length,
                                                        payload,
                                                        sizeof(payload))){
-                                /* The LBeacon uuid format is defined in LBeacon
-                                implementation. If the device is smart device,
-                                the first 16 characters in the buffer extracted
-                                from the advertising payload are LBeacon X and Y
-                                coordinates with the eighth digit after the
-                                decimal point. Otherwise, the normal device will
-                                have value 0 for the first 16 characters.
-                                */
-
-                                /* The 17 byte in the extracted payload is
-                                push-button data.
-                                */                                
-                                is_button_pressed = payload[16];
-                                /*
-                                Compare LBeacon X and Y coordinates. 
-                                For LBeacon X coordinate, we compare the eight
-                                bytes starting from index 0 of payload[] with 
-                                the eight bytes starting from index 12 of 
-                                g_config.uuid[], because LBeacon X coordinate
-                                is stored at the index 12 of uuid format.
-                                For LBeacon Y coordinate, we compare the eight
-                                bytes starting from index 8 of payload[] with 
-                                the eight bytes starting from index 24 of 
-                                g_config.uuid[], because LBeacon Y coordinate
-                                is stored at the index 24 of uuid format.
-                                */
-                                /* Comment out the UUID association relationship 
-                                   LBeacon and Tag, because this feature delays 
-                                   the detections of location changes and 
-                                   geo-fence violations.*/
-                                /*
-                                if(0 == strncmp(&payload[0],
-                                            &g_config.uuid[6+2+4], 8) &&
-                                   0 == strncmp(&payload[8],
-                                            &g_config.uuid[6+2+4+8+4], 8)){
-                                    zlog_debug(category_debug,
-                                               "Detected s-tag[LE]: %s - " \
-                                               "RSSI %4d, pushed=[%d]",
-                                               address, rssi,
-                                               is_button_pressed);
-                                    send_to_push_dongle(&info->bdaddr, BLE,
-                                                        rssi,
-                                                        is_button_pressed);
-
-                                }else */
-                                if(0 == strncmp(&payload[0],
-                                                      "0000000000000000", 16)){
+                                                           
+                                if(0 == 
+                                    strncmp(&payload[0],
+                                            BEDITECH_BUTTON_TAG_IDENTIFIER, 16)){
+                                                    
+                                    is_button_pressed = payload[16];
+                         
                                     zlog_debug(category_debug,
                                                "Detected p-tag[LE]: %s - " \
                                                "RSSI %4d, pushed=[%d]",
                                                address, rssi,
                                                is_button_pressed);
+                                               
+                                    send_to_push_dongle(&info->bdaddr, BLE,
+                                                        rssi,
+                                                        is_button_pressed);
+
+                                }else if(0 == 
+                                    strncmp(&payload[0],
+                                            BEDITECH_BUTTON_BATTERY_TAG_IDENTIFIER, 4)){
+                                                    
+                                    is_button_pressed = payload[4];
+
+                                    battery_voltage = payload[5];
+                                    
+                                    zlog_debug(category_debug,
+                                               "Detected p-tag[LE]: %s - " \
+                                               "RSSI %4d, pushed=[%d], voltage=[%d]",
+                                               address, rssi,
+                                               is_button_pressed,
+                                               battery_voltage);
+                                               
                                     send_to_push_dongle(&info->bdaddr, BLE,
                                                         rssi,
                                                         is_button_pressed);
