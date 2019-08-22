@@ -66,9 +66,6 @@ Authors:
   CONSTANTS
 */
 
-/* Gateway API protocol version for communicate between Gateway and LBeacon. */
-#define BOT_GATEWAY_API_VERSION "1.0"
-
 /* File path of the config file of the LBeacon */
 #define CONFIG_FILE_NAME "/home/pi/LBeacon/config/config.conf"
 
@@ -168,7 +165,7 @@ LBeacon to gateway.
 
 /* Maximum length in number of bytes of device information of each response
 to gateway via wifi network link.*/
-#define MAX_LENGTH_RESP_DEVICE_INFO 50
+#define MAX_LENGTH_RESP_DEVICE_INFO 60
 
 /* The BeDITech button tag identifer (0x0000000000000000) */
 #define BEDITECH_BUTTON_TAG_IDENTIFIER "0000000000000000" 
@@ -283,6 +280,7 @@ typedef struct ScannedDevice {
     int final_scanned_time;
     int rssi;
     int is_button_pressed;
+    int battery_voltage;
     /* List entries for linking the struct to scanned_list and
        tracked_BR_object_list or to tracked_BLE_object_list, depending
        whether the device type is BR_EDR or BLE. */
@@ -468,6 +466,7 @@ ErrorCode get_config(Config *config, char *file_name);
       device_type - the indicator to show the device type of the input address
       rssi - the RSSI value of this device
       is_button_pressed - the push_button is pressed
+      battery_voltage - the remaining battery voltage
 
   Return value:
 
@@ -477,7 +476,8 @@ ErrorCode get_config(Config *config, char *file_name);
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
                          DeviceType device_type,
                          int rssi,
-                         int is_button_pressed);
+                         int is_button_pressed,
+                         int battery_voltage);
 
 /*
   compare_mac_address:

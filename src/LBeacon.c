@@ -375,7 +375,8 @@ ErrorCode get_config(Config *config, char *file_name) {
 void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
                          DeviceType device_type,
                          int rssi,
-                         int is_button_pressed) {
+                         int is_button_pressed,
+                         int battery_voltage) {
 
     /* Stores the MAC address as a string */
     char address[LENGTH_OF_MAC_ADDRESS];
@@ -409,6 +410,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
         if(is_button_pressed == 1){
             temp_node->is_button_pressed = is_button_pressed;
         }
+        temp_node->battery_voltage = battery_voltage;
         /* use the strongest singal strength */
         if(rssi > temp_node->rssi){
             temp_node->rssi = rssi;
@@ -448,6 +450,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
     temp_node->final_scanned_time = temp_node->initial_scanned_time;
     temp_node->rssi = rssi;
     temp_node->is_button_pressed = is_button_pressed;
+    temp_node->battery_voltage = battery_voltage;
 
     /* Copy the MAC address to the node */
     strncpy(temp_node->scanned_mac_address, address,
@@ -1002,7 +1005,7 @@ ErrorCode beacon_basic_info(char *message, size_t message_size, int poll_type){
 
     // The beginning information is pkt_direction;pkt_type;GATEWAY_API_version;
     snprintf(message, message_size, "%d;%d;%s;", 
-             from_beacon, poll_type, BOT_GATEWAY_API_VERSION);
+             from_beacon, poll_type, BOT_GATEWAY_API_VERSION_LATEST);
 
     // LBeacon UUID
     strcat(message, g_config.uuid);
@@ -1580,12 +1583,13 @@ ErrorCode copy_object_data_to_file(char *file_name,
         datatype to char
         */
         memset(response_buf, 0, sizeof(response_buf));
-        sprintf(response_buf, "%s;%d;%d;%d;%d;",
+        sprintf(response_buf, "%s;%d;%d;%d;%d;%d;",
                 temp->scanned_mac_address,
                 temp->initial_scanned_time,
                 temp->final_scanned_time,
                 temp->rssi,
-                temp->is_button_pressed);
+                temp->is_button_pressed,
+                temp->battery_voltage);
 
         /* Write the content to the file */
         fputs(response_buf, track_file);
@@ -1994,7 +1998,8 @@ ErrorCode *start_ble_scanning(void *param){
                                                
                                     send_to_push_dongle(&info->bdaddr, BLE,
                                                         rssi,
-                                                        is_button_pressed);
+                                                        is_button_pressed,
+                                                        battery_voltage);
 
                                 }else if(0 == 
                                     strncmp(&payload[0],
@@ -2013,7 +2018,8 @@ ErrorCode *start_ble_scanning(void *param){
                                                
                                     send_to_push_dongle(&info->bdaddr, BLE,
                                                         rssi,
-                                                        is_button_pressed);
+                                                        is_button_pressed,
+                                                        battery_voltage);
 
                                 }
                             }else{
@@ -2025,7 +2031,8 @@ ErrorCode *start_ble_scanning(void *param){
                                            is_button_pressed);
                                 send_to_push_dongle(&info->bdaddr, BLE,
                                                     rssi,
-                                                    is_button_pressed);
+                                                    is_button_pressed,
+                                                    battery_voltage);
                             }
                             break;
                         }
@@ -2071,6 +2078,7 @@ ErrorCode *start_br_scanning(void* param) {
     bool keep_scanning;
     int rssi;
     int is_button_pressed = 0;
+    int battery_voltage = 0;
 
     zlog_debug(category_debug, ">> start_br_scanning... ");
 
@@ -2217,18 +2225,19 @@ ErrorCode *start_br_scanning(void* param) {
                                     (sizeof(*info_rssi) * results_id) + 1;
 
                         if (info_rssi->rssi > g_config.scan_rssi_coverage) {
-/* For testing BR scanning parameters
+                            /* For testing BR scanning parameters
                             char address[LENGTH_OF_MAC_ADDRESS];
                             ba2str(&info_rssi->bdaddr, address);
                             strcat(address, "\0");
                             zlog_debug(category_debug,
                                        "Detected device[BR]: %s - RSSI %4d",
                                        address, info_rssi->rssi);
-*/
+                            */                           
                             send_to_push_dongle(&info_rssi->bdaddr,
                                                 BR_EDR,
                                                 info_rssi->rssi,
-                                                is_button_pressed);
+                                                is_button_pressed,
+                                                battery_voltage);
                         }
                     }
                 }
