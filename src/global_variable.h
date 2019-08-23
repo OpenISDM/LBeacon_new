@@ -49,9 +49,6 @@
 /* Timeout in seconds for UDP recevie socket */
 #define TIMEOUT_UDP_RECEIVCE_IN_SEC 5
 
-/* Time interval in micro seconds for busy-wait checking in threads */
-#define INTERVAL_FOR_BUSY_WAITING_CHECK_IN_MICRO_SECONDS 100000
-
 /* The configuration file structure */
 /* The following BeaconConfig structure is not used by LBeacon, and it is 
    here for compatible with BeDIS common library. */

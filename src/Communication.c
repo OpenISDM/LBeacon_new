@@ -244,7 +244,7 @@ ErrorCode send_data(void *udp_config){
                 }
             }
         }else{
-            usleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_MICRO_SECONDS);
+            sleep_t(BUSY_WAITING_TIME_IN_MS);
         }
     }
     // 3. close the send socket

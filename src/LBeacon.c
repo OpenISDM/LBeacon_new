@@ -1357,7 +1357,7 @@ ErrorCode manage_communication(){
                 /* sleep a short time to prevent occupying CPU in this
                 busy while loop.
                 */
-                usleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_MICRO_SECONDS);
+                sleep_t(BUSY_WAITING_TIME_IN_MS);
             }
         }else{
             /* Update gateway_latest_time to make LBeacon aware that
@@ -2324,7 +2324,7 @@ ErrorCode *timeout_cleanup(void* param){
         /* sleep a short time to prevent occupying CPU in this
         busy while loop.
         */
-        usleep(INTERVAL_FOR_BUSY_WAITING_CHECK_IN_MICRO_SECONDS);
+        sleep_t(BUSY_WAITING_TIME_IN_MS);
 
         if(mp_slots_usage_percentage(&mempool) >=
            MEMPOOL_USAGE_THRESHOLD){
