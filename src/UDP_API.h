@@ -49,23 +49,10 @@
 
 
 #define UDP_SELECT_TIMEOUT 30    //second
-#define SLEEP_TIME_IN_MS 100 //milliseconds
+#define SLEEP_TIME_IN_MS 5 //  seconds
 
 /* If need to debug. */
-#define debugging
-
-typedef struct {
-
-    char send_ipv4_addr[NETWORK_ADDR_LENGTH];
-    int send_portno;
-    spkt_ptr send_pkt_queue;
-
-    struct sockaddr_in si_recv;
-    int recv_portno;
-    int  recv_socket;
-    spkt_ptr recv_pkt_queue;
-
-} sudp_config_beacon;
+//#define debugging
 
 typedef struct {
 
@@ -76,8 +63,6 @@ typedef struct {
     int send_port;
 
     int recv_port;
-
-    char Local_Address[NETWORK_ADDR_LENGTH];
 
     pthread_t udp_send, udp_receive;
 

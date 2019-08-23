@@ -151,13 +151,6 @@ to determine whether to cleanup all lists. */
 /* Number of digits of MAC address to compare */
 #define NUMBER_DIGITS_TO_COMPARE 4
 
-/* Number of worker threads in the thread pool used by communication unit */
-#define NUMBER_WORK_THREADS 16
-
-/* Number of worker threads in the thread pool to receive requests from gateway
-used by communication unit */
-#define NUMBER_RECEIVE_THREAD 4
-
 /* Maximum length in number of bytes of basic info of each response from
 LBeacon to gateway.
 */
@@ -327,7 +320,7 @@ extern int errno;
 Config g_config;
 
 /* The struct of UDP configuration */
-sudp_config_beacon beacon_udp_config;
+sudp_config udp_config;
 
 /* Heads of three lists of structs for recording scanned devices */
 
@@ -359,6 +352,9 @@ Memory_Pool mempool;
 
 /* The pthread lock that controls access to lists */
 pthread_mutex_t  list_lock;
+
+/* Variables for storing the last polling times in second*/\
+int gateway_latest_polling_time;
 
 #ifdef Bluetooth_classic
 
@@ -685,7 +681,8 @@ ErrorCode handle_health_report();
 
   Parameters:
 
-      None
+      param - not used. This parameter is defined to meet the definition of
+              pthread_create() function
 
   Return value:
 
@@ -693,7 +690,7 @@ ErrorCode handle_health_report();
                   fails or WORK SUCCESSFULLY otherwise
 */
 
-ErrorCode manage_communication();
+ErrorCode *manage_communication(void *param);
 
 /*
   copy_object_data_to_file:
@@ -891,6 +888,40 @@ ErrorCode *timeout_cleanup(void *param);
 */
 
 ErrorCode cleanup_exit();
+
+
+/*
+  Wifi_init:
+
+     This function initializes the Wifi's objects.
+
+  Parameters:
+
+     None
+
+  Return value:
+
+     ErrorCode - The error code for the corresponding error or successful
+
+ */
+ErrorCode Wifi_init();
+
+
+/*
+  Wifi_free:
+
+     When called, this function frees the queue of the Wi-Fi pkts and sockets.
+
+  Parameters:
+
+     None
+
+  Return value:
+
+     None
+
+*/
+void Wifi_free();
 
 /*
   EXTERNAL FUNCTIONS

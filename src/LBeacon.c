@@ -48,8 +48,6 @@
 
 #include "LBeacon.h"
 #include "zlog.h"
-#include "Communication.h"
-#include "thpool.h"
 
 unsigned int *uuid_str_to_data(char *uuid) {
     char conversion[] = "0123456789ABCDEF";
@@ -1056,19 +1054,9 @@ ErrorCode send_join_request(){
         return E_PREPARE_RESPONSE_BASIC_INFO;
     }
 
-    ret_val = addpkt(&beacon_udp_config.send_pkt_queue,
-                     UDP, beacon_udp_config.send_ipv4_addr, message,
-                     sizeof(message));
+    udp_addpkt( &udp_config, g_config.gateway_addr, message,
+                sizeof(message));
 
-    if(pkt_Queue_SUCCESS != ret_val){
-        zlog_error(category_health_report,
-                   "Unable to add packet to queue, error=[%d]",
-                   ret_val);
-        zlog_error(category_debug,
-                   "Unable to add packet to queue, error=[%d]",
-                   ret_val);
-        return E_ADD_PACKET_TO_QUEUE;
-    }
     return WORK_SUCCESSFULLY;
 }
 
@@ -1203,19 +1191,10 @@ ErrorCode handle_tracked_object_data(){
 
     strcat(message, msg_temp_one);
     strcat(message, msg_temp_two);
-    ret_val = addpkt(&beacon_udp_config.send_pkt_queue, UDP,
-                     beacon_udp_config.send_ipv4_addr, message, 
-                     sizeof(message));
 
-    if(pkt_Queue_SUCCESS != ret_val){
-        zlog_error(category_health_report,
-                   "Unable to add packet to queue, error=[%d]",
-                   ret_val);
-        zlog_error(category_debug,
-                   "Unable to add packet to queue, error=[%d]",
-                   ret_val);
-        return E_ADD_PACKET_TO_QUEUE;
-    }
+    udp_addpkt( &udp_config, g_config.gateway_addr, message,
+                sizeof(message));
+
     return WORK_SUCCESSFULLY;
 }
 
@@ -1293,27 +1272,16 @@ ErrorCode handle_health_report(){
 
     strcat(message, msg_temp_one);
 
-    ret_val = addpkt(&beacon_udp_config.send_pkt_queue, UDP,
-                     beacon_udp_config.send_ipv4_addr, message, 
-                     sizeof(message));
-
-    if(pkt_Queue_SUCCESS != ret_val){
-        zlog_error(category_health_report,
-                   "Unable to add packet to queue, error=[%d]",
-                   ret_val);
-        zlog_error(category_debug,
-                   "Unable to add packet to queue, error=[%d]",
-                   ret_val);
-        return E_ADD_PACKET_TO_QUEUE;
-    }
+    udp_addpkt( &udp_config, g_config.gateway_addr, message,
+                sizeof(message));
+   
     return WORK_SUCCESSFULLY;
 }
 
-ErrorCode manage_communication(){
+ErrorCode *manage_communication(void *param){
     struct timespec current_time;
     struct timespec gateway_latest_time;
     
-    int last_join_request_time = 0;
     JoinStatus join_status = JOIN_UNKNOWN;
     char buf[WIFI_MESSAGE_LENGTH];
     char *from_direction = NULL;
@@ -1323,6 +1291,7 @@ ErrorCode manage_communication(){
 
     int pkt_direction = 0;
     int pkt_type = 0;
+    float API_version_value = 0;
     char *saveptr = NULL;
     char *remain_string = NULL;
 
@@ -1331,67 +1300,51 @@ ErrorCode manage_communication(){
     clock_gettime(CLOCK_MONOTONIC, &gateway_latest_time);
 
     while(true == ready_to_work){
-        if(true == is_null(&beacon_udp_config.recv_pkt_queue)){
-            /* When LBeacon has not gotten packets from the gateway for
-            INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC seconds or longer,
-            LBeacon sends request_to_join to gateway again. The purpose
-            is to handle the gateway version upgrade scenario. In this case if
-            gateway is restarted, gateway might not keep the registered
-            LBeacon ID map. So LBeacon needs to send request_to_join again to
-            establish the relationship with the gateway.
-            */
-            clock_gettime(CLOCK_MONOTONIC, &current_time);
 
-            if((current_time.tv_sec - gateway_latest_time.tv_sec >
-                INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC) &&
-                (current_time.tv_sec - last_join_request_time >
-                INTERVAL_FOR_RECONNECT_GATEWAY_IN_SEC)){
-
-                zlog_info(category_debug,
-                          "Send requets_to_join to gateway again");
-
-                if(WORK_SUCCESSFULLY == send_join_request()){
-                    last_join_request_time = current_time.tv_sec;
-                }
-            }else{
-                /* sleep a short time to prevent occupying CPU in this
-                busy while loop.
-                */
-                sleep_t(BUSY_WAITING_TIME_IN_MS);
-            }
-        }else{
-            /* Update gateway_latest_time to make LBeacon aware that
-            its connection to gateway is still okay.
-            */
+        sPkt tmp_pkt = udp_getrecv( &udp_config);
+            
+        if(tmp_pkt.type == UDP){
             clock_gettime(CLOCK_MONOTONIC, &gateway_latest_time);
-
-            pkt_type = undefined;
-            /* Get one packet from receive packet queue
-            */
-            sPkt tmp_pkt = get_pkt(&beacon_udp_config.recv_pkt_queue);
+            
+            gateway_latest_polling_time = gateway_latest_time.tv_sec;
 
             memset(buf, 0, sizeof(buf));
             strcpy(buf, tmp_pkt.content); 
 
             remain_string = buf;
        
-            from_direction = strtok_save(buf, DELIMITER_SEMICOLON, &saveptr);
-            pkt_direction = atoi(from_direction);
+            from_direction = strtok_save(buf, DELIMITER_SEMICOLON, 
+                                         &saveptr);
+            if(from_direction == NULL)
+            {
+                continue;
+            }      
             remain_string = remain_string + strlen(from_direction) + 
-                            strlen(DELIMITER_SEMICOLON);
-
-            request_type = strtok_save(NULL, DELIMITER_SEMICOLON, &saveptr);
-            pkt_type = atoi(request_type);
+                            strlen(DELIMITER_SEMICOLON);            
+            sscanf(from_direction, "%d", &pkt_direction);
+            
+            request_type = strtok_save(NULL, DELIMITER_SEMICOLON, 
+                                       &saveptr);
+            if(request_type == NULL){
+                continue;
+            }
             remain_string = remain_string + strlen(request_type) + 
                             strlen(DELIMITER_SEMICOLON);
+            sscanf(request_type, "%d", &pkt_type);
                 
-            API_version = strtok_save(NULL, DELIMITER_SEMICOLON, &saveptr);
+            API_version = strtok_save(NULL, DELIMITER_SEMICOLON, 
+                                      &saveptr);
+            if(API_version == NULL){
+                continue;
+            }
             remain_string = remain_string + strlen(API_version) + 
                             strlen(DELIMITER_SEMICOLON);
-
+            sscanf(API_version, "%f", &API_version_value);
+            
             packet_content = remain_string;
-            zlog_info(category_debug, "pkt_direction=[%d], pkt_type=[%d], " \
-                      "content=[%s]", pkt_direction, pkt_type, 
+            zlog_info(category_debug, "pkt_direction=[%d], " \
+                      "pkt_type=[%d], API_version=[%f], content=[%s]", 
+                      pkt_direction, pkt_type, API_version_value, 
                       packet_content);
 
             if(from_gateway == pkt_direction){
@@ -1401,6 +1354,7 @@ ErrorCode manage_communication(){
                 switch(pkt_type){
 
                     case join_response:
+
                         zlog_info(category_debug,
                                   "Receive join_response from gateway");
                         handle_join_response(packet_content, &join_status);
@@ -1409,12 +1363,15 @@ ErrorCode manage_communication(){
                         break; // join_response case
 
                     case tracked_object_data:
+                    
                         zlog_info(category_debug,
-                                  "Receive tracked_object_data from gateway");
+                                  "Receive tracked_object_data from " \
+                                  "gateway");
                         handle_tracked_object_data();
                         break; // tracked_object_data case
 
                     case beacon_health_report:
+                      
                         zlog_info(category_debug,
                                   "Receive health_report from gateway");
                         handle_health_report();
@@ -1426,8 +1383,11 @@ ErrorCode manage_communication(){
                                   "gateway",
                                   pkt_type);
                         break; // default case
-                 } // switch
+                } // switch
             }
+        }else {
+            /* If there is no packet received, sleep a short time */
+            sleep_t(BUSY_WAITING_TIME_IN_MS);
         }
     } // end of the while
 
@@ -1858,6 +1818,7 @@ ErrorCode *start_ble_scanning(void *param){
     zlog_debug(category_debug, ">> start_ble_scanning... ");
 
     while(true == ready_to_work){
+
         /* Get the dongle id */
         dongle_device_id = g_config.scan_dongle_id;
         /*
@@ -2376,7 +2337,7 @@ ErrorCode cleanup_exit(){
 
     pthread_mutex_destroy(&list_lock);
 
-    Wifi_free(&beacon_udp_config);
+    Wifi_free();
 
 #ifdef Bluetooth_classic
     /* Release the handler for Bluetooth */
@@ -2389,14 +2350,35 @@ ErrorCode cleanup_exit(){
 }
 
 
+ErrorCode Wifi_init(){
+    
+    /* Initialize the Wifi cinfig file */
+    if(udp_initial(&udp_config, g_config.gateway_port, g_config.local_client_port)
+                   != WORK_SUCCESSFULLY){
+
+        /* Error handling TODO */
+        return E_WIFI_INIT_FAIL;
+    }
+    return WORK_SUCCESSFULLY;
+}
+
+void Wifi_free(){
+
+    /* Release the Wifi elements and close the connection. */
+    udp_release( &udp_config);
+    return (void)NULL; 
+}
+
 int main(int argc, char **argv) {
     ErrorCode return_value = WORK_SUCCESSFULLY;
     struct sigaction sigint_handler;
     pthread_t br_scanning_thread;
     pthread_t ble_scanning_thread;
     pthread_t timer_thread;
-    Threadpool thpool;
+    pthread_t communication_thread;
     int id = 0;
+    int last_join_request_time = 0;
+    struct timespec current_time;
 
     /*Initialize the global flag */
     ready_to_work = true;
@@ -2538,11 +2520,7 @@ int main(int argc, char **argv) {
     }
 
     /* Initialize the wifi connection to gateway */
-    strcpy(beacon_udp_config.send_ipv4_addr, g_config.gateway_addr);
-    beacon_udp_config.send_portno = g_config.gateway_port;
-    beacon_udp_config.recv_portno = g_config.local_client_port;
-
-    return_value = Wifi_init(&beacon_udp_config);
+    return_value = Wifi_init();
     if(WORK_SUCCESSFULLY != return_value){
         zlog_error(category_health_report,
                    "Error initializing network connection to gateway");
@@ -2550,40 +2528,51 @@ int main(int argc, char **argv) {
                    "Error initializing network connection to gateway");
     }
 
-    /* Initialize the thread pool and worker threads */
-    thpool = thpool_init(NUMBER_WORK_THREADS);
+     /* Create the thread for communicating with gateway */
+    return_value = startThread(&communication_thread,
+                               manage_communication, NULL);
 
-    if(NULL != thpool){
-        for(id = 0; id < NUMBER_RECEIVE_THREAD; id++){
-            thpool_add_work(thpool,(void*)receive_data,
-                            (sudp_config_beacon *) &beacon_udp_config, 0);
-        }
-
-        for(id = NUMBER_RECEIVE_THREAD; id < NUMBER_WORK_THREADS; id++){
-            thpool_add_work(thpool,(void*)send_data ,
-                            (sudp_config_beacon *) &beacon_udp_config, 0);
-        }
-    }else{
+    if(return_value != WORK_SUCCESSFULLY){
         zlog_error(category_health_report,
-                   "Unable to initialize thread pool");
+                   "Error creating thread for manage_communication");
         zlog_error(category_debug,
-                   "Unable to initialize thread pool");
-    } // if-else
-
+                   "Error creating thread for manage_communication");
+    }
+    
+    gateway_latest_polling_time = 0;
+    last_join_request_time = 0;
+    
     while(true == ready_to_work){
-        /* Although manage_communication contains a while-loop with the
-        same condition inside, we should have this while-loop here to
-        make sure the erros returned from manage_communication are
-        treated as soft-errors and do not cause this program to terminate.
+        
+        /* When LBeacon has not gotten packets from the gateway for
+        INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC seconds or longer,
+        LBeacon sends request_to_join to gateway again. The purpose
+        is to handle the gateway version upgrade scenario. In this case if
+        gateway is restarted, gateway might not keep the registered
+        LBeacon ID map. So LBeacon needs to send request_to_join again to
+        establish the relationship with the gateway.
         */
-        manage_communication();
-    }
+            
+        clock_gettime(CLOCK_MONOTONIC, &current_time);
 
-    if(NULL != thpool){
-        /* Free the thread pool */
-        thpool_destroy(thpool);
-    }
+        if((current_time.tv_sec - gateway_latest_polling_time >
+            INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC) &&
+            (current_time.tv_sec - last_join_request_time >
+            INTERVAL_FOR_RECONNECT_GATEWAY_IN_SEC)){
 
+            zlog_info(category_debug,
+                      "Send requets_to_join to gateway again");
+
+            if(WORK_SUCCESSFULLY == send_join_request()){
+                last_join_request_time = current_time.tv_sec;
+            }
+            
+        }else{
+            
+            sleep_t(BUSY_WAITING_TIME_IN_MS);
+        }            
+    }
+    
     /* When signal is received, disable message advertising */
     disable_advertising(g_config.advertise_dongle_id);
 
