@@ -2580,7 +2580,7 @@ int main(int argc, char **argv) {
             
         }else{
             
-            sleep_t(BUSY_WAITING_TIME_IN_MS);
+            sleep_t(NORMAL_WAITING_TIME_IN_MS);
         }            
     }
     
