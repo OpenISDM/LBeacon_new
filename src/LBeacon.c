@@ -1054,7 +1054,10 @@ ErrorCode send_join_request(){
         return E_PREPARE_RESPONSE_BASIC_INFO;
     }
 
-    udp_addpkt( &udp_config, g_config.gateway_addr, message,
+    udp_addpkt( &udp_config, 
+                g_config.gateway_addr, 
+                g_config.gateway_port,
+                message,
                 sizeof(message));
 
     return WORK_SUCCESSFULLY;
@@ -1192,7 +1195,10 @@ ErrorCode handle_tracked_object_data(){
     strcat(message, msg_temp_one);
     strcat(message, msg_temp_two);
 
-    udp_addpkt( &udp_config, g_config.gateway_addr, message,
+    udp_addpkt( &udp_config, 
+                g_config.gateway_addr, 
+                g_config.gateway_port,
+                message,
                 sizeof(message));
 
     return WORK_SUCCESSFULLY;
@@ -1272,7 +1278,10 @@ ErrorCode handle_health_report(){
 
     strcat(message, msg_temp_one);
 
-    udp_addpkt( &udp_config, g_config.gateway_addr, message,
+    udp_addpkt( &udp_config, 
+                g_config.gateway_addr, 
+                g_config.gateway_port,
+                message,
                 sizeof(message));
    
     return WORK_SUCCESSFULLY;
@@ -1303,92 +1312,94 @@ ErrorCode *manage_communication(void *param){
 
         sPkt tmp_pkt = udp_getrecv( &udp_config);
             
-        if(tmp_pkt.type == UDP){
-            clock_gettime(CLOCK_MONOTONIC, &gateway_latest_time);
-            
-            gateway_latest_polling_time = gateway_latest_time.tv_sec;
-
-            memset(buf, 0, sizeof(buf));
-            strcpy(buf, tmp_pkt.content); 
-
-            remain_string = buf;
-       
-            from_direction = strtok_save(buf, DELIMITER_SEMICOLON, 
-                                         &saveptr);
-            if(from_direction == NULL)
-            {
-                continue;
-            }      
-            remain_string = remain_string + strlen(from_direction) + 
-                            strlen(DELIMITER_SEMICOLON);            
-            sscanf(from_direction, "%d", &pkt_direction);
-            
-            request_type = strtok_save(NULL, DELIMITER_SEMICOLON, 
-                                       &saveptr);
-            if(request_type == NULL){
-                continue;
-            }
-            remain_string = remain_string + strlen(request_type) + 
-                            strlen(DELIMITER_SEMICOLON);
-            sscanf(request_type, "%d", &pkt_type);
-                
-            API_version = strtok_save(NULL, DELIMITER_SEMICOLON, 
-                                      &saveptr);
-            if(API_version == NULL){
-                continue;
-            }
-            remain_string = remain_string + strlen(API_version) + 
-                            strlen(DELIMITER_SEMICOLON);
-            sscanf(API_version, "%f", &API_version_value);
-            
-            packet_content = remain_string;
-            zlog_info(category_debug, "pkt_direction=[%d], " \
-                      "pkt_type=[%d], API_version=[%f], content=[%s]", 
-                      pkt_direction, pkt_type, API_version_value, 
-                      packet_content);
-
-            if(from_gateway == pkt_direction){
-
-                /* According to the polled data type, prepare a work item
-                */
-                switch(pkt_type){
-
-                    case join_response:
-
-                        zlog_info(category_debug,
-                                  "Receive join_response from gateway");
-                        handle_join_response(packet_content, &join_status);
-                        zlog_info(category_debug,
-                                  "join_status = [%d]", join_status);
-                        break; // join_response case
-
-                    case tracked_object_data:
-                    
-                        zlog_info(category_debug,
-                                  "Receive tracked_object_data from " \
-                                  "gateway");
-                        handle_tracked_object_data();
-                        break; // tracked_object_data case
-
-                    case beacon_health_report:
-                      
-                        zlog_info(category_debug,
-                                  "Receive health_report from gateway");
-                        handle_health_report();
-                        break; // health_report case
-
-                    default:
-                        zlog_warn(category_debug,
-                                  "Receive unknown packet type=[%d] from "
-                                  "gateway",
-                                  pkt_type);
-                        break; // default case
-                } // switch
-            }
-        }else {
+        if(tmp_pkt.is_null == true)
+        {
             /* If there is no packet received, sleep a short time */
             sleep_t(BUSY_WAITING_TIME_IN_MS);
         }
+            
+        clock_gettime(CLOCK_MONOTONIC, &gateway_latest_time);
+
+        gateway_latest_polling_time = gateway_latest_time.tv_sec;
+
+        memset(buf, 0, sizeof(buf));
+        strcpy(buf, tmp_pkt.content); 
+
+        remain_string = buf;
+       
+        from_direction = strtok_save(buf, DELIMITER_SEMICOLON, 
+                                     &saveptr);
+        if(from_direction == NULL)
+        {
+            continue;
+        }      
+        remain_string = remain_string + strlen(from_direction) + 
+                        strlen(DELIMITER_SEMICOLON);            
+        sscanf(from_direction, "%d", &pkt_direction);
+            
+        request_type = strtok_save(NULL, DELIMITER_SEMICOLON, 
+                                   &saveptr);
+        if(request_type == NULL){
+            continue;
+        }
+        remain_string = remain_string + strlen(request_type) + 
+                        strlen(DELIMITER_SEMICOLON);
+        sscanf(request_type, "%d", &pkt_type);
+                
+        API_version = strtok_save(NULL, DELIMITER_SEMICOLON, 
+                                  &saveptr);
+        if(API_version == NULL){
+            continue;
+        }
+        remain_string = remain_string + strlen(API_version) + 
+                        strlen(DELIMITER_SEMICOLON);
+        sscanf(API_version, "%f", &API_version_value);
+            
+        packet_content = remain_string;
+        zlog_info(category_debug, "pkt_direction=[%d], " \
+                  "pkt_type=[%d], API_version=[%f], content=[%s]", 
+                  pkt_direction, pkt_type, API_version_value, 
+                  packet_content);
+
+        if(from_gateway == pkt_direction){
+
+            /* According to the polled data type, prepare a work item
+            */
+            switch(pkt_type){
+
+                case join_response:
+
+                    zlog_info(category_debug,
+                              "Receive join_response from gateway");
+                    handle_join_response(packet_content, &join_status);
+                    zlog_info(category_debug,
+                              "join_status = [%d]", join_status);
+                    break; // join_response case
+
+                case tracked_object_data:
+                
+                    zlog_info(category_debug,
+                              "Receive tracked_object_data from " \
+                              "gateway");
+                    handle_tracked_object_data();
+                    break; // tracked_object_data case
+
+                case beacon_health_report:
+                  
+                    zlog_info(category_debug,
+                              "Receive health_report from gateway");
+                    handle_health_report();
+                    break; // health_report case
+
+                default:
+                    zlog_warn(category_debug,
+                              "Receive unknown packet type=[%d] from "
+                              "gateway",
+                              pkt_type);
+                    break; // default case
+            } // switch
+        }
+      
     } // end of the while
 
     zlog_debug(category_debug, "<< manage_communication ");
@@ -2353,7 +2364,7 @@ ErrorCode cleanup_exit(){
 ErrorCode Wifi_init(){
     
     /* Initialize the Wifi cinfig file */
-    if(udp_initial(&udp_config, g_config.gateway_port, g_config.local_client_port)
+    if(udp_initial(&udp_config, g_config.local_client_port)
                    != WORK_SUCCESSFULLY){
 
         /* Error handling TODO */
