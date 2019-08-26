@@ -1,6 +1,6 @@
 # LBeacon
 #---------------------------------------------------------------------------
-CC = gcc -std=gnu99
+CC = gcc -std=gnu99 -O3
 OBJS = LinkedList.o Mempool.o thpool.o UDP_API.o pkt_Queue.o BeDIS.o LBeacon.o
 LIB = -L /usr/local/lib
 
@@ -23,7 +23,7 @@ UDP_API.o: UDP_API.c UDP_API.h pkt_Queue.o
 	$(CC) $(CFLAGS) UDP_API.c -c
 Mempool.o: Mempool.c Mempool.h
 	$(CC) Mempool.c Mempool.h $(LIB) -c
-Thpool.o: thpool.c thpool.h
+thpool.o: thpool.c thpool.h
 	$(CC) thpool.c thpool.h $(LIB) -c
 clean:
 	find . -type f | xargs touch
