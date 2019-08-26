@@ -1316,6 +1316,7 @@ ErrorCode *manage_communication(void *param){
         {
             /* If there is no packet received, sleep a short time */
             sleep_t(BUSY_WAITING_TIME_IN_MS);
+            continue;
         }
             
         clock_gettime(CLOCK_MONOTONIC, &gateway_latest_time);
