@@ -1288,8 +1288,8 @@ ErrorCode handle_health_report(){
 }
 
 ErrorCode *manage_communication(void *param){
-    struct timespec current_time;
-    struct timespec gateway_latest_time;
+    int current_time;
+    int gateway_latest_time;
     
     JoinStatus join_status = JOIN_UNKNOWN;
     char buf[WIFI_MESSAGE_LENGTH];
@@ -1305,8 +1305,9 @@ ErrorCode *manage_communication(void *param){
     char *remain_string = NULL;
 
     zlog_debug(category_debug, ">> manage_communication ");
-    clock_gettime(CLOCK_MONOTONIC, &current_time);
-    clock_gettime(CLOCK_MONOTONIC, &gateway_latest_time);
+    
+    current_time = get_clock_time();
+    gateway_latest_time = get_clock_time();
 
     while(true == ready_to_work){
 
@@ -1319,9 +1320,8 @@ ErrorCode *manage_communication(void *param){
             continue;
         }
             
-        clock_gettime(CLOCK_MONOTONIC, &gateway_latest_time);
-
-        gateway_latest_polling_time = gateway_latest_time.tv_sec;
+        gateway_latest_time = get_clock_time();
+        gateway_latest_polling_time = gateway_latest_time;
 
         memset(buf, 0, sizeof(buf));
         strcpy(buf, tmp_pkt.content); 
@@ -2390,7 +2390,7 @@ int main(int argc, char **argv) {
     pthread_t communication_thread;
     int id = 0;
     int last_join_request_time = 0;
-    struct timespec current_time;
+    int current_time;
 
     /*Initialize the global flag */
     ready_to_work = true;
@@ -2565,18 +2565,18 @@ int main(int argc, char **argv) {
         establish the relationship with the gateway.
         */
             
-        clock_gettime(CLOCK_MONOTONIC, &current_time);
+        current_time = get_clock_time();
 
-        if((current_time.tv_sec - gateway_latest_polling_time >
+        if((current_time - gateway_latest_polling_time >
             INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC) &&
-            (current_time.tv_sec - last_join_request_time >
+            (current_time - last_join_request_time >
             INTERVAL_FOR_RECONNECT_GATEWAY_IN_SEC)){
 
             zlog_info(category_debug,
                       "Send requets_to_join to gateway again");
 
             if(WORK_SUCCESSFULLY == send_join_request()){
-                last_join_request_time = current_time.tv_sec;
+                last_join_request_time = current_time;
             }
             
         }else{
