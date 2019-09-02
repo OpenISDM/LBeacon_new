@@ -194,8 +194,7 @@ ErrorCode get_config(Config *config, char *file_name) {
     FILE *file = NULL;
 
     /* Create spaces for storing the string of the current line being read */
-    char config_setting[CONFIG_BUFFER_SIZE];
-    char *config_message = NULL;
+    char config_message[CONFIG_BUFFER_SIZE];
     char temp_buf[CONFIG_BUFFER_SIZE];
     char *current_ptr = NULL;
     char *save_current_ptr = NULL;
@@ -224,34 +223,22 @@ ErrorCode get_config(Config *config, char *file_name) {
     /* Keep reading each line and store into the config struct */
 
     /* item 1 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    trim_string_tail(config_message);
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     memset(config->coordinate_X, 0, sizeof(config->coordinate_X));
     memcpy(config->coordinate_X, config_message, strlen(config_message));
 
     /* item 2 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    trim_string_tail(config_message);
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     memset(config->coordinate_Y, 0, sizeof(config->coordinate_Y));
     memcpy(config->coordinate_Y, config_message, strlen(config_message));
 
     /* item 3 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    trim_string_tail(config_message);
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     memset(config->coordinate_Z, 0, sizeof(config->coordinate_Z));
     memcpy(config->coordinate_Z, config_message, strlen(config_message));
 
     /* item 4 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    trim_string_tail(config_message);
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     config->lowest_basement_level = atoi(config_message);
 
     /* item 5 */
@@ -267,45 +254,27 @@ ErrorCode get_config(Config *config, char *file_name) {
     zlog_info(category_debug, "Generated UUID: [%s]", config->uuid);
 
     /* item 6 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    trim_string_tail(config_message);
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     config->advertise_dongle_id = atoi(config_message);
 
     /* item 7 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    trim_string_tail(config_message);
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     config->advertise_interval_in_units_0625_ms = atoi(config_message);
 
     /* item 8 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    trim_string_tail(config_message);
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     config->advertise_rssi_value = atoi(config_message);
 
     /* item 9 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    trim_string_tail(config_message);
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     config->scan_dongle_id = atoi(config_message);
 
     /* item 10 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    trim_string_tail(config_message);
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     config->scan_rssi_coverage = atoi(config_message);
 
     /* item 11 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    trim_string_tail(config_message);
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     memset(temp_buf, 0, sizeof(temp_buf));
     memcpy(temp_buf, config_message, strlen(config_message));
 
@@ -333,27 +302,18 @@ ErrorCode get_config(Config *config, char *file_name) {
     }
 
     /* item 12 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    trim_string_tail(config_message);
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     memset(config->gateway_addr, 0, sizeof(config->gateway_addr));
     memcpy(config->gateway_addr, config_message, strlen(config_message));
 
     /* item 13 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    trim_string_tail(config_message);
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     config->gateway_port = atoi(config_message);
 
     memset(g_config.local_addr, 0, sizeof(g_config.local_addr));
 
     /* item 14 */
-    fgets(config_setting, sizeof(config_setting), file);
-    config_message = strstr((char *)config_setting, DELIMITER);
-    config_message = config_message + strlen(DELIMITER);
-    trim_string_tail(config_message);
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     config->local_client_port = atoi(config_message);
 
     zlog_info(category_health_report,
