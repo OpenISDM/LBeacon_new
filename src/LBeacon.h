@@ -130,6 +130,10 @@ LBeacon sends UDP join_request to the gateway again.
 /* Time interval in seconds for reconnect to Gateway */
 #define INTERVAL_FOR_RECONNECT_GATEWAY_IN_SEC 30
 
+/* Number of times to retry opening socket, because socket openning operation
+   may have transient failure. */
+#define SOCKET_OPEN_RETRY 5
+
 /* Number of times to retry open file, because file openning operation may have
    transient failure. */
 #define FILE_OPEN_RETRY 5
