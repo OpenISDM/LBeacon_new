@@ -60,7 +60,7 @@ Authors:
 #include <obexftp/client.h>
 #include "BeDIS.h"
 #include "Version.h"
-#include "Build.h"
+
 
 /*
   CONSTANTS
