@@ -22,7 +22,7 @@
 
  Version:
 
-       2.0,  20190724
+       2.0,  20190911
 
  Abstract:
 
@@ -136,7 +136,13 @@ ErrorCode generate_uuid(Config *config){
     char *saveptr = NULL;
     char *remain_string = NULL;
 
-    /* construct UUID as 000000zz0000xxxxxxxx0000yyyyyyyy format */
+    /* Construct UUID as aaaa00zz0000xxxxxxxx0000yyyyyyyy format to represent 
+       lbeacon location. In the UUID format, aaaa stands for the area id, zz 
+       stands for the floor level with lowest_basement_level adjustment, 
+       xxxxxxxx stands for the relative longitude, and yyyyyyyy stands for
+       the relative latitude.
+    */
+       
     memset(config->uuid, 0, sizeof(config->uuid));
 
     coordinate_X_double = (double)atof(config->coordinate_X);
@@ -161,7 +167,8 @@ ErrorCode generate_uuid(Config *config){
         return E_INPUT_PARAMETER;
     }
 
-    sprintf(config->uuid, "000000%X%X0000",
+    sprintf(config->uuid, "%s00%X%X0000",
+            config->area_id,
             coordinate_Z_int/16,
             coordinate_Z_int%16);
 
@@ -224,24 +231,29 @@ ErrorCode get_config(Config *config, char *file_name) {
 
     /* item 1 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
+    memset(config->area_id, 0, sizeof(config->area_id));
+    memcpy(config->area_id, config_message, strlen(config_message));
+    
+    /* item 2 */
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     memset(config->coordinate_X, 0, sizeof(config->coordinate_X));
     memcpy(config->coordinate_X, config_message, strlen(config_message));
 
-    /* item 2 */
+    /* item 3 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     memset(config->coordinate_Y, 0, sizeof(config->coordinate_Y));
     memcpy(config->coordinate_Y, config_message, strlen(config_message));
 
-    /* item 3 */
+    /* item 4 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     memset(config->coordinate_Z, 0, sizeof(config->coordinate_Z));
     memcpy(config->coordinate_Z, config_message, strlen(config_message));
 
-    /* item 4 */
+    /* item 5 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     config->lowest_basement_level = atoi(config_message);
 
-    /* item 5 */
+    /* item 6 */
     if(WORK_SUCCESSFULLY != generate_uuid(config)){
 
         zlog_error(category_health_report,
@@ -253,27 +265,27 @@ ErrorCode get_config(Config *config, char *file_name) {
 
     zlog_info(category_debug, "Generated UUID: [%s]", config->uuid);
 
-    /* item 6 */
+    /* item 7 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     config->advertise_dongle_id = atoi(config_message);
 
-    /* item 7 */
+    /* item 8 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     config->advertise_interval_in_units_0625_ms = atoi(config_message);
 
-    /* item 8 */
+    /* item 9 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     config->advertise_rssi_value = atoi(config_message);
 
-    /* item 9 */
+    /* item 10 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     config->scan_dongle_id = atoi(config_message);
 
-    /* item 10 */
+    /* item 11 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     config->scan_rssi_coverage = atoi(config_message);
 
-    /* item 11 */
+    /* item 12 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     memset(temp_buf, 0, sizeof(temp_buf));
     memcpy(temp_buf, config_message, strlen(config_message));
@@ -301,18 +313,18 @@ ErrorCode get_config(Config *config, char *file_name) {
                    mac_prefix_node->prefix);
     }
 
-    /* item 12 */
+    /* item 13 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     memset(config->gateway_addr, 0, sizeof(config->gateway_addr));
     memcpy(config->gateway_addr, config_message, strlen(config_message));
 
-    /* item 13 */
+    /* item 14 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     config->gateway_port = atoi(config_message);
 
     memset(g_config.local_addr, 0, sizeof(g_config.local_addr));
 
-    /* item 14 */
+    /* item 15 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     config->local_client_port = atoi(config_message);
 

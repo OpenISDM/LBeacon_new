@@ -22,7 +22,7 @@ File Name:
 
 Version:
 
-    2.0,  20190201
+    2.0,  20190911
 
 Abstract:
 
@@ -183,6 +183,9 @@ to gateway via wifi network link.*/
 /* The configuration file structure */
 
 typedef struct Config {
+
+    /* String representation of the area id of the beacon location */
+    char area_id[CONFIG_BUFFER_SIZE];
 
     /* String representation of the X coordinate of the beacon location */
     char coordinate_X[CONFIG_BUFFER_SIZE];
