@@ -217,6 +217,9 @@ typedef struct Config {
 
     /* The dongle used to scan */
     int scan_dongle_id;
+    
+    /* Time interval in units of 0.625ms between scanning by a LBeacon */
+    int scan_interval_in_units_0625_ms;
 
     /* The required signal strength */
     int scan_rssi_coverage;

@@ -283,9 +283,13 @@ ErrorCode get_config(Config *config, char *file_name) {
 
     /* item 11 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
+    config->scan_interval_in_units_0625_ms = atoi(config_message);
+    
+    /* item 12 */
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     config->scan_rssi_coverage = atoi(config_message);
 
-    /* item 12 */
+    /* item 13 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     memset(temp_buf, 0, sizeof(temp_buf));
     memcpy(temp_buf, config_message, strlen(config_message));
@@ -313,18 +317,18 @@ ErrorCode get_config(Config *config, char *file_name) {
                    mac_prefix_node->prefix);
     }
 
-    /* item 13 */
+    /* item 14 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     memset(config->gateway_addr, 0, sizeof(config->gateway_addr));
     memcpy(config->gateway_addr, config_message, strlen(config_message));
 
-    /* item 14 */
+    /* item 15 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     config->gateway_port = atoi(config_message);
 
     memset(g_config.local_addr, 0, sizeof(g_config.local_addr));
 
-    /* item 15 */
+    /* item 16 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     config->local_client_port = atoi(config_message);
 
@@ -1785,9 +1789,6 @@ ErrorCode *start_ble_scanning(void *param){
     int retry_times = 0;
     struct hci_request scan_params_rq;
     struct hci_request set_mask_rq;
-    /* Time interval is 0.625ms */
-    uint16_t interval = htobs(0x01E0); /* 480*0.625ms = 300ms */
-    uint16_t window = htobs(0x01E0); /* 480*0.625ms = 300ms */
     int i=0;
     uint8_t reports_count;
     int rssi;
@@ -1841,8 +1842,12 @@ ErrorCode *start_ble_scanning(void *param){
         }
 
         /* Set BLE scan parameters */
-        if( 0> hci_le_set_scan_parameters(socket, 0x01, interval,
-                                          window, 0x00, 0x00,
+        if( 0> hci_le_set_scan_parameters(socket, 
+                                          0x01, 
+                                          g_config.scan_interval_in_units_0625_ms,
+                                          g_config.scan_interval_in_units_0625_ms,
+                                          0x00,
+                                          0x00,
                                           HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
 
             zlog_info(category_health_report,
