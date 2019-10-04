@@ -346,31 +346,25 @@ ErrorCode get_config(Config *config, char *file_name) {
     return WORK_SUCCESSFULLY;
 }
 
-void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
+void send_to_push_dongle(char * mac_address,
                          DeviceType device_type,
                          int rssi,
                          int is_button_pressed,
                          int battery_voltage) {
 
-    /* Stores the MAC address as a string */
-    char address[LENGTH_OF_MAC_ADDRESS];
     struct ScannedDevice *temp_node;
-
-    /* Converts the bluetooth device address to a string */
-    ba2str(bluetooth_device_address, address);
-    strcat(address, "\0");
 
     /* Check whether the MAC address has been seen recently by the LBeacon.*/
     switch(device_type){
         case BLE:
-            temp_node = check_is_in_list(address, &BLE_object_list_head);
+            temp_node = check_is_in_list(mac_address, &BLE_object_list_head);
             break;
         case BR_EDR:
             /* BR_EDR devices including BR_EDR phone (feature phone):
             scanned_list should have distinct nodes. So we use scanned_list_head
             for checking the existance of MAC address here.
             */
-            temp_node = check_is_in_list(address, &scanned_list_head);
+            temp_node = check_is_in_list(mac_address, &scanned_list_head);
             break;
         default:
             zlog_error(category_debug, "Unknown device_type=[%d]",
@@ -402,7 +396,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
 
     zlog_debug(category_debug,
                "New device: device_type[%d] - %17s - RSSI %4d",
-               device_type, address, rssi);
+               device_type, mac_address, rssi);
 
     temp_node = (struct ScannedDevice*) mp_alloc(&mempool);
     if(NULL == temp_node){
@@ -427,7 +421,7 @@ void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
     temp_node->battery_voltage = battery_voltage;
 
     /* Copy the MAC address to the node */
-    strncpy(temp_node->scanned_mac_address, address,
+    strncpy(temp_node->scanned_mac_address, mac_address,
             LENGTH_OF_MAC_ADDRESS);
 
     /* Insert the new node into the right lists. */
@@ -1401,7 +1395,7 @@ ErrorCode copy_object_data_to_file(char *file_name,
     unsigned timestamp_init;
     unsigned timestamp_end;
     /* Head of a local list for tracked object */
-    List_Entry local_list_head;
+    struct List_Entry local_list_head;
     DeviceType device_type = list->device_type;
 
     retry_times = FILE_OPEN_RETRY;
@@ -1775,6 +1769,161 @@ failed:
     return E_PARSE_UUID;
 }
 
+ErrorCode *examine_scanned_ble_device(void *param){
+ 
+    struct List_Entry *head_pointer, *tail_pointer;
+    /* Head of a local list for tracked object */
+    struct List_Entry local_list_head;
+    struct List_Entry *list_pointer, *save_list_pointers;
+    
+    struct TempBleDevice *temp;
+    bool is_empty_list;
+    int is_button_pressed;
+    int battery_voltage;
+    struct List_Entry *current_list_entry;
+    struct PrefixString *mac_prefix_node;
+    char payload[LENGTH_OF_ADVERTISEMENT];
+    
+    zlog_debug(category_debug, ">> examine_scanned_ble_device... ");
+
+    while(true == ready_to_work){ 
+    
+        pthread_mutex_lock(&temp_ble_device_list_lock);
+        
+        is_empty_list = is_entry_list_empty(&temp_ble_device_list_head);
+        
+        if(is_empty_list){
+            
+            pthread_mutex_unlock(&temp_ble_device_list_lock);
+            sleep_t(BUSY_WAITING_TIME_IN_MS);
+            continue;
+        }
+            
+        head_pointer = temp_ble_device_list_head.next;   
+        tail_pointer = temp_ble_device_list_head.prev;  
+
+        temp_ble_device_list_head.next = tail_pointer->next;
+        tail_pointer->next->prev = &temp_ble_device_list_head;
+        
+        pthread_mutex_unlock(&temp_ble_device_list_lock);            
+        
+       
+        /* Initialize the local list */
+        init_entry(&local_list_head);
+        local_list_head.next = head_pointer;
+        head_pointer->prev = &local_list_head;
+        local_list_head.prev = tail_pointer;
+        tail_pointer->next = &local_list_head;
+        
+        list_for_each_safe(list_pointer,
+                           save_list_pointers,
+                           &local_list_head){
+
+            temp = ListEntry(list_pointer, TempBleDevice, list_entry);
+            /*
+            zlog_debug(category_debug, "examine_scanned_ble_device " \
+                                       "[%s], [%d]", 
+                                       temp->scanned_mac_address, 
+                                       temp->rssi);
+            */
+            if(temp->rssi < g_config.scan_rssi_coverage){
+                continue;
+            }
+                
+            is_button_pressed = 0;
+            battery_voltage = 0;
+
+            list_for_each(current_list_entry,
+                          &g_config.mac_prefix_list_head){
+                              
+                mac_prefix_node = ListEntry(current_list_entry,
+                                            PrefixString,
+                                            list_entry);
+                
+                if(0 == strncmp(temp->scanned_mac_address, 
+                                mac_prefix_node->prefix,
+                                strlen(mac_prefix_node->prefix))){
+
+                    memset(payload, 0, sizeof(payload));
+
+                    if(WORK_SUCCESSFULLY ==
+                       eir_parse_specific_data(temp->payload,
+                                               temp->payload_length,
+                                               payload,
+                                               sizeof(payload))){
+                                                           
+                        if(0 == 
+                           strncmp(&payload[0], 
+                                   BEDITECH_BUTTON_TAG_IDENTIFIER, 
+                                   16)){
+                                                    
+                            is_button_pressed = payload[16];
+                         
+                            zlog_debug(category_debug,
+                                       "Detected p-tag[LE]: %s - " \
+                                       "RSSI %4d, pushed=[%d]",
+                                       temp->scanned_mac_address, 
+                                       temp->rssi,
+                                       is_button_pressed);
+                                               
+                            send_to_push_dongle(temp->scanned_mac_address,
+                                                BLE,
+                                                temp->rssi,
+                                                is_button_pressed,
+                                                battery_voltage);
+
+                        }else if(0 == 
+                                 strncmp(&payload[0],
+                                         BEDITECH_BUTTON_BATTERY_TAG_IDENTIFIER, 
+                                         4)){
+                                                    
+                            is_button_pressed = payload[4];
+
+                            battery_voltage = payload[5];
+                                    
+                            zlog_debug(category_debug,
+                                       "Detected p-tag[LE]: %s - " \
+                                       "RSSI %4d, pushed=[%d], voltage=[%d]",
+                                       temp->scanned_mac_address,
+                                       temp->rssi,
+                                       is_button_pressed,
+                                       battery_voltage);
+                                               
+                            send_to_push_dongle(temp->scanned_mac_address,
+                                                BLE,
+                                                temp->rssi,
+                                                is_button_pressed,
+                                                battery_voltage);
+
+                        }
+                    }else{
+                        
+                        is_button_pressed = 0;
+                        zlog_debug(category_debug,
+                                   "Detected o-tag[LE]: %s - " \
+                                   "RSSI %4d, pushed=[%d]",
+                                   temp->scanned_mac_address,
+                                   temp->rssi,
+                                   is_button_pressed);
+                                   
+                        send_to_push_dongle(temp->scanned_mac_address,
+                                            BLE,
+                                            temp->rssi,
+                                            is_button_pressed,
+                                            battery_voltage);
+                    }
+                    
+                    break;
+                }
+            }
+            
+            mp_free(&temp_ble_device_mempool, temp);
+        }
+    }
+    
+    zlog_debug(category_debug, "<< examine_scanned_ble_device... ");
+    return WORK_SUCCESSFULLY;
+}
 
 ErrorCode *start_ble_scanning(void *param){
     /* A buffer for the callback event */
@@ -1793,11 +1942,7 @@ ErrorCode *start_ble_scanning(void *param){
     uint8_t reports_count;
     int rssi;
     char address[LENGTH_OF_MAC_ADDRESS];
-    char payload[LENGTH_OF_ADVERTISEMENT];
-    int is_button_pressed;
-    int battery_voltage;
-    struct List_Entry *current_list_entry;
-    struct PrefixString *mac_prefix_node;
+    struct TempBleDevice *temp_node;
 
 
     zlog_debug(category_debug, ">> start_ble_scanning... ");
@@ -1908,86 +2053,46 @@ ErrorCode *start_ble_scanning(void *param){
             if(EVT_LE_ADVERTISING_REPORT == meta->subevent){
                 info = (le_advertising_info *)(meta->data + 1);
 
+                ba2str(&info->bdaddr, address);
+                strcat(address, "\0");
+                
                 /* the rssi is in the next byte after the packet*/
                 rssi = (signed char)info->data[info->length];
-
-                /* If the rssi vaule is within the threshold */
-                if(rssi > g_config.scan_rssi_coverage){
-                    ba2str(&info->bdaddr, address);
-                    strcat(address, "\0");
-                    is_button_pressed = 0;
-                    battery_voltage = 0;
-
-                    list_for_each(current_list_entry,
-                                  &g_config.mac_prefix_list_head){
-                        mac_prefix_node = ListEntry(current_list_entry,
-                                                    PrefixString,
-                                                    list_entry);
-                        if(0 == strncmp(address, mac_prefix_node->prefix,
-                                        strlen(mac_prefix_node->prefix))){
-
-                            memset(payload, 0, sizeof(payload));
-
-                            if(WORK_SUCCESSFULLY ==
-                               eir_parse_specific_data(info->data,
-                                                       info->length,
-                                                       payload,
-                                                       sizeof(payload))){
-                                                           
-                                if(0 == 
-                                    strncmp(&payload[0],
-                                            BEDITECH_BUTTON_TAG_IDENTIFIER, 16)){
-                                                    
-                                    is_button_pressed = payload[16];
-                         
-                                    zlog_debug(category_debug,
-                                               "Detected p-tag[LE]: %s - " \
-                                               "RSSI %4d, pushed=[%d]",
-                                               address, rssi,
-                                               is_button_pressed);
-                                               
-                                    send_to_push_dongle(&info->bdaddr, BLE,
-                                                        rssi,
-                                                        is_button_pressed,
-                                                        battery_voltage);
-
-                                }else if(0 == 
-                                    strncmp(&payload[0],
-                                            BEDITECH_BUTTON_BATTERY_TAG_IDENTIFIER, 4)){
-                                                    
-                                    is_button_pressed = payload[4];
-
-                                    battery_voltage = payload[5];
-                                    
-                                    zlog_debug(category_debug,
-                                               "Detected p-tag[LE]: %s - " \
-                                               "RSSI %4d, pushed=[%d], voltage=[%d]",
-                                               address, rssi,
-                                               is_button_pressed,
-                                               battery_voltage);
-                                               
-                                    send_to_push_dongle(&info->bdaddr, BLE,
-                                                        rssi,
-                                                        is_button_pressed,
-                                                        battery_voltage);
-
-                                }
-                            }else{
-                                is_button_pressed = 0;
-                                zlog_debug(category_debug,
-                                           "Detected o-tag[LE]: %s - " \
-                                           "RSSI %4d, pushed=[%d]",
-                                           address, rssi,
-                                           is_button_pressed);
-                                send_to_push_dongle(&info->bdaddr, BLE,
-                                                    rssi,
-                                                    is_button_pressed,
-                                                    battery_voltage);
-                            }
-                            break;
-                        }
-                    }
+                
+                temp_node = (struct TempBleDevice*) mp_alloc(&temp_ble_device_mempool);
+                
+                if(NULL == temp_node){
+                    zlog_error(category_health_report,
+                               "Unable to get memory from mp_alloc(). "
+                               "Skip this new device.");
+                    zlog_error(category_debug,
+                               "Unable to get memory from mp_alloc(). "
+                               "Skip this new device.");
+                    continue;
                 }
+                
+                memset(temp_node, 0, sizeof(TempBleDevice));
+                
+                init_entry(&temp_node->list_entry);
+                
+                strcpy(temp_node -> scanned_mac_address, address);
+                memcpy(temp_node -> payload, info->data, info->length);
+                temp_node -> payload_length = info->length;
+                temp_node -> rssi = rssi;
+                /*
+                zlog_debug(category_debug, "start_ble_scanning scanned " \
+                                           "[%s], [%d], [%d]", 
+                                           temp_node->scanned_mac_address, 
+                                           temp_node->payload_length,
+                                           temp_node->rssi);
+                */
+                pthread_mutex_lock(&temp_ble_device_list_lock);
+                
+                insert_list_tail(&temp_node->list_entry,
+                                 &temp_ble_device_list_head);
+                
+                pthread_mutex_unlock(&temp_ble_device_list_lock);  
+                
             }
         } // end while (HCI_EVENT_HDR_SIZE)
 
@@ -2029,6 +2134,7 @@ ErrorCode *start_br_scanning(void* param) {
     int rssi;
     int is_button_pressed = 0;
     int battery_voltage = 0;
+    char address[LENGTH_OF_MAC_ADDRESS];
 
     zlog_debug(category_debug, ">> start_br_scanning... ");
 
@@ -2182,8 +2288,11 @@ ErrorCode *start_br_scanning(void* param) {
                             zlog_debug(category_debug,
                                        "Detected device[BR]: %s - RSSI %4d",
                                        address, info_rssi->rssi);
-                            */                           
-                            send_to_push_dongle(&info_rssi->bdaddr,
+                            */            
+                            ba2str(&info_rssi->bdaddr, address);
+                            strcat(address, "\0");                            
+                            
+                            send_to_push_dongle(address,
                                                 BR_EDR,
                                                 info_rssi->rssi,
                                                 is_button_pressed,
@@ -2296,6 +2405,7 @@ ErrorCode *timeout_cleanup(void* param){
 ErrorCode cleanup_exit(){
     struct List_Entry *list_pointer, *save_list_pointers;
     struct PrefixString *temp;
+    struct TempBleDevice *temp_ble_node;
 
     zlog_debug(category_debug, ">> cleanup_exit... ");
 
@@ -2303,7 +2413,7 @@ ErrorCode cleanup_exit(){
     ready_to_work = false;
 
     if(&mempool != NULL){
-        /* Go throgth all three lists to release all memory allocated
+        /* Go through all three lists to release all memory allocated
            to the nodes */
         zlog_info(category_debug,
                   "cleanup all lists in cleanup_exit function");
@@ -2318,13 +2428,32 @@ ErrorCode cleanup_exit(){
             temp = ListEntry(list_pointer, PrefixString,
                              list_entry);
             remove_list_node(&temp->list_entry);
-            free(temp);
+            mp_free(&mempool, temp);
         }
 
         mp_destroy(&mempool);
     }
-
+    
     pthread_mutex_destroy(&list_lock);
+    
+    if(&temp_ble_device_mempool != NULL){
+       
+        zlog_info(category_debug,
+                  "cleanup all lists in cleanup_exit function");
+
+        list_for_each_safe(list_pointer, save_list_pointers,
+                           &temp_ble_device_list_head) {
+
+            temp_ble_node = ListEntry(list_pointer, TempBleDevice,
+                                      list_entry);
+            remove_list_node(&temp_ble_node->list_entry);
+            mp_free(&temp_ble_device_mempool, temp_ble_node);
+        }
+        
+        mp_destroy(&temp_ble_device_mempool);
+    }
+    
+    pthread_mutex_destroy(&temp_ble_device_list_lock);
 
     Wifi_free();
 
@@ -2365,6 +2494,7 @@ int main(int argc, char **argv) {
     pthread_t ble_scanning_thread;
     pthread_t timer_thread;
     pthread_t communication_thread;
+    pthread_t examine_scanned_ble_thread;
     int id = 0;
     int last_join_request_time = 0;
     int current_time;
@@ -2415,12 +2545,26 @@ int main(int argc, char **argv) {
         return E_OPEN_FILE;
     }
 
-    /* Initialize the lock for accessing the lists */
+    /* Initialize the lock for accessing the scanned_list, BR_object_list 
+       and BLE_object_list */
     pthread_mutex_init(&list_lock,NULL);
+    
+    /* Initialize the lock for accessing the temp_ble_device_list */
+    pthread_mutex_init(&temp_ble_device_list_lock,NULL);
 
     /* Initialize the memory pool */
     if(MEMORY_POOL_SUCCESS !=
         mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_IN_MEM_POOL)){
+
+        zlog_error(category_health_report,
+                   "Error allocating memory pool");
+        zlog_error(category_debug,
+                   "Error allocating memory pool");
+    }
+    
+     /* Initialize the memory pool */
+    if(MEMORY_POOL_SUCCESS !=
+        mp_init(&temp_ble_device_mempool, sizeof(struct TempBleDevice), SLOTS_IN_MEM_POOL)){
 
         zlog_error(category_health_report,
                    "Error allocating memory pool");
@@ -2435,7 +2579,9 @@ int main(int argc, char **argv) {
     BR_object_list_head.device_type = BR_EDR;
     init_entry(&BLE_object_list_head.list_entry);
     BLE_object_list_head.device_type = BLE;
-
+    
+    init_entry(&temp_ble_device_list_head);
+    
     /* Register handler function for SIGINT signal */
     sigint_handler.sa_handler = ctrlc_handler;
     sigemptyset(&sigint_handler.sa_mask);
@@ -2464,6 +2610,17 @@ int main(int argc, char **argv) {
 */
 
     /* Create the thread for track BLE device */
+    return_value = startThread(&examine_scanned_ble_thread,
+                               examine_scanned_ble_device, NULL);
+
+    if(return_value != WORK_SUCCESSFULLY){
+        zlog_error(category_health_report,
+                   "Error creating thread for examine_scanned_ble_device");
+        zlog_error(category_debug,
+                   "Error creating thread for examine_scanned_ble_device");
+        cleanup_exit();
+        exit(return_value);
+    }
 
     return_value = startThread(&ble_scanning_thread,
                                start_ble_scanning, NULL);

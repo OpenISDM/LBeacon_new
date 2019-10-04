@@ -292,6 +292,20 @@ typedef struct ScannedDevice {
 
 } ScannedDevice;
 
+/* Struct for storing MAC address of a Bluetooth device and the advertising 
+   payload and rssi signal strength
+*/
+typedef struct TempBleDevice {
+
+    char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
+    uint8_t payload[LENGTH_OF_ADVERTISEMENT];
+    size_t payload_length;
+    int rssi;
+    
+    struct List_Entry list_entry;
+
+} TempBleDevice;
+
 /* struct for device list head. */
 typedef struct object_list_head{
 
@@ -356,12 +370,27 @@ ObjectListHead BR_object_list_head;
 */
 ObjectListHead BLE_object_list_head;
 
+/* The pthread lock that controls access to lists */
+pthread_mutex_t  list_lock;
+
+/* Head of temp_ble_device_list that holds the scanned device information 
+   structsof BLE devices discovered in recent scans. The contents of the list 
+   await to be examined later and added into BLE_object_list if it meets BLE
+   scanning criteria.
+*/
+struct List_Entry temp_ble_device_list_head;
+
+/* The pthread lock that controls access to temp_ble_device_list */
+pthread_mutex_t temp_ble_device_list_lock;
+
 /* The memory pool for the allocation of all nodes in scanned device list and
    tracked object lists. */
 Memory_Pool mempool;
 
-/* The pthread lock that controls access to lists */
-pthread_mutex_t  list_lock;
+
+/* The memory pool for the allocation of all scanned BLE devices */
+Memory_Pool temp_ble_device_mempool;
+
 
 /* Variables for storing the last polling times in second*/\
 int gateway_latest_polling_time;
@@ -467,8 +496,7 @@ ErrorCode get_config(Config *config, char *file_name);
 
   Parameters:
 
-      bluetooth_device_address - MAC address of a bluetooth device discovered
-                                 during inquiry
+      mac_address - MAC address of a bluetooth device discovered during inquiry
       device_type - the indicator to show the device type of the input address
       rssi - the RSSI value of this device
       is_button_pressed - the push_button is pressed
@@ -479,7 +507,7 @@ ErrorCode get_config(Config *config, char *file_name);
       None
 */
 
-void send_to_push_dongle(bdaddr_t *bluetooth_device_address,
+void send_to_push_dongle(char * mac_address,
                          DeviceType device_type,
                          int rssi,
                          int is_button_pressed,
@@ -813,16 +841,38 @@ static ErrorCode eir_parse_specific_data(uint8_t *eir,
                                          char *buf,
                                          size_t buf_len);
 
+
+/*
+  examine_scanned_ble_device:
+
+      This function extracted scanned BLE devices information from the 
+      temp_ble_device_list and compares the scanned attributes with BLE
+      scanning criteria. To reduce the traffic within BeDIS system, this 
+      function only tracks the tags with the specific prefix MAX address. 
+      When a tag with specific prefix MAC address is found, this function 
+      calls send_to_push_dongle to either add a new ScannedDevice struct 
+      of the device to ble_object_list or update the final scan time of a 
+      struct in the list.
+      [N.B. This function is executed by the main thread. ]
+
+  Parameters:
+
+      param - not used. This parameter is defined to meet the definition of
+              pthread_create() function
+
+  Return value:
+
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise
+*/
+
+ErrorCode *examine_scanned_ble_device(void *param);
+
 /*
   start_ble_scanning:
 
       This function scans continuously for BLE bluetooth devices under the
-      coverage of the beacon until scanning is cancelled. To reduce the
-      traffic within BeDIS system, this function only tracks the tags with
-      the specific prefix MAX address. When a tag with specific prefix MAC
-      address is found, this function calls send_to_push_dongle to either add
-      a new ScannedDevice struct of the device to ble_object_list or update
-      the final scan time of a struct in the list.
+      coverage of the beacon until scanning is cancelled. 
       [N.B. This function is executed by the main thread. ]
 
   Parameters:
