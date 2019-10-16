@@ -2886,7 +2886,7 @@ char *choose_file(char *message_to_send) {
     struct dirent *messageent = NULL;
 
     /* Stores all the name of files and directories in groups */
-    groupdir = opendir("/home/pi/LBeacon/messages/");
+    groupdir = opendir("/home/bedis/LBeacon/messages/");
     if (groupdir) {
         while ((groupent = readdir(groupdir)) != NULL) {
             if (strcmp(groupent->d_name, ".") != 0 &&
@@ -2909,7 +2909,7 @@ char *choose_file(char *message_to_send) {
     /* Go through each message in directory and store each file name */
     for (group_id = 0; group_id < number_of_groups; group_id++) {
         /* Concatenate strings to make file path */
-        sprintf(file_path, "/home/pi/LBeacon/messages/");
+        sprintf(file_path, "/home/bedis/LBeacon/messages/");
         strcat(file_path, groups[group_id]);
 
         messagedir = opendir(file_path);

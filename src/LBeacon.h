@@ -67,10 +67,10 @@ Authors:
 */
 
 /* File path of the config file of the LBeacon */
-#define CONFIG_FILE_NAME "/home/pi/LBeacon/config/config.conf"
+#define CONFIG_FILE_NAME "../config/config.conf"
 
 /* File path of the logging file*/
-#define LOG_FILE_NAME "/home/pi/LBeacon/config/zlog.conf"
+#define LOG_FILE_NAME "../config/zlog.conf"
 
 /* The temporary file for uploading tracked BR data */
 #define TRACKED_BR_TXT_FILE_NAME "tracked_br_txt.txt"
@@ -79,7 +79,7 @@ Authors:
 #define TRACKED_BLE_TXT_FILE_NAME "tracked_ble_txt.txt"
 
 /* The log file for LBeacon health history */
-#define HEALTH_REPORT_LOG_FILE_NAME "/home/pi/LBeacon/log/Health_Report.log"
+#define HEALTH_REPORT_LOG_FILE_NAME "../log/Health_Report.log"
 
 /* The term used by zlog library to indicate error category. We will report
 LBeacon's health report as errors, if we find this term in the last line of
@@ -87,7 +87,7 @@ Health_Report.log. */
 #define HEALTH_REPORT_ERROR_SIGN "ERROR"
 
 /* The lock file for LBeacon  */
-#define LBEACON_LOCK_FILE "/home/pi/LBeacon/bin/LBeacon.pid"
+#define LBEACON_LOCK_FILE "../bin/LBeacon.pid"
 
 /* For following EIR_ constants, refer to Bluetooth specifications for
 the defined values.

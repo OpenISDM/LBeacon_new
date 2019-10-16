@@ -17,8 +17,8 @@ if [ "$_IP" ]; then
   printf "My IP address is %s\n" "$_IP"
 fi
 
-cd /home/pi/LBeacon/bin/
-chmod 755 /home/pi/LBeacon/bin/auto_LBeacon.sh
-/home/pi/LBeacon/bin/auto_LBeacon.sh
+cd /home/bedis/LBeacon/bin/
+chmod 755 /home/bedis/LBeacon/bin/auto_LBeacon.sh
+/home/bedis/LBeacon/bin/auto_LBeacon.sh
 
 exit 0

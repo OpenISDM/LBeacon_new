@@ -9,7 +9,7 @@ all: LBeacon
 LBeacon: $(OBJS)
 	$(CC) $(OBJS) $(CFLAGS) -o LBeacon $(LIB) -lrt -lpthread -lbfb -lbluetooth -lwiringPi -lzlog 
 	@mv LBeacon ../bin/
-	chown pi:pi ../bin/LBeacon
+	chown bedis:bedis ../bin/LBeacon
 
 LBeacon.o: LBeacon.c LBeacon.h
 	$(CC) LBeacon.c LBeacon.h $(LIB) -c
