@@ -164,6 +164,12 @@ LBeacon to gateway.
 to gateway via wifi network link.*/
 #define MAX_LENGTH_RESP_DEVICE_INFO 60
 
+/* The number of slots in the memory pool for scanned devices */
+#define SLOTS_IN_MEM_POOL_SCANNED_DEVICE 2048
+
+/* The number of slots in the memory pool for temporarily scanned BLE devices */
+#define SLOTS_IN_MEM_POOL_TEMPORARY_BLE_DEVICE 2048
+
 /* The BeDITech button tag identifer (0x0000000000000000) */
 #define BEDITECH_BUTTON_TAG_IDENTIFIER "0000000000000000" 
 

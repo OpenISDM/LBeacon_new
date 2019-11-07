@@ -2554,7 +2554,9 @@ int main(int argc, char **argv) {
 
     /* Initialize the memory pool */
     if(MEMORY_POOL_SUCCESS !=
-        mp_init(&mempool, sizeof(struct ScannedDevice), SLOTS_IN_MEM_POOL)){
+        mp_init(&mempool, 
+                sizeof(struct ScannedDevice), 
+                SLOTS_IN_MEM_POOL_SCANNED_DEVICE)){
 
         zlog_error(category_health_report,
                    "Error allocating memory pool");
@@ -2564,7 +2566,9 @@ int main(int argc, char **argv) {
     
      /* Initialize the memory pool */
     if(MEMORY_POOL_SUCCESS !=
-        mp_init(&temp_ble_device_mempool, sizeof(struct TempBleDevice), SLOTS_IN_MEM_POOL)){
+        mp_init(&temp_ble_device_mempool, 
+                sizeof(struct TempBleDevice), 
+                SLOTS_IN_MEM_POOL_TEMPORARY_BLE_DEVICE)){
 
         zlog_error(category_health_report,
                    "Error allocating memory pool");
