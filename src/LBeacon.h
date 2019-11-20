@@ -370,9 +370,8 @@ ObjectListHead BR_object_list_head;
 
 /* Head of tracking_BLE_object_list that holds the scanned device structs
    of BLE devices discovered in recent scans. The MAC address elements of
-   some structs in the list may be identical but their associated timestamps
-   indicate disjoint time intervals. The contents of the list await to be
-   sent via the gateway to the server to be processed there.
+   all the structs in the list are distinct. The contents of the list await 
+   to be sent via the gateway to the server to be processed there.
 */
 ObjectListHead BLE_object_list_head;
 
