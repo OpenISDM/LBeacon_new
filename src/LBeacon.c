@@ -429,17 +429,17 @@ void send_to_push_dongle(char * mac_address,
 
     if(BLE == device_type){
 
-        /* Insert the new node to the BLE_object_list_head */
+        /* Insert the new node at the tail of the BLE_object_list_head */
         insert_list_tail(&temp_node->tr_list_entry,
                          &BLE_object_list_head.list_entry);
 
     }else if(BR_EDR == device_type){
 
-        /* Insert the new node to the scanned list */
+        /* Insert the new node at the tail of the scanned list */
         insert_list_first(&temp_node->sc_list_entry,
                           &scanned_list_head.list_entry);
 
-        /* Insert the new node to the BR_object_list_head  */
+        /* Insert the new node at the tail of the BR_object_list_head  */
         insert_list_tail(&temp_node->tr_list_entry,
                          &BR_object_list_head.list_entry);
     }
@@ -479,7 +479,7 @@ struct ScannedDevice *check_is_in_list(char address[],
     bool is_empty = false;
     bool is_to_remove_from_scanned_list = false;
 
-    /* If there is no node in the list, reutrn NULL directly. */
+    /* If there is no node in the list, return NULL directly. */
     pthread_mutex_lock(&list_lock);
 
     is_empty = is_entry_list_empty(&list->list_entry);
@@ -595,7 +595,7 @@ struct ScannedDevice *check_is_in_list(char address[],
                        "Unknown device type=[%d]",
                        list->device_type);
             break;
-    }  // end of swtich
+    }  // end of switch
 
     if(true == temp_is_null){
         return NULL;
@@ -1013,7 +1013,8 @@ ErrorCode send_join_request(){
 
     memset(message, 0, sizeof(message));
 
-    if(0 != beacon_basic_info(message, sizeof(message), request_to_join)){
+    if(WORK_SUCCESSFULLY != 
+       beacon_basic_info(message, sizeof(message), request_to_join)){
 
         zlog_error(category_health_report,
                    "Unable to prepare basic information for response. "
@@ -1107,11 +1108,11 @@ ErrorCode handle_tracked_object_data(){
                                  max_objects, &used_objects)){
 
         zlog_error(category_health_report,
-            "Unable to consolidate BR_EDR devices, "
-            "abort BR_EDR devices this time.");
+            "Unable to consolidate BR_EDR device data, "
+            "omit BR_EDR devices this time.");
         zlog_error(category_debug,
-            "Unable to consolidate BR_EDR devices, "
-            "abort BR_EDR devices this time.");
+            "Unable to consolidate BR_EDR device data, "
+            "omit BR_EDR device data this time.");
     }
 
     max_objects = (sizeof(message) -
@@ -1125,15 +1126,15 @@ ErrorCode handle_tracked_object_data(){
                                  max_objects, &used_objects)){
 
         zlog_error(category_health_report,
-                    "Unable to consolidate BLE devices, "
-                    "abort BLE devices this time.");
+                    "Unable to consolidate BLE device data, "
+                    "omit BLE devices this time.");
         zlog_error(category_debug,
-                   "Unable to consolidate BLE devices, "
-                   "abort BLE devices this time.");
+                   "Unable to consolidate BLE device data, "
+                   "omit BLE devices this time.");
     }
 
-    if(0 != beacon_basic_info(message, sizeof(message),
-                              tracked_object_data)){
+    if(WORK_SUCCESSFULLY != beacon_basic_info(message, sizeof(message),
+                            tracked_object_data)){
 
         zlog_error(category_health_report,
                    "Unable to prepare basic information for response. "
@@ -1203,7 +1204,8 @@ ErrorCode handle_health_report(){
     /* contructs the content for UDP packet*/
     memset(message, 0, sizeof(message));
 
-    if(0!=beacon_basic_info(message, sizeof(message), beacon_health_report)){
+    if(WORK_SUCCESSFULLY !=
+       beacon_basic_info(message, sizeof(message), beacon_health_report)){
 
         zlog_error(category_health_report,
                    "Unable to prepare basic information for response. "
@@ -1431,8 +1433,8 @@ ErrorCode copy_object_data_to_file(char *file_name,
     number_to_send = min(max_num_objects, number_in_list);
     *used_objects = number_to_send;
 
-    /*Check if number_to_send is zero. If yes, no need to do more; close
-    file and return */
+    /*Check if number_to_send is zero. If yes, no need to do more. Put basic 
+    information and number to send in track file; then close file and return */
     if(0 == number_to_send){
         sprintf(basic_info, "%d;%d;", device_type, number_to_send);
         fputs(basic_info, track_file);
@@ -1467,7 +1469,7 @@ ErrorCode copy_object_data_to_file(char *file_name,
                    list_pointer->next);
     }
 
-*/
+    */
 
     /* Set temporary pointer to point to the head of the input list */
     head_pointer = list->list_entry.next;
@@ -1512,7 +1514,7 @@ ErrorCode copy_object_data_to_file(char *file_name,
                    list_pointer->next);
     }
 
-*/
+    */
 
     /* Go throngh the local object list to get the content and write the
     content to file
@@ -1557,7 +1559,7 @@ ErrorCode copy_object_data_to_file(char *file_name,
         /* If the device is of BR_EDR type, each node is linked into both
         the scanned list and the BR object list using sc_list_entry and
         tr_list_entry. We should lock list_lock here to prevent scanned list
-        is operated in other places at the same time.
+        from being operated in other places at the same time.
         */
 
         list_for_each_safe(list_pointer,
@@ -1668,7 +1670,7 @@ const struct hci_request ble_hci_request(uint16_t ocf,
     return rq;
 }
 
-/* A static function to prase the specific data from the BLE device. */
+/* A static function to parse the specific data from the BLE device. */
 static ErrorCode eir_parse_specific_data(uint8_t *eir,
                                          size_t eir_len,
                                          char *buf,
@@ -2552,7 +2554,7 @@ int main(int argc, char **argv) {
     /* Initialize the lock for accessing the temp_ble_device_list */
     pthread_mutex_init(&temp_ble_device_list_lock,NULL);
 
-    /* Initialize the memory pool */
+    /* Initialize the memory pool for scanned dvice structs */
     if(MEMORY_POOL_SUCCESS !=
         mp_init(&mempool, 
                 sizeof(struct ScannedDevice), 
@@ -2564,7 +2566,7 @@ int main(int argc, char **argv) {
                    "Error allocating memory pool");
     }
     
-     /* Initialize the memory pool */
+     /* Initialize the memory pool for temp BLE device structs*/
     if(MEMORY_POOL_SUCCESS !=
         mp_init(&temp_ble_device_mempool, 
                 sizeof(struct TempBleDevice), 
@@ -2599,7 +2601,7 @@ int main(int argc, char **argv) {
     }
 
     /* Create the thread for track BR_EDR device */
-/*
+#ifdef Bluetooth_classic
     return_value = startThread(&br_scanning_thread,
                                start_br_scanning, NULL);
 
@@ -2611,9 +2613,9 @@ int main(int argc, char **argv) {
         cleanup_exit();
         exit(return_value);
     }
-*/
+#endif
 
-    /* Create the thread for track BLE device */
+    /* Create the thread for track BLE devices */
     return_value = startThread(&examine_scanned_ble_thread,
                                examine_scanned_ble_device, NULL);
 
@@ -2723,7 +2725,7 @@ int main(int argc, char **argv) {
         }            
     }
     
-    /* When signal is received, disable message advertising */
+    /* When Ctrl-C signal is received, disable message advertising */
     disable_advertising(g_config.advertise_dongle_id);
 
     cleanup_exit();

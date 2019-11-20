@@ -494,7 +494,7 @@ ErrorCode get_config(Config *config, char *file_name);
       struct, this function allocates from memory pool space for a
       ScannedDeivce struct, sets the MAC address of the new struct to the
       input MAC address, the initial scanned time and final scanned time to
-      the current time, and inserts the sruct at the head of the scanned_list
+      the current time, and inserts the struct at the head of the scanned_list
       if the device is of BR/EDR type, and tail of the tracked object list
       for the device type. If a struct with MAC address matching the input
       device address is found, this function sets the final scanned time of
