@@ -270,6 +270,15 @@ typedef struct Config {
 
 } Config;
 
+/* Type of device to be tracked. */
+typedef enum DeviceType{
+    
+    BR_EDR = 0,
+    BLE = 1,
+    max_type = 2
+ 
+} DeviceType;
+
 /* The structure for storing information and status of a thread */
 typedef struct ThreadStatus {
 
@@ -326,6 +335,7 @@ typedef struct PrefixString{
     struct List_Entry list_entry;
 
 } PrefixString;
+
 /*
   EXTERN STRUCTS
 */
