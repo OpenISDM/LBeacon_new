@@ -1949,104 +1949,110 @@ ErrorCode *start_ble_scanning(void *param){
 
     zlog_debug(category_debug, ">> start_ble_scanning... ");
 
-    while(true == ready_to_work){
+    /* Get the dongle id */
+    dongle_device_id = g_config.scan_dongle_id;
 
-        /* Get the dongle id */
-        dongle_device_id = g_config.scan_dongle_id;
-        /*
-        retry_times = DONGLE_GET_RETRY;
-        while(retry_times--){
-            dongle_device_id = hci_get_route(NULL);
+    /*
+    retry_times = DONGLE_GET_RETRY;
+    while(retry_times--){
+        dongle_device_id = hci_get_route(NULL);
 
-            if(dongle_device_id >= 0){
-                break;
-            }
-        }*/
-
-        if (dongle_device_id < 0) {
-            zlog_error(category_health_report,
-                       "Error openning the device");
-            zlog_error(category_debug,
-                       "Error openning the device");
-            return E_OPEN_DEVICE;
+        if(dongle_device_id >= 0){
+            break;
         }
+    }*/
 
-        /* Open Bluetooth device */
-        retry_times = SOCKET_OPEN_RETRY;
-        while(retry_times--){
-            socket = hci_open_dev(dongle_device_id);
+    if (dongle_device_id < 0) {
+        zlog_error(category_health_report,
+                   "Error openning the device");
+        zlog_error(category_debug,
+                   "Error openning the device");
+        return E_OPEN_DEVICE;
+    }
 
-            if(socket >= 0){
-                break;
-            }
+    /* Open Bluetooth device */
+    retry_times = SOCKET_OPEN_RETRY;
+    while(retry_times--){
+        socket = hci_open_dev(dongle_device_id);
+
+        if(socket >= 0){
+            break;
         }
-        if (socket < 0) {
-            zlog_error(category_health_report,
-                       "Error openning socket");
-            zlog_error(category_debug,
-                       "Error openning socket");
-             return E_OPEN_SOCKET;
-        }
+    }
+    
+    if (socket < 0) {
+        zlog_error(category_health_report,
+                   "Error openning socket");
+        zlog_error(category_debug,
+                   "Error openning socket");
+         return E_OPEN_SOCKET;
+    }
 
-        /* Set BLE scan parameters */
-        if( 0> hci_le_set_scan_parameters(socket, 
-                                          0x01, 
-                                          g_config.scan_interval_in_units_0625_ms,
-                                          g_config.scan_interval_in_units_0625_ms,
-                                          0x00,
-                                          0x00,
-                                          HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
-
-            zlog_info(category_health_report,
-                      "Error setting parameters of BLE scanning");
-            zlog_debug(category_debug,
-                      "Error setting parameters of BLE scanning");
-        }
-
-        if( 0> hci_le_set_scan_enable(socket, 0x01, 0,
+    /* Set BLE scan parameters */
+    if( 0> hci_le_set_scan_parameters(socket, 
+                                      0x00, 
+                                      g_config.scan_interval_in_units_0625_ms,
+                                      g_config.scan_interval_in_units_0625_ms,
+                                      0x00,
+                                      0x00,
                                       HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
 
-            zlog_info(category_health_report,
-                      "Error enabling BLE scanning");
-            zlog_debug(category_debug,
-                       "Error enabling BLE scanning");
-        }
+        zlog_info(category_health_report,
+                  "Error setting parameters of BLE scanning");
+        zlog_debug(category_debug,
+                  "Error setting parameters of BLE scanning");
+    }
 
-        memset(&event_mask_cp, 0, sizeof(le_set_event_mask_cp));
+    if( 0> hci_le_set_scan_enable(socket, 
+                                  0x01, 
+                                  0,
+                                  HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
 
-        for (i = 0 ; i < 8 ; i++ ){
-            event_mask_cp.mask[i] = 0xFF;
-        }
+        zlog_info(category_health_report,
+                  "Error enabling BLE scanning");
+        zlog_debug(category_debug,
+                   "Error enabling BLE scanning");
+    }
 
-        set_mask_rq = ble_hci_request(OCF_LE_SET_EVENT_MASK,
-                                      LE_SET_EVENT_MASK_CP_SIZE,
-                                      &status, &event_mask_cp);
+    /* Set event mask */
+    memset(&event_mask_cp, 0, sizeof(le_set_event_mask_cp));
 
-        ret = hci_send_req(socket, &set_mask_rq,
-                           HCI_SEND_REQUEST_TIMEOUT_IN_MS);
+    for (i = 0 ; i < 8 ; i++ ){
+        event_mask_cp.mask[i] = 0xFF;
+    }
 
-        if ( ret < 0 ) {
-            hci_close_dev(socket);
-            return E_SCAN_SET_EVENT_MASK;
-        }
+    set_mask_rq = ble_hci_request(OCF_LE_SET_EVENT_MASK,
+                                  LE_SET_EVENT_MASK_CP_SIZE,
+                                  &status, &event_mask_cp);
+    ret = hci_send_req(socket, &set_mask_rq,
+                       HCI_SEND_REQUEST_TIMEOUT_IN_MS);
 
-        hci_filter_clear(&new_filter);
-        hci_filter_set_ptype(HCI_EVENT_PKT, &new_filter);
-        hci_filter_set_event(EVT_LE_META_EVENT, &new_filter);
+    if ( ret < 0 ) {
+        hci_close_dev(socket);
+        return E_SCAN_SET_EVENT_MASK;
+    }
 
-        if (0 > setsockopt(socket, SOL_HCI, HCI_FILTER, &new_filter,
-                           sizeof(new_filter)) ) {
-            /* Error handling */
-            hci_close_dev(socket);
+    /* Set filter */
+    hci_filter_clear(&new_filter);
+    hci_filter_set_ptype(HCI_EVENT_PKT, &new_filter);
+    hci_filter_set_event(EVT_LE_META_EVENT, &new_filter);
 
-            zlog_error(category_health_report,
-                       "Error setting HCI filter");
-            zlog_error(category_debug,
-                       "Error setting HCI filter");
-        }
+    if (0 > setsockopt(socket, SOL_HCI, HCI_FILTER, &new_filter,
+                       sizeof(new_filter)) ) {
+        /* Error handling */
+        hci_close_dev(socket);
 
-        while(true == ready_to_work &&
-              HCI_EVENT_HDR_SIZE <=
+        zlog_error(category_health_report,
+                   "Error setting HCI filter");
+        zlog_error(category_debug,
+                   "Error setting HCI filter");
+            
+        return E_SCAN_SET_EVENT_MASK; 
+    }
+
+    while(true == ready_to_work){
+        
+        while(HCI_EVENT_HDR_SIZE <=
               read(socket, ble_buffer, sizeof(ble_buffer)) ){
 
             meta = (evt_le_meta_event*)
@@ -2098,17 +2104,20 @@ ErrorCode *start_ble_scanning(void *param){
             }
         } // end while (HCI_EVENT_HDR_SIZE)
 
-        if( 0> hci_le_set_scan_enable(socket, 0, 0,
+        if( 0> hci_le_set_scan_enable(socket, 
+                                      0, 
+                                      0,
                                       HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
 
             zlog_error(category_health_report,
                        "Error disabling BLE scanning");
             zlog_error(category_debug,
                        "Error disabling BLE scanning");
-        }
-        hci_close_dev(socket);
-
-    } // end while (ready_to_work)
+        } 
+        
+    } // end while
+        
+    hci_close_dev(socket);
 
     zlog_debug(category_debug, "<< start_ble_scanning... ");
     return WORK_SUCCESSFULLY;
