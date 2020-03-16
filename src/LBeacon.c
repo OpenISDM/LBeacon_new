@@ -2103,19 +2103,19 @@ ErrorCode *start_ble_scanning(void *param){
                 
             }
         } // end while (HCI_EVENT_HDR_SIZE)
-
-        if( 0> hci_le_set_scan_enable(socket, 
-                                      0, 
-                                      0,
-                                      HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
-
-            zlog_error(category_health_report,
-                       "Error disabling BLE scanning");
-            zlog_error(category_debug,
-                       "Error disabling BLE scanning");
-        } 
-        
+            
     } // end while
+    
+    if( 0> hci_le_set_scan_enable(socket, 
+                                  0, 
+                                  0,
+                                  HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
+
+        zlog_error(category_health_report,
+                   "Error disabling BLE scanning");
+        zlog_error(category_debug,
+                   "Error disabling BLE scanning");
+    } 
         
     hci_close_dev(socket);
 
