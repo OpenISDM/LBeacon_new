@@ -73,10 +73,10 @@ Authors:
 #define LOG_FILE_NAME "../config/zlog.conf"
 
 /* The temporary file for uploading tracked BR data */
-#define TRACKED_BR_TXT_FILE_NAME "tracked_br_txt.txt"
+#define TRACKED_BR_TXT_FILE_NAME "../log/tracked_br_txt.txt"
 
 /* The temporary file for uploading tracked BLE data */
-#define TRACKED_BLE_TXT_FILE_NAME "tracked_ble_txt.txt"
+#define TRACKED_BLE_TXT_FILE_NAME "../log/tracked_ble_txt.txt"
 
 /* The log file for LBeacon health history */
 #define HEALTH_REPORT_LOG_FILE_NAME "../log/Health_Report.log"
@@ -87,7 +87,7 @@ Health_Report.log. */
 #define HEALTH_REPORT_ERROR_SIGN "ERROR"
 
 /* The lock file for LBeacon  */
-#define LBEACON_LOCK_FILE "../bin/LBeacon.pid"
+#define LBEACON_LOCK_FILE "../log/LBeacon.pid"
 
 /* For following EIR_ constants, refer to Bluetooth specifications for
 the defined values.

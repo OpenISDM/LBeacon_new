@@ -3,28 +3,29 @@
 CC = gcc -std=gnu99 -O3
 OBJS = LinkedList.o Mempool.o thpool.o UDP_API.o pkt_Queue.o BeDIS.o LBeacon.o
 LIB = -L /usr/local/lib
+INC = -I ../import
 
 #---------------------------------------------------------------------------
 all: LBeacon
 LBeacon: $(OBJS)
-	$(CC) $(OBJS) $(CFLAGS) -o LBeacon $(LIB) -lrt -lpthread -lbfb -lbluetooth -lwiringPi -lzlog 
+	$(CC) $(OBJS) $(CFLAGS) -o LBeacon $(INC) $(LIB) -lrt -lpthread -lbfb -lbluetooth -lwiringPi -lzlog 
 	@mv LBeacon ../bin/
 	chown bedis:bedis ../bin/LBeacon
 
-LBeacon.o: LBeacon.c LBeacon.h
-	$(CC) LBeacon.c LBeacon.h $(LIB) -c
-BeDIS.o: BeDIS.c BeDIS.h
-	$(CC) $(CFLAGS) BeDIS.c -c
-LinkedList.o: LinkedList.c LinkedList.h
-	$(CC) LinkedList.c LinkedList.h $(LIB) -c
-pkt_Queue.o: pkt_Queue.c pkt_Queue.h
-	$(CC) pkt_Queue.c pkt_Queue.h -c
-UDP_API.o: UDP_API.c UDP_API.h pkt_Queue.o
-	$(CC) $(CFLAGS) UDP_API.c -c
-Mempool.o: Mempool.c Mempool.h
-	$(CC) Mempool.c Mempool.h $(LIB) -c
-thpool.o: thpool.c thpool.h
-	$(CC) thpool.c thpool.h $(LIB) -c
+LBeacon.o: 
+	$(CC) LBeacon.c LBeacon.h $(INC) $(LIB) -c
+BeDIS.o: 
+	$(CC) $(CFLAGS) ../import/BeDIS.c -c
+LinkedList.o:  
+	$(CC) ../import/LinkedList.c $(LIB) -c
+pkt_Queue.o: 
+	$(CC) ../import/pkt_Queue.c  -c
+UDP_API.o: 
+	$(CC) $(CFLAGS) ../import/UDP_API.c -c
+Mempool.o: 
+	$(CC) ../import/Mempool.c  $(LIB) -c
+thpool.o: 
+	$(CC) ../import/thpool.c  $(LIB) -c
 clean:
 	find . -type f | xargs touch
 	@rm -rf *.o *.h.gch *.log *.log.0 *.txt LBeacon
