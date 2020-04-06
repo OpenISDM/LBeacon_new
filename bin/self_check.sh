@@ -142,7 +142,7 @@ then
 else
     echo "not ok"
     sudo echo "$ERR_USERNAME" > $lbeacon_output
-    sudo echo "$ERR_USERNAME" > $gateway__output
+    sudo echo "$ERR_USERNAME" > $gateway_output
     exit 0
 fi
 
@@ -253,7 +253,7 @@ echo "checking [WLAN running status] ....."
 echo "checking [wlan0] ....."
 echo `sudo ifconfig | grep -A 1 "wlan0" | grep "inet" | cut -d ":" -f 2 | cut -d " " -f 1`
 wlan0_current_status=`sudo ifconfig | grep -A 6 "wlan0" | grep "TX"`
-sleep 5
+sleep 10
 wlan0_later_status=`sudo ifconfig | grep -A 6 "wlan0" | grep "TX"`
 if [ "_$wlan0_current_status" != "_$wlan0_later_status" ]
 then
@@ -323,7 +323,7 @@ echo "checking [BOT running processes] ....."
 if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [LBeacon] ....."
-    beacon_process=`sudo ps aux | grep "LBeacon" | grep -v "color" | grep -v "grep" | wc -l`
+    beacon_process=`sudo ps aux | grep "LBeacon" | grep -v "color" | grep -v "self_check.sh" | grep -v "grep" | wc -l`
     if [ "_$beacon_process" = "_2" ]
     then 
         echo "ok"
@@ -336,7 +336,7 @@ fi
 if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [Gateway] ....."
-    gateway_process=`sudo ps aux | grep "Gateway" | grep -v "color" | grep -v "grep" | wc -l`
+    gateway_process=`sudo ps aux | grep "Gateway" | grep -v "color" | grep -v "self_check.sh" | grep -v "grep" | wc -l`
     if [ "_$gateway_process" = "_2" ]
     then 
         echo "ok"
@@ -381,7 +381,7 @@ if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || 
 then 
     echo "checking [LBeacon] ....."
     beacon_current_debug=`sudo wc -c /home/bedis/LBeacon/log/diagnostic.log | cut -d " " -f 1`
-    sleep 5
+    sleep 15
     beacon_later_debug=`sudo wc -c /home/bedis/LBeacon/log/diagnostic.log | cut -d " " -f 1`
     if [ "_$beacon_current_debug" != "_$beacon_later_debug" ]
     then 
@@ -396,7 +396,7 @@ if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || 
 then 
     echo "checking [Gateway] ....."
     gateway_current_debug=`sudo wc -c /home/bedis/Lbeacon-Gateway/log/diagnostic.log | cut -d " " -f 1`
-    sleep 5
+    sleep 15
     gateway_later_debug=`sudo wc -c /home/bedis/Lbeacon-Gateway/log/diagnostic.log | cut -d " " -f 1`
     if [ "_$gateway_current_debug" != "_$gateway_later_debug" ]
     then 
