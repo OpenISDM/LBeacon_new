@@ -20,10 +20,11 @@ ERR_WLAN_SPECIFY_WLAN1=10004
 
 ERR_USERNAME=30001
 ERR_RC_LOCAL=30002
-ERR_PROCESS_HOSTAPD=30003
-ERR_WLAN0_RUNNING=30004
-ERR_WLAN1_RUNNING=30005
-ERR_HCI_RUNNING=30006
+ERR_CRONTAB=30003
+ERR_PROCESS_HOSTAPD=30004
+ERR_WLAN0_RUNNING=30005
+ERR_WLAN1_RUNNING=30006
+ERR_HCI_RUNNING=30007
 
 ERR_PROCESS_LBEACON=40001
 ERR_PROCESS_GATEWAY=40002
@@ -45,7 +46,7 @@ elif [ "_$IS_GATEWAY" = "_1" ]
 then
     HCI_COUNT=0
     WLAN_COUNT=2
-elif [ "$_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ] 
+elif [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ] 
 then 
     HCI_COUNT=2
     WLAN_COUNT=2   
@@ -79,7 +80,7 @@ then
     echo "checking number of running HCI devices ....."
     detected_hci_count=`sudo hciconfig | grep "RUNNING" | wc -l`
     echo "detected hci count:" $detected_hci_count
-    if [ "_$detectedhci_count" = "_$HCI_COUNT" ]
+    if [ "_$detected_hci_count" = "_$HCI_COUNT" ]
     then
         echo "ok"
     else 
@@ -171,6 +172,35 @@ then
         echo "$ERR_RC_LOCAL" > $gateway_output
         exit 0 
     fi
+fi
+
+echo "checking [crontab] ....."
+if [ "_$IS_LBEACON" = "_1" ]
+then
+    echo "checking crontab ....."
+    crontab_count=`crontab -l -u bedis | grep "network.sh" | grep -v "#" | wc -l`
+    if [ "_$crontab_count" = "_1" ]
+    then
+        echo "ok"
+    else
+        echo "not ok"
+        echo "$ERR_CRONTAB" > $lbeacon_output
+        exit 0
+    fi
+elif [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+then
+    echo "checking crontab ....."
+    crontab_count=`crontab -l -u bedis | grep "network.sh" | grep -v "#" | wc -l`
+    if [ "_$crontab_count" = "_0" ]
+    then
+        echo "ok"
+    else
+        echo "not ok"
+        echo "$ERR_CRONTAB" > $lbeacon_output
+        echo "$ERR_CRONTAB" > $gateway_output
+        exit 0
+    fi
+
 fi
 
 echo "checking [hostapd] ....."
