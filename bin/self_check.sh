@@ -85,7 +85,7 @@ then
         echo "ok"
     else 
         echo "not ok"
-        echo "$ERR_HCI_COUNT" > $lbeacon_output
+        sudo echo "$ERR_HCI_COUNT" > $lbeacon_output
         exit 0
     fi
 fi
@@ -100,7 +100,7 @@ then
         echo "ok"
     else 
         echo "not ok"
-        echo "$ERR_WLAN_COUNT" > $gateway_output
+        sudo echo "$ERR_WLAN_COUNT" > $gateway_output
         exit 0
     fi
 
@@ -112,7 +112,7 @@ then
         echo "ok"
     else 
         echo "not ok"
-        echo "$ERR_WLAN_SPECIFY_WLAN0" > $gateway_output
+        sudo echo "$ERR_WLAN_SPECIFY_WLAN0" > $gateway_output
         exit 0
     fi
 
@@ -124,14 +124,14 @@ then
         echo "ok"
     else 
         echo "not ok"
-        echo "$ERR_WLAN_SPECIFY_WLAN1" > $gateway_output
+        sudo echo "$ERR_WLAN_SPECIFY_WLAN1" > $gateway_output
         exit 0
     fi
 fi
 
 # Check system software
 echo "checking [kernel] ....."
-echo `uname -a`
+sudo echo `sudo uname -a`
 
 # Check system configuration
 echo "checking [username = bedis] ....."
@@ -141,8 +141,8 @@ then
     echo "ok"
 else
     echo "not ok"
-    echo "$ERR_USERNAME" > $lbeacon_output
-    echo "$ERR_USERNAME" > $gateway__output
+    sudo echo "$ERR_USERNAME" > $lbeacon_output
+    sudo echo "$ERR_USERNAME" > $gateway__output
     exit 0
 fi
 
@@ -156,7 +156,7 @@ then
         echo "ok"
     else
         echo "not ok"
-        echo "$ERR_RC_LOCAL" > $lbeacon_output
+        sudo echo "$ERR_RC_LOCAL" > $lbeacon_output
         exit 0 
     fi
 fi
@@ -169,7 +169,7 @@ then
         echo "ok"
     else
         echo "not ok"
-        echo "$ERR_RC_LOCAL" > $gateway_output
+        sudo echo "$ERR_RC_LOCAL" > $gateway_output
         exit 0 
     fi
 fi
@@ -184,7 +184,7 @@ then
         echo "ok"
     else
         echo "not ok"
-        echo "$ERR_CRONTAB" > $lbeacon_output
+        sudo echo "$ERR_CRONTAB" > $lbeacon_output
         exit 0
     fi
 elif [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
@@ -196,8 +196,8 @@ then
         echo "ok"
     else
         echo "not ok"
-        echo "$ERR_CRONTAB" > $lbeacon_output
-        echo "$ERR_CRONTAB" > $gateway_output
+        sudo echo "$ERR_CRONTAB" > $lbeacon_output
+        sudo echo "$ERR_CRONTAB" > $gateway_output
         exit 0
     fi
 
@@ -207,25 +207,25 @@ echo "checking [hostapd] ....."
 if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ]
 then 
     echo "checking [hostapd] ....."
-    hostapd_process=`ps aux | grep -i "hostapd" | grep -v "color" | grep -v "grep " | wc -l`
+    hostapd_process=`sudo ps aux | grep -i "hostapd" | grep -v "color" | grep -v "grep " | wc -l`
     if [ "_$hostapd_process" = "_0" ]
     then 
         echo "ok"
     else
         echo "not ok"
-        echo "$ERR_PROCESS_HOSTAPD" > $lbeacon_output
+        sudo echo "$ERR_PROCESS_HOSTAPD" > $lbeacon_output
         exit 0 
     fi
 elif [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [hostapd] ....."
-    hostapd_process=`ps aux | grep -i "hostapd" | grep -v "color" | grep -v "grep" | wc -l`
+    hostapd_process=`sudo ps aux | grep -i "hostapd" | grep -v "color" | grep -v "grep" | wc -l`
     if [ "_$hostapd_process" = "_1" ]
     then 
         echo "ok"
     else
         echo "not ok"
-        echo "$ERR_PROCESS_HOSTAPD" > $gateway_output
+        sudo echo "$ERR_PROCESS_HOSTAPD" > $gateway_output
         exit 0 
     fi
 fi
@@ -241,8 +241,8 @@ then
     echo "ok"
 else
     echo "not ok"
-    echo "$ERR_WLAN0_RUNNING" > $lbeacon_output
-    echo "$ERR_WLAN0_RUNNING" > $gateway_output
+    sudo echo "$ERR_WLAN0_RUNNING" > $lbeacon_output
+    sudo echo "$ERR_WLAN0_RUNNING" > $gateway_output
     exit 0 
 fi
 
@@ -258,7 +258,7 @@ then
         echo "ok"
     else
         echo "not ok"
-        echo "$ERR_WLAN1_RUNNING" > $gateway_output
+        sudo echo "$ERR_WLAN1_RUNNING" > $gateway_output
         exit 0 
     fi
 fi
@@ -278,7 +278,7 @@ then
             echo "ok"
         else
             echo "not ok"
-            echo "$ERR_HCI_RUNNING" > $lbeacon_output
+            sudo echo "$ERR_HCI_RUNNING" > $lbeacon_output
             exit 0 
         fi 
     elif [ "_$scan_dongle_id" = "_0" ]
@@ -292,7 +292,7 @@ then
             echo "ok"
         else
             echo "not ok"
-            echo "$ERR_HCI_RUNNING" > $lbeacon_output
+            sudo echo "$ERR_HCI_RUNNING" > $lbeacon_output
             exit 0 
         fi 
     fi
@@ -303,44 +303,44 @@ echo "checking [BOT component version] ....."
 if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [LBeacon] ....."
-    beacon_version=`ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5`
+    beacon_version=`sudo ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5`
     echo "$beacon_version"
-    beacon_version_number=`ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
-    echo "$beacon_version_number" > $lbeacon_version_output
+    beacon_version_number=`sudo ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
+    sudo echo "$beacon_version_number" > $lbeacon_version_output
 fi
 if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [Gateway] ....."
-    gateway_version=`ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5`
+    gateway_version=`sudo ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5`
     echo "$gateway_version"
-    gateway_version_number=`ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
-    echo "$gateway_version_number" > $gateway_version_output
+    gateway_version_number=`sudo ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
+    sudo echo "$gateway_version_number" > $gateway_version_output
 fi
 
 echo "checking [BOT running processes] ....."
 if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [LBeacon] ....."
-    beacon_process=`ps aux | grep "LBeacon" | grep -v "color" | grep -v "grep" | wc -l`
+    beacon_process=`sudo ps aux | grep "LBeacon" | grep -v "color" | grep -v "grep" | wc -l`
     if [ "_$beacon_process" = "_2" ]
     then 
         echo "ok"
     else
         echo "not ok"
-        echo "$ERR_PROCESS_LBEACON" > $lbeacon_output
+        sudo echo "$ERR_PROCESS_LBEACON" > $lbeacon_output
         exit 0 
     fi
 fi
 if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [Gateway] ....."
-    gateway_process=`ps aux | grep "Gateway" | grep -v "color" | grep -v "grep" | wc -l`
+    gateway_process=`sudo ps aux | grep "Gateway" | grep -v "color" | grep -v "grep" | wc -l`
     if [ "_$gateway_process" = "_2" ]
     then 
         echo "ok"
     else
         echo "not ok"
-        echo "$ERR_PROCESS_GATEWAY" > $gateway_output
+        sudo echo "$ERR_PROCESS_GATEWAY" > $gateway_output
         exit 0 
     fi
 fi
@@ -356,7 +356,7 @@ then
         echo "ok"
     else
         echo "not ok"
-        echo "$ERR_ZLOG_LBEACON" > $lbeacon_output
+        sudo echo "$ERR_ZLOG_LBEACON" > $lbeacon_output
         exit 0 
     fi
 fi
@@ -369,7 +369,7 @@ then
         echo "ok"
     else
         echo "not ok"
-        echo "$ERR_ZLOG_GATEWAY" > $gateway_output
+        sudo echo "$ERR_ZLOG_GATEWAY" > $gateway_output
         exit 0 
     fi
 fi
@@ -386,7 +386,7 @@ then
         echo "ok"
     else
         echo "not ok"
-        echo "$ERR_DEBUG_LBEACON" > $lbeacon_output
+        sudo echo "$ERR_DEBUG_LBEACON" > $lbeacon_output
         exit 0 
     fi
 fi
@@ -401,20 +401,20 @@ then
         echo "ok"
     else
         echo "not ok"
-        echo "$ERR_DEBUG_GATEWAY" > $gateway_output
+        sudo echo "$ERR_DEBUG_GATEWAY" > $gateway_output
         exit 0 
     fi
 fi
 
 if [ "_$IS_LBEACON" = "_1" ]
 then
-    echo "$WORK_SUCCESSFULLY" > $lbeacon_output
+    sudo echo "$WORK_SUCCESSFULLY" > $lbeacon_output
 elif [ "_$IS_GATEWAY" = "_1" ]
 then
-    echo "$WORK_SUCCESSFULLY" > $gateway_output
+    sudo echo "$WORK_SUCCESSFULLY" > $gateway_output
 elif [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then
-    echo "$WORK_SUCCESSFULLY" > $lbeacon_output
-    echo "$WORK_SUCCESSFULLY" > $gateway_output
+    sudo echo "$WORK_SUCCESSFULLY" > $lbeacon_output
+    sudo echo "$WORK_SUCCESSFULLY" > $gateway_output
 fi
 exit 0
