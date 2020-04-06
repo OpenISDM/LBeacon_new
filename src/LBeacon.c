@@ -1183,33 +1183,74 @@ ErrorCode handle_tracked_object_data(){
 
 ErrorCode handle_health_report(){
     char message[WIFI_MESSAGE_LENGTH];
-    char msg_temp_one[WIFI_MESSAGE_LENGTH];
-    char temp_buf[WIFI_MESSAGE_LENGTH];
-    FILE *health_file = NULL;
+    FILE *self_check_file = NULL;
+    char self_check_buf[WIFI_MESSAGE_LENGTH];
+    FILE *version_file = NULL;
+    char version_buf[WIFI_MESSAGE_LENGTH];
     int retry_times = 0;
     int ret_val = 0;
+    char message_temp[WIFI_MESSAGE_LENGTH];
     
+    // read self-check result
     retry_times = FILE_OPEN_RETRY;
     while(retry_times--){
-        health_file =
-        fopen(HEALTH_REPORT_LOG_FILE_NAME, "r");
+        self_check_file =
+        fopen(SELF_CHECK_RESULT_FILE_NAME, "r");
 
-        if(NULL != health_file){
+        if(NULL != self_check_file){
             break;
         }
     }
-
-    if(NULL == health_file){
+    
+    memset(self_check_buf, 0, sizeof(self_check_buf));
+        
+    if(NULL == self_check_file){
         zlog_error(category_health_report,
                    "Error openning file");
         zlog_error(category_debug,
                    "Error openning file");
-        return E_OPEN_FILE;
+
+        sprintf(self_check_buf, "%d", 
+                SELF_CHECK_ERROR_OPEN_FILE);
+        
+    }else{
+        fgets(self_check_buf, sizeof(self_check_buf), self_check_file);
+        trim_string_tail(self_check_buf);
+
+        fclose(self_check_file);
+    }
+    
+    // read version result
+    retry_times = FILE_OPEN_RETRY;
+    while(retry_times--){
+        version_file =
+        fopen(VERSION_FILE_NAME, "r");
+
+        if(NULL != version_file){
+            break;
+        }
     }
 
+    memset(version_buf, 0, sizeof(version_buf));
+        
+    if(NULL == version_file){
+        zlog_error(category_health_report,
+                   "Error openning file");
+        zlog_error(category_debug,
+                   "Error openning file");
+        
+        sprintf(version_buf, "%d", 
+                SELF_CHECK_ERROR_OPEN_FILE);        
+    }else{
+        fgets(version_buf, sizeof(version_buf), version_file);
+        trim_string_tail(version_buf); 
+        
+        fclose(version_file);             
+    }
+  
     /* contructs the content for UDP packet*/
     memset(message, 0, sizeof(message));
-
+    
     if(WORK_SUCCESSFULLY !=
        beacon_basic_info(message, sizeof(message), beacon_health_report)){
 
@@ -1222,46 +1263,41 @@ ErrorCode handle_health_report(){
         return E_PREPARE_RESPONSE_BASIC_INFO;
     }
 
-    /* read the last line from Health_Report.log file */
-    memset(temp_buf, 0, sizeof(temp_buf));
+    memset(message_temp, 0, sizeof(message_temp));
+    
+    sprintf(message_temp, "%s;%s;",
+            self_check_buf,
+            version_buf);
 
-    while(!feof(health_file)){
-        fgets(temp_buf, sizeof(temp_buf), health_file);
-    }
-
-    fclose(health_file);
-
-    memset(msg_temp_one, 0, sizeof(msg_temp_one));
-
-    if(NULL == strstr(temp_buf, HEALTH_REPORT_ERROR_SIGN)){
-        sprintf(msg_temp_one, "%d;", S_NORMAL_STATUS);
-    }else{
-        sprintf(msg_temp_one, "%d;", E_ERROR_STATUS);
-    }
-
-    if(sizeof(message) <= strlen(message) + strlen(msg_temp_one)){
+    if(sizeof(message) <= strlen(message) + strlen(message_temp)){
         zlog_error(category_health_report,
                    "Abort health report data, because there is "
                    "potential buffer overflow. strlen(message)=%d, "
-                   "strlen(msg_temp_one)=%d",
-                   strlen(message), strlen(msg_temp_one));
+                   "strlen(message_temp)=%d",
+                   strlen(message), strlen(message_temp));
 
         zlog_error(category_debug,
                    "Abort health report data, because there is "
                    "potential buffer overflow. strlen(message)=%d, "
-                   "strlen(msg_temp_one)=%d",
-                   strlen(message), strlen(msg_temp_one));
+                   "strlen(message_temp)=%d",
+                   strlen(message), strlen(message_temp));
         return E_BUFFER_SIZE;
     }
 
-    strcat(message, msg_temp_one);
+    strcat(message, message_temp);
 
     udp_addpkt( &udp_config, 
                 g_config.gateway_addr, 
                 g_config.gateway_port,
                 message,
                 sizeof(message));
-   
+
+    printf("To gateway [%s:%d] at timestamp %d\n", 
+           g_config.gateway_addr, 
+           g_config.gateway_port,
+           get_system_time());
+    printf("%s\n", message);          
+
     return WORK_SUCCESSFULLY;
 }
 

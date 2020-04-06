@@ -81,6 +81,15 @@ Authors:
 /* The log file for LBeacon health history */
 #define HEALTH_REPORT_LOG_FILE_NAME "../log/Health_Report.log"
 
+/* The file for LBeacon self-check result */
+#define SELF_CHECK_RESULT_FILE_NAME "../log/self_check_result"
+
+/* The file for LBeacon version */
+#define VERSION_FILE_NAME "../log/version"
+
+/* Error code for failure of opening self-check and version files */
+#define SELF_CHECK_ERROR_OPEN_FILE 99999
+
 /* The term used by zlog library to indicate error category. We will report
 LBeacon's health report as errors, if we find this term in the last line of
 Health_Report.log. */
