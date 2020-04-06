@@ -217,6 +217,44 @@ ErrorCode release_not_used_entry_from_Address_Map(AddressMapArray *address_map,
     return WORK_SUCCESSFULLY;
 }
 
+ErrorCode dump_ip_of_active_entry_from_Address_Map(char *filename,
+                                                   AddressMapArray *address_map,
+                                                   int tolerance_duration){
+                                                       
+    int i;
+    int current_time = get_system_time();
+    int retry_times = 0;
+    FILE *active_file = NULL;
+    
+    retry_times = FILE_OPEN_RETRY;
+    while(retry_times--){
+        active_file =
+        fopen(filename, "w");
+
+        if(NULL != active_file){
+            break;
+        }
+    }
+    
+    if(NULL == active_file)
+        return E_OPEN_FILE;
+    
+    for(i = 0;i < MAX_NUMBER_NODES;i ++)
+    {
+        if (address_map -> in_use[i] == true && 
+            (current_time - address_map ->last_reported_timestamp[i] < 
+             tolerance_duration)){
+
+            fputs(address_map->address_map_list[i].net_address,
+                  active_file);
+        }
+    }
+    
+    fclose(active_file);
+    
+    return WORK_SUCCESSFULLY;                                                      
+}
+
 void *sort_priority_list(CommonConfig *common_config, BufferListHead *list_head){
 
     List_Entry *list_pointer,

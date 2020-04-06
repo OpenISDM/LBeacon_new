@@ -199,7 +199,11 @@
 #define NUMBER_OBJECTS_PER_AREA 512 
 
 /* Error code for failure of opening self-check and version files */
-#define SELF_CHECK_ERROR_OPEN_FILE 99999
+#define SELF_CHECK_ERROR_OPEN_FILE 9999
+
+/* Number of times to retry open file, because file openning operation may have
+   transient failure. */
+#define FILE_OPEN_RETRY 5
 
 typedef enum _ErrorCode{
 
@@ -633,7 +637,26 @@ ErrorCode update_report_timestamp_in_Address_Map(AddressMapArray *address_map,
  */
 ErrorCode release_not_used_entry_from_Address_Map(AddressMapArray *address_map,
                                                   int tolerance_duration);
+/*
+  dump_ip_of_active_entry_from_Address_Map:
 
+     This function dumps the active entries on which the 
+     last_reported_timestamp is updated within tolerant duration.
+
+  Parameters:
+
+     filename - file path to store dumped data
+     address_map - A pointer to the head of the AddressMap.
+     tolerance_duration - The time period in which we expected the 
+                          last_reported_timestamp to be updated.
+
+  Return value:
+
+     Error_code: The error code for the corresponding error
+ */
+ErrorCode dump_ip_of_active_entry_from_Address_Map(char *filename,
+                                                   AddressMapArray *address_map,
+                                                   int tolerance_duration);
 /*
   sort_priority_list:
 
