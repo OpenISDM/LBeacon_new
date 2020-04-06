@@ -1,11 +1,43 @@
 #!/bin/bash
 # Cusomization settings
-IS_LBEACON=1
+IS_LBEACON=0
 IS_GATEWAY=0
-IS_LBEACON_WITH_GATEWAY=0
+IS_LBEACON_WITH_GATEWAY_RPIZW=0
+IS_LBEACON_WITH_GATEWAY_RPI3B=1
 
 # Please do not modify following code
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+lbeacon_output="/home/bedis/LBeacon/log/self_check_result"
+lbeacon_version_output="/home/bedis/LBeacon/log/version"
+gateway_output="/home/bedis/Lbeacon-Gateway/log/self_check_result"
+gateway_version_output="/home/bedis/Lbeacon-Gateway/log/version"
+
+WORK_SUCCESSFULLY=0
+
+ERR_HCI_COUNT=10001
+ERR_WLAN_COUNT=10002
+ERR_WLAN_SPECIFY_WLAN0=10003
+ERR_WLAN_SPECIFY_WLAN1=10004
+
+ERR_USERNAME=30001
+ERR_RC_LOCAL=30002
+ERR_PROCESS_HOSTAPD=30003
+ERR_WLAN0_RUNNING=30004
+ERR_WLAN1_RUNNING=30005
+ERR_HCI_RUNNING=30006
+
+ERR_PROCESS_LBEACON=40001
+ERR_PROCESS_GATEWAY=40002
+
+ERR_ZLOG_LBEACON=50001
+ERR_ZLOG_GATEWAY=50002
+ERR_DEBUG_LBEACON=50003
+ERR_DEBUG_GATEWAY=50004
+
+if [ "_$IS_LBEACON" = "_1" ]
+then
+    HCI_COUNT=2
+    WLAN_COUNT=1
+elif [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ]
 then
     HCI_COUNT=2
     WLAN_COUNT=1
@@ -13,6 +45,10 @@ elif [ "_$IS_GATEWAY" = "_1" ]
 then
     HCI_COUNT=0
     WLAN_COUNT=2
+elif [ "$_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ] 
+then 
+    HCI_COUNT=2
+    WLAN_COUNT=2   
 fi
 
 # Display expected BOT component
@@ -22,9 +58,12 @@ then
 elif [ "_$IS_GATEWAY" = "_1" ]
 then
     echo "This is Gateway"
-elif [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+elif [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ]
 then 
-    echo "This is Lbeacon (with Gateway)"
+    echo "This is Lbeacon (with Gateway) on RPi ZW"
+elif [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+then 
+    echo "This is Lbeacon (with Gateway) on RPi 3B"
 else
     echo "Unknown component"
     exit 0 
@@ -38,12 +77,15 @@ if [ "_$HCI_COUNT" != "_0" ]
 then
     echo "checking [HCI] ....."
     echo "checking number of running HCI devices ....."
-    hci_count=`sudo hciconfig | grep "RUNNING" | wc -l`
-    if [ "_$hci_count" = "_$HCI_COUNT" ]
+    detected_hci_count=`sudo hciconfig | grep "RUNNING" | wc -l`
+    echo "detected hci count:" $detected_hci_count
+    if [ "_$detectedhci_count" = "_$HCI_COUNT" ]
     then
         echo "ok"
     else 
         echo "not ok"
+        echo "$ERR_HCI_COUNT" > $lbeacon_output
+        exit 0
     fi
 fi
 
@@ -57,6 +99,8 @@ then
         echo "ok"
     else 
         echo "not ok"
+        echo "$ERR_WLAN_COUNT" > $gateway_output
+        exit 0
     fi
 
     echo "checking correction of specifying WLAN0 devices ....."
@@ -67,6 +111,8 @@ then
         echo "ok"
     else 
         echo "not ok"
+        echo "$ERR_WLAN_SPECIFY_WLAN0" > $gateway_output
+        exit 0
     fi
 
     echo "checking correction of specifying WLAN1 devices ....."
@@ -77,6 +123,8 @@ then
         echo "ok"
     else 
         echo "not ok"
+        echo "$ERR_WLAN_SPECIFY_WLAN1" > $gateway_output
+        exit 0
     fi
 fi
 
@@ -92,10 +140,13 @@ then
     echo "ok"
 else
     echo "not ok"
+    echo "$ERR_USERNAME" > $lbeacon_output
+    echo "$ERR_USERNAME" > $gateway__output
+    exit 0
 fi
 
 echo "checking [rc.local] ....."
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [LBeacon] ....."
     beacon_count=`sudo cat /etc/rc.local | grep "/home/bedis/LBeacon/bin/auto_LBeacon.sh" | wc -l`
@@ -104,9 +155,11 @@ then
         echo "ok"
     else
         echo "not ok"
+        echo "$ERR_RC_LOCAL" > $lbeacon_output
+        exit 0 
     fi
 fi
-if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [Gateway] ....."
     gateway_count=`sudo cat /etc/rc.local | grep "/home/bedis/Lbeacon-Gateway/bin/auto_Gateway.sh" | wc -l`
@@ -115,11 +168,13 @@ then
         echo "ok"
     else
         echo "not ok"
+        echo "$ERR_RC_LOCAL" > $gateway_output
+        exit 0 
     fi
 fi
 
 echo "checking [hostapd] ....."
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ]
 then 
     echo "checking [hostapd] ....."
     hostapd_process=`ps aux | grep -i "hostapd" | grep -v "color" | grep -v "grep " | wc -l`
@@ -128,8 +183,10 @@ then
         echo "ok"
     else
         echo "not ok"
+        echo "$ERR_PROCESS_HOSTAPD" > $lbeacon_output
+        exit 0 
     fi
-elif [ "_$IS_GATEWAY" = "_1" ]
+elif [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [hostapd] ....."
     hostapd_process=`ps aux | grep -i "hostapd" | grep -v "color" | grep -v "grep" | wc -l`
@@ -138,6 +195,8 @@ then
         echo "ok"
     else
         echo "not ok"
+        echo "$ERR_PROCESS_HOSTAPD" > $gateway_output
+        exit 0 
     fi
 fi
 
@@ -152,7 +211,11 @@ then
     echo "ok"
 else
     echo "not ok"
+    echo "$ERR_WLAN0_RUNNING" > $lbeacon_output
+    echo "$ERR_WLAN0_RUNNING" > $gateway_output
+    exit 0 
 fi
+
 if [ "_$WLAN_COUNT" = "_2" ]
 then
     echo "checking [wlan1] ....."
@@ -165,10 +228,12 @@ then
         echo "ok"
     else
         echo "not ok"
+        echo "$ERR_WLAN1_RUNNING" > $gateway_output
+        exit 0 
     fi
 fi
 
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then
     echo "checking [HCI running status] ....."
     scan_dongle_id=`sudo cat /home/bedis/LBeacon/config/config.conf | grep "scan_dongle_id=0" | wc -l`
@@ -183,6 +248,8 @@ then
             echo "ok"
         else
             echo "not ok"
+            echo "$ERR_HCI_RUNNING" > $lbeacon_output
+            exit 0 
         fi 
     elif [ "_$scan_dongle_id" = "_0" ]
     then
@@ -195,27 +262,33 @@ then
             echo "ok"
         else
             echo "not ok"
+            echo "$ERR_HCI_RUNNING" > $lbeacon_output
+            exit 0 
         fi 
     fi
 fi
 
 # Check BOT component installation
 echo "checking [BOT component version] ....."
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [LBeacon] ....."
     beacon_version=`ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5`
     echo "$beacon_version"
+    beacon_version_number=`ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
+    echo "$beacon_version_number" > $lbeacon_version_output
 fi
-if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [Gateway] ....."
     gateway_version=`ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5`
     echo "$gateway_version"
+    gateway_version_number=`ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
+    echo "$gateway_version_number" > $gateway_version_output
 fi
 
 echo "checking [BOT running processes] ....."
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [LBeacon] ....."
     beacon_process=`ps aux | grep "LBeacon" | grep -v "color" | grep -v "grep" | wc -l`
@@ -224,9 +297,11 @@ then
         echo "ok"
     else
         echo "not ok"
+        echo "$ERR_PROCESS_LBEACON" > $lbeacon_output
+        exit 0 
     fi
 fi
-if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [Gateway] ....."
     gateway_process=`ps aux | grep "Gateway" | grep -v "color" | grep -v "grep" | wc -l`
@@ -235,12 +310,14 @@ then
         echo "ok"
     else
         echo "not ok"
+        echo "$ERR_PROCESS_GATEWAY" > $gateway_output
+        exit 0 
     fi
 fi
 
 # Check BOT component configuration
 echo "checking [zlog.conf] ....."
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [LBeacon] ....."
     beacon_zlog=`sudo cat /home/bedis/LBeacon/config/zlog.conf | grep "LBeacon_Debug.DEBUG.*bedis" | wc -l`
@@ -249,9 +326,11 @@ then
         echo "ok"
     else
         echo "not ok"
+        echo "$ERR_ZLOG_LBEACON" > $lbeacon_output
+        exit 0 
     fi
 fi
-if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [Gateway] ....."
     gateway_zlog=`sudo cat /home/bedis/Lbeacon-Gateway/config/zlog.conf | grep "LBeacon_Debug.DEBUG.*bedis" | wc -l`
@@ -260,11 +339,13 @@ then
         echo "ok"
     else
         echo "not ok"
+        echo "$ERR_ZLOG_GATEWAY" > $gateway_output
+        exit 0 
     fi
 fi
 
 echo "checking [DEBUG log] ....."
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [LBeacon] ....."
     beacon_current_debug=`sudo wc -c /home/bedis/LBeacon/log/diagnostic.log | cut -d " " -f 1`
@@ -275,9 +356,11 @@ then
         echo "ok"
     else
         echo "not ok"
+        echo "$ERR_DEBUG_LBEACON" > $lbeacon_output
+        exit 0 
     fi
 fi
-if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
 then 
     echo "checking [Gateway] ....."
     gateway_current_debug=`sudo wc -c /home/bedis/Lbeacon-Gateway/log/diagnostic.log | cut -d " " -f 1`
@@ -288,7 +371,20 @@ then
         echo "ok"
     else
         echo "not ok"
+        echo "$ERR_DEBUG_GATEWAY" > $gateway_output
+        exit 0 
     fi
 fi
 
-
+if [ "_$IS_LBEACON" = "_1" ]
+then
+    echo "$WORK_SUCCESSFULLY" > $lbeacon_output
+elif [ "_$IS_GATEWAY" = "_1" ]
+then
+    echo "$WORK_SUCCESSFULLY" > $gateway_output
+elif [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+then
+    echo "$WORK_SUCCESSFULLY" > $lbeacon_output
+    echo "$WORK_SUCCESSFULLY" > $gateway_output
+fi
+exit 0
