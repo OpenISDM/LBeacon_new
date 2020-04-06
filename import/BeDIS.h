@@ -198,6 +198,9 @@
 /* Number of objects been monitored in each covered area */
 #define NUMBER_OBJECTS_PER_AREA 512 
 
+/* Error code for failure of opening self-check and version files */
+#define SELF_CHECK_ERROR_OPEN_FILE 99999
+
 typedef enum _ErrorCode{
 
     WORK_SUCCESSFULLY = 0,
