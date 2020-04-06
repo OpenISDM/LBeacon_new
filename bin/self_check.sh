@@ -141,6 +141,64 @@ then
     fi
 fi
 
+echo "checking [WLAN running status] ....."
+echo "checking [wlan0] ....."
+echo `sudo ifconfig | grep -A 1 "wlan0" | grep "inet" | cut -d ":" -f 2 | cut -d " " -f 1`
+wlan0_current_status=`sudo ifconfig | grep -A 6 "wlan0" | grep "TX"`
+sleep 5
+wlan0_later_status=`sudo ifconfig | grep -A 6 "wlan0" | grep "TX"`
+if [ "_$wlan0_current_status" != "_$wlan0_later_status" ]
+then
+    echo "ok"
+else
+    echo "not ok"
+fi
+if [ "_$WLAN_COUNT" = "_2" ]
+then
+    echo "checking [wlan1] ....."
+    echo `sudo ifconfig | grep -A 1 "wlan1" | grep "inet" | cut -d ":" -f 2 | cut -d " " -f 1`
+    wlan1_current_status=`sudo ifconfig | grep -A 6 "wlan1" | grep "TX"`
+    sleep 5
+    wlan1_later_status=`sudo ifconfig | grep -A 6 "wlan1" | grep "TX"`
+    if [ "_$wlan1_current_status" != "_$wlan1_later_status" ]
+    then
+        echo "ok"
+    else
+        echo "not ok"
+    fi
+fi
+
+if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+then
+    echo "checking [HCI running status] ....."
+    scan_dongle_id=`sudo cat /home/bedis/LBeacon/config/config.conf | grep "scan_dongle_id=0" | wc -l`
+    if [ "_$scan_dongle_id" = "_1" ]
+    then 
+        echo "checking [hci0] ....."
+        hci_current_status=`sudo hciconfig hci0 | grep "RX"`
+        sleep 5
+        hci_later_status=`sudo hciconfig hci0 | grep "RX"`
+        if [ "_$hci_current_status" != "_$hci_later_status" ]
+        then
+            echo "ok"
+        else
+            echo "not ok"
+        fi 
+    elif [ "_$scan_dongle_id" = "_0" ]
+    then
+        echo "checking [hci1] ....."
+        hci_current_status=`sudo hciconfig hci1 | grep "RX"`
+        sleep 5
+        hci_later_status=`sudo hciconfig hci1 | grep "RX"`
+        if [ "_$hci_current_status" != "_$hci_later_status" ]
+        then
+            echo "ok"
+        else
+            echo "not ok"
+        fi 
+    fi
+fi
+
 # Check BOT component installation
 echo "checking [BOT component version] ....."
 if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
