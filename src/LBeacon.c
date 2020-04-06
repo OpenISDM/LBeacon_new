@@ -1171,6 +1171,12 @@ ErrorCode handle_tracked_object_data(){
                 g_config.gateway_port,
                 message,
                 sizeof(message));
+    
+    printf("To gateway [%s:%d] at timestamp %d\n", 
+           g_config.gateway_addr, 
+           g_config.gateway_port,
+           get_system_time());
+    printf("%s\n", message);
 
     return WORK_SUCCESSFULLY;
 }
