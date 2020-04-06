@@ -230,6 +230,25 @@ then
     fi
 fi
 
+
+echo "checking [BOT component version] ....."
+if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+then 
+    echo "checking [LBeacon] ....."
+    beacon_version=`sudo ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5`
+    echo "$beacon_version"
+    beacon_version_number=`sudo ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
+    sudo echo "$beacon_version_number" > $lbeacon_version_output
+fi
+if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+then 
+    echo "checking [Gateway] ....."
+    gateway_version=`sudo ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5`
+    echo "$gateway_version"
+    gateway_version_number=`sudo ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
+    sudo echo "$gateway_version_number" > $gateway_version_output
+fi
+
 echo "checking [WLAN running status] ....."
 echo "checking [wlan0] ....."
 echo `sudo ifconfig | grep -A 1 "wlan0" | grep "inet" | cut -d ":" -f 2 | cut -d " " -f 1`
@@ -299,23 +318,6 @@ then
 fi
 
 # Check BOT component installation
-echo "checking [BOT component version] ....."
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
-then 
-    echo "checking [LBeacon] ....."
-    beacon_version=`sudo ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5`
-    echo "$beacon_version"
-    beacon_version_number=`sudo ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
-    sudo echo "$beacon_version_number" > $lbeacon_version_output
-fi
-if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
-then 
-    echo "checking [Gateway] ....."
-    gateway_version=`sudo ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5`
-    echo "$gateway_version"
-    gateway_version_number=`sudo ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
-    sudo echo "$gateway_version_number" > $gateway_version_output
-fi
 
 echo "checking [BOT running processes] ....."
 if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
