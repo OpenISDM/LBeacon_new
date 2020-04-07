@@ -1195,7 +1195,7 @@ ErrorCode handle_health_report(){
     retry_times = FILE_OPEN_RETRY;
     while(retry_times--){
         self_check_file =
-        fopen(SELF_CHECK_RESULT_FILE_NAME, "r");
+            fopen(SELF_CHECK_RESULT_FILE_NAME, "r");
 
         if(NULL != self_check_file){
             break;
@@ -1224,7 +1224,7 @@ ErrorCode handle_health_report(){
     retry_times = FILE_OPEN_RETRY;
     while(retry_times--){
         version_file =
-        fopen(VERSION_FILE_NAME, "r");
+            fopen(VERSION_FILE_NAME, "r");
 
         if(NULL != version_file){
             break;

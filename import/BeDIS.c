@@ -245,8 +245,8 @@ ErrorCode dump_ip_of_active_entry_from_Address_Map(char *filename,
             (current_time - address_map ->last_reported_timestamp[i] < 
              tolerance_duration)){
 
-            fputs(address_map->address_map_list[i].net_address,
-                  active_file);
+            fprintf(active_file, "%s\n", 
+                    address_map->address_map_list[i].net_address);
         }
     }
     
