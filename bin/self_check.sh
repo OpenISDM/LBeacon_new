@@ -1,9 +1,9 @@
 #!/bin/bash
 # Cusomization settings
-IS_LBEACON=0
-IS_GATEWAY=0
-IS_LBEACON_WITH_GATEWAY_RPIZW=0
-IS_LBEACON_WITH_GATEWAY_RPI3B=1
+IS_LBEACON_WITHOUT_GATEWAY=0
+IS_LBEACON_WITH_GATEWAY=1
+IS_GATEWAY_WITHOUT_AP=0
+IS_GATEWAY_WITH_AP=0
 
 # Please do not modify following code
 lbeacon_output="/home/bedis/LBeacon/log/self_check_result"
@@ -18,13 +18,16 @@ ERR_WLAN_COUNT=1002
 ERR_WLAN_SPECIFY_WLAN0=1003
 ERR_WLAN_SPECIFY_WLAN1=1004
 
+ERR_CRONTAB_NETWORK=2001
+ERR_CRONTAB_SELF_CHECK=2002
+ERR_CRONTAB_PING_IP=2003
+
 ERR_USERNAME=3001
 ERR_RC_LOCAL=3002
-ERR_CRONTAB=3003
-ERR_PROCESS_HOSTAPD=3004
-ERR_WLAN0_RUNNING=3005
-ERR_WLAN1_RUNNING=3006
-ERR_HCI_RUNNING=3007
+ERR_PROCESS_HOSTAPD=3003
+ERR_WLAN0_RUNNING=3004
+ERR_WLAN1_RUNNING=3005
+ERR_HCI_RUNNING=3006
 
 ERR_PROCESS_LBEACON=4001
 ERR_PROCESS_GATEWAY=4002
@@ -34,37 +37,21 @@ ERR_ZLOG_GATEWAY=5002
 ERR_DEBUG_LBEACON=5003
 ERR_DEBUG_GATEWAY=5004
 
-if [ "_$IS_LBEACON" = "_1" ]
-then
-    HCI_COUNT=2
-    WLAN_COUNT=1
-elif [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ]
-then
-    HCI_COUNT=2
-    WLAN_COUNT=1
-elif [ "_$IS_GATEWAY" = "_1" ]
-then
-    HCI_COUNT=0
-    WLAN_COUNT=2
-elif [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ] 
-then 
-    HCI_COUNT=2
-    WLAN_COUNT=2   
-fi
-
 # Display expected BOT component
-if [ "_$IS_LBEACON" = "_1" ]
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ]
 then 
-    echo "This is Lbeacon"
-elif [ "_$IS_GATEWAY" = "_1" ]
+    echo "This is Lbeacon without gateway on the same box"
+    HCI_COUNT=2
+elif [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+then 
+    echo "This is Lbeacon with gateway on the same box"
+    HCI_COUNT=2
+elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ]
 then
-    echo "This is Gateway"
-elif [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ]
+    echo "This is Gateway without AP on the same box"
+elif [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then 
-    echo "This is Lbeacon (with Gateway) on RPi ZW"
-elif [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
-then 
-    echo "This is Lbeacon (with Gateway) on RPi 3B"
+    echo "This is Gateway with AP on the same box"
 else
     echo "Unknown component"
     exit 0 
@@ -74,7 +61,7 @@ fi
 echo "checking [CPU] ....."
 echo `sudo cat /proc/cpuinfo | grep "Hardware" `
 
-if [ "_$HCI_COUNT" != "_0" ]
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
 then
     echo "checking [HCI] ....."
     echo "checking number of running HCI devices ....."
@@ -90,12 +77,12 @@ then
     fi
 fi
 
-if [ "_$WLAN_COUNT" = "_2" ]
+if [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then
     echo "checking [wlan] ....."
     echo "checking number of installed WLAN devices ....."
     wlan_count=`sudo ifconfig | grep "wlan" | wc -l`
-    if [ "_$wlan_count" = "_$WLAN_COUNT" ]
+    if [ "_$wlan_count" = "_2" ]
     then
         echo "ok"
     else 
@@ -135,19 +122,32 @@ sudo echo `sudo uname -a`
 
 # Check system configuration
 echo "checking [username = bedis] ....."
-pwd_count=`pwd | grep "bedis" | wc -l`
-if [ "_$pwd_count" = "_1" ]
-then 
-    echo "ok"
-else
-    echo "not ok"
-    sudo echo "$ERR_USERNAME" > $lbeacon_output
-    sudo echo "$ERR_USERNAME" > $gateway_output
-    exit 0
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+then
+    pwd_count=`pwd | grep "bedis" | wc -l`
+    if [ "_$pwd_count" = "_1" ]
+    then 
+        echo "ok"
+    else
+        echo "not ok"
+        sudo echo "$ERR_USERNAME" > $lbeacon_output
+        exit 0
+    fi
+elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
+then
+    pwd_count=`pwd | grep "bedis" | wc -l`
+    if [ "_$pwd_count" = "_1" ]
+    then 
+        echo "ok"
+    else
+        echo "not ok"
+        sudo echo "$ERR_USERNAME" > $gateway_output
+        exit 0
+    fi
 fi
 
 echo "checking [rc.local] ....."
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
 then 
     echo "checking [LBeacon] ....."
     beacon_count=`sudo cat /etc/rc.local | grep "/home/bedis/LBeacon/bin/auto_LBeacon.sh" | wc -l`
@@ -159,8 +159,7 @@ then
         sudo echo "$ERR_RC_LOCAL" > $lbeacon_output
         exit 0 
     fi
-fi
-if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then 
     echo "checking [Gateway] ....."
     gateway_count=`sudo cat /etc/rc.local | grep "/home/bedis/Lbeacon-Gateway/bin/auto_Gateway.sh" | wc -l`
@@ -175,48 +174,61 @@ then
 fi
 
 echo "checking [crontab] ....."
-if [ "_$IS_LBEACON" = "_1" ]
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
 then
-    echo "checking crontab ....."
+    echo "checking have self_check.sh ....."
+    crontab_count=`crontab -l -u bedis | grep "LBeacon.*self_check.sh" | grep -v "#" | wc -l`
+    if [ "_$crontab_count" = "_1" ]
+    then
+        echo "ok"
+    else
+        echo "not ok"
+        sudo echo "$ERR_CRONTAB_SELF_CHECK" > $lbeacon_output
+        exit 0
+    fi
+elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
+then
+    echo "checking have self_check.sh ....."
+    crontab_count=`crontab -l -u bedis | grep "Lbeacon-Gateway.*self_check.sh" | grep -v "#" | wc -l`
+    if [ "_$crontab_count" = "_1" ]
+    then
+        echo "ok"
+    else
+        echo "not ok"
+        sudo echo "$ERR_CRONTAB_SELF_CHECK" > $gateway_output
+        exit 0
+    fi
+fi
+    
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ]
+then 
+    echo "checking have network.sh ....."
     crontab_count=`crontab -l -u bedis | grep "network.sh" | grep -v "#" | wc -l`
     if [ "_$crontab_count" = "_1" ]
     then
         echo "ok"
     else
         echo "not ok"
-        sudo echo "$ERR_CRONTAB" > $lbeacon_output
+        sudo echo "$ERR_CRONTAB_NETWORK" > $lbeacon_output
         exit 0
     fi
-elif [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+fi
+
+if [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then
-    echo "checking crontab ....."
-    crontab_count=`crontab -l -u bedis | grep "network.sh" | grep -v "#" | wc -l`
-    if [ "_$crontab_count" = "_0" ]
+    echo "checking have ping_ip.sh ....."
+    crontab_count=`crontab -l -u bedis | grep "ping_ip.sh" | grep -v "#" | wc -l`
+    if [ "_$crontab_count" = "_1" ]
     then
         echo "ok"
     else
         echo "not ok"
-        sudo echo "$ERR_CRONTAB" > $lbeacon_output
-        sudo echo "$ERR_CRONTAB" > $gateway_output
+        sudo echo "$ERR_CRONTAB_PING_IP" > $gateway_output
         exit 0
     fi
-
 fi
 
-echo "checking [hostapd] ....."
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ]
-then 
-    echo "checking [hostapd] ....."
-    hostapd_process=`sudo ps aux | grep -i "hostapd" | grep -v "color" | grep -v "grep " | wc -l`
-    if [ "_$hostapd_process" = "_0" ]
-    then 
-        echo "ok"
-    else
-        echo "not ok"
-        sudo echo "$ERR_PROCESS_HOSTAPD" > $lbeacon_output
-        exit 0 
-    fi
-elif [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+if [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then 
     echo "checking [hostapd] ....."
     hostapd_process=`sudo ps aux | grep -i "hostapd" | grep -v "color" | grep -v "grep" | wc -l`
@@ -232,15 +244,14 @@ fi
 
 
 echo "checking [BOT component version] ....."
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
 then 
     echo "checking [LBeacon] ....."
     beacon_version=`sudo ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5`
     echo "$beacon_version"
     beacon_version_number=`sudo ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
     sudo echo "$beacon_version_number" > $lbeacon_version_output
-fi
-if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then 
     echo "checking [Gateway] ....."
     gateway_version=`sudo ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5`
@@ -250,22 +261,7 @@ then
 fi
 
 echo "checking [WLAN running status] ....."
-echo "checking [wlan0] ....."
-echo `sudo ifconfig | grep -A 1 "wlan0" | grep "inet" | cut -d ":" -f 2 | cut -d " " -f 1`
-wlan0_current_status=`sudo ifconfig | grep -A 6 "wlan0" | grep "TX"`
-sleep 5
-wlan0_later_status=`sudo ifconfig | grep -A 6 "wlan0" | grep "TX"`
-if [ "_$wlan0_current_status" != "_$wlan0_later_status" ]
-then
-    echo "ok"
-else
-    echo "not ok"
-    sudo echo "$ERR_WLAN0_RUNNING" > $lbeacon_output
-    sudo echo "$ERR_WLAN0_RUNNING" > $gateway_output
-    exit 0 
-fi
-
-if [ "_$WLAN_COUNT" = "_2" ]
+if [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then
     echo "checking [wlan1] ....."
     echo `sudo ifconfig | grep -A 1 "wlan1" | grep "inet" | cut -d ":" -f 2 | cut -d " " -f 1`
@@ -282,7 +278,7 @@ then
     fi
 fi
 
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ] 
 then
     echo "checking [HCI running status] ....."
     scan_dongle_id=`sudo cat /home/bedis/LBeacon/config/config.conf | grep "scan_dongle_id=0" | wc -l`
@@ -318,9 +314,8 @@ then
 fi
 
 # Check BOT component installation
-
 echo "checking [BOT running processes] ....."
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ] 
 then 
     echo "checking [LBeacon] ....."
     beacon_process=`sudo ps aux | grep "LBeacon" | grep -v "color" | grep -v "self_check.sh" | grep -v "grep" | wc -l`
@@ -332,8 +327,7 @@ then
         sudo echo "$ERR_PROCESS_LBEACON" > $lbeacon_output
         exit 0 
     fi
-fi
-if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then 
     echo "checking [Gateway] ....."
     gateway_process=`sudo ps aux | grep "Gateway" | grep -v "color" | grep -v "self_check.sh" | grep -v "grep" | wc -l`
@@ -349,7 +343,7 @@ fi
 
 # Check BOT component configuration
 echo "checking [zlog.conf] ....."
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
 then 
     echo "checking [LBeacon] ....."
     beacon_zlog=`sudo cat /home/bedis/LBeacon/config/zlog.conf | grep "LBeacon_Debug.DEBUG.*bedis" | wc -l`
@@ -361,8 +355,7 @@ then
         sudo echo "$ERR_ZLOG_LBEACON" > $lbeacon_output
         exit 0 
     fi
-fi
-if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ] 
 then 
     echo "checking [Gateway] ....."
     gateway_zlog=`sudo cat /home/bedis/Lbeacon-Gateway/config/zlog.conf | grep "LBeacon_Debug.DEBUG.*bedis" | wc -l`
@@ -377,7 +370,7 @@ then
 fi
 
 echo "checking [DEBUG log] ....."
-if [ "_$IS_LBEACON" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
 then 
     echo "checking [LBeacon] ....."
     beacon_current_debug=`sudo wc -c /home/bedis/LBeacon/log/diagnostic.log | cut -d " " -f 1`
@@ -391,8 +384,7 @@ then
         sudo echo "$ERR_DEBUG_LBEACON" > $lbeacon_output
         exit 0 
     fi
-fi
-if [ "_$IS_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
+elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then 
     echo "checking [Gateway] ....."
     gateway_current_debug=`sudo wc -c /home/bedis/Lbeacon-Gateway/log/diagnostic.log | cut -d " " -f 1`
@@ -408,15 +400,11 @@ then
     fi
 fi
 
-if [ "_$IS_LBEACON" = "_1" ]
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
 then
     sudo echo "$WORK_SUCCESSFULLY" > $lbeacon_output
-elif [ "_$IS_GATEWAY" = "_1" ]
+elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then
-    sudo echo "$WORK_SUCCESSFULLY" > $gateway_output
-elif [ "_$IS_LBEACON_WITH_GATEWAY_RPIZW" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY_RPI3B" = "_1" ]
-then
-    sudo echo "$WORK_SUCCESSFULLY" > $lbeacon_output
     sudo echo "$WORK_SUCCESSFULLY" > $gateway_output
 fi
 exit 0
