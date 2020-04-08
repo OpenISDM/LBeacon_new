@@ -1217,6 +1217,10 @@ ErrorCode handle_health_report(){
         fgets(self_check_buf, sizeof(self_check_buf), self_check_file);
         trim_string_tail(self_check_buf);
 
+        if(strlen(self_check_buf) == 0){
+            sprintf(self_check_buf, "%",
+                    SELF_CHECK_ERROR_OPEN_FILE);
+        }
         fclose(self_check_file);
     }
     
@@ -1244,7 +1248,10 @@ ErrorCode handle_health_report(){
     }else{
         fgets(version_buf, sizeof(version_buf), version_file);
         trim_string_tail(version_buf); 
-        
+        if(strlen(version_buf) == 0){
+            sprintf(version_buf, "%d",
+                    SELF_CHECK_ERROR_OPEN_FILE);
+        }
         fclose(version_file);             
     }
   
