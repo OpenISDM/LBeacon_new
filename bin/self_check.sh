@@ -177,7 +177,7 @@ echo "checking [crontab] ....."
 if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
 then
     echo "checking have self_check.sh ....."
-    crontab_count=`crontab -l -u bedis | grep "LBeacon.*self_check.sh" | grep -v "#" | wc -l`
+    crontab_count=`sudo crontab -l | grep "LBeacon.*self_check.sh" | grep -v "#" | wc -l`
     if [ "_$crontab_count" = "_1" ]
     then
         echo "ok"
@@ -189,7 +189,7 @@ then
 elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then
     echo "checking have self_check.sh ....."
-    crontab_count=`crontab -l -u bedis | grep "Lbeacon-Gateway.*self_check.sh" | grep -v "#" | wc -l`
+    crontab_count=`sudo crontab -l | grep "Lbeacon-Gateway.*self_check.sh" | grep -v "#" | wc -l`
     if [ "_$crontab_count" = "_1" ]
     then
         echo "ok"
@@ -217,7 +217,7 @@ fi
 if [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then
     echo "checking have ping_ip.sh ....."
-    crontab_count=`crontab -l -u bedis | grep "ping_ip.sh" | grep -v "#" | wc -l`
+    crontab_count=`sudo crontab -l | grep "ping_ip.sh" | grep -v "#" | wc -l`
     if [ "_$crontab_count" = "_1" ]
     then
         echo "ok"
