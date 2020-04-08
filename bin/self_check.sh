@@ -203,7 +203,7 @@ fi
 if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ]
 then 
     echo "checking have network.sh ....."
-    crontab_count=`crontab -l -u bedis | grep "network.sh" | grep -v "#" | wc -l`
+    crontab_count=`sudo crontab -l | grep "network.sh" | grep -v "#" | wc -l`
     if [ "_$crontab_count" = "_1" ]
     then
         echo "ok"
