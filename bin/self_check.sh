@@ -17,6 +17,7 @@ ERR_HCI_COUNT=1001
 ERR_WLAN_COUNT=1002
 ERR_WLAN_SPECIFY_WLAN0=1003
 ERR_WLAN_SPECIFY_WLAN1=1004
+ERR_UNDER_VOLTAGE=1005
 
 ERR_CRONTAB_NETWORK=2001
 ERR_CRONTAB_SELF_CHECK=2002
@@ -60,6 +61,35 @@ fi
 # Check hardwares
 echo "checking [CPU] ....."
 echo `sudo cat /proc/cpuinfo | grep "Hardware" `
+echo "checking [Raspberry Pi revision] ....."
+echo `sudo cat /proc/cpuinfo | grep "Revision" `
+
+echo "checking [Voltage] ....."
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+then
+    volts_detected=`sudo vcgencmd get_throttled`
+    if [ "_$volts_detected" = "_throttled=0x0" ]
+    then 
+        echo "ok"
+    else
+        echo "not ok"
+        sudo echo "$ERR_UNDER_VOLTAGE" > $lbeacon_output
+        exit 0
+    fi    
+elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
+then
+    volts_detected=`sudo vcgencmd get_throttled`
+    if [ "_$volts_detected" = "_throttled=0x0" ]
+    then 
+        echo "ok"
+    else
+        echo "not ok"
+        sudo echo "$ERR_UNDER_VOLTAGE" > $gateway_output
+        exit 0
+    fi    
+fi
+
+
 
 if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
 then
