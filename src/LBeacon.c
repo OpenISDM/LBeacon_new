@@ -1218,7 +1218,7 @@ ErrorCode handle_health_report(){
         trim_string_tail(self_check_buf);
 
         if(strlen(self_check_buf) == 0){
-            sprintf(self_check_buf, "%",
+            sprintf(self_check_buf, "%d",
                     SELF_CHECK_ERROR_OPEN_FILE);
         }
         fclose(self_check_file);
