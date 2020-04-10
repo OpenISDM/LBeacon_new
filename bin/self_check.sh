@@ -1,9 +1,9 @@
 #!/bin/bash
 # Cusomization settings
-IS_LBEACON_WITHOUT_GATEWAY=0
+IS_LBEACON_WITHOUT_GATEWAY=1
 IS_LBEACON_WITH_GATEWAY=0
 IS_GATEWAY_WITHOUT_AP=0
-IS_GATEWAY_WITH_AP=1
+IS_GATEWAY_WITH_AP=0
 
 # Please do not modify following code
 lbeacon_output="/home/bedis/LBeacon/log/self_check_result"
