@@ -1,9 +1,9 @@
 #!/bin/bash
 # Cusomization settings
 IS_LBEACON_WITHOUT_GATEWAY=0
-IS_LBEACON_WITH_GATEWAY=1
+IS_LBEACON_WITH_GATEWAY=0
 IS_GATEWAY_WITHOUT_AP=0
-IS_GATEWAY_WITH_AP=0
+IS_GATEWAY_WITH_AP=1
 
 # Please do not modify following code
 lbeacon_output="/home/bedis/LBeacon/log/self_check_result"
@@ -318,7 +318,7 @@ echo "checking [BOT running processes] ....."
 if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ] 
 then 
     echo "checking [LBeacon] ....."
-    beacon_process=`sudo ps aux | grep "LBeacon" | grep -v "color" | grep -v "self_check.sh" | grep -v "grep" | wc -l`
+    beacon_process=`sudo ps aux | grep "\./LBeacon" | grep -v "color" | grep -v "grep" | wc -l`
     if [ "_$beacon_process" = "_2" ]
     then 
         echo "ok"
@@ -330,7 +330,7 @@ then
 elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then 
     echo "checking [Gateway] ....."
-    gateway_process=`sudo ps aux | grep "Gateway.out" | grep -v "color" | grep -v "self_check.sh" | grep -v "grep" | wc -l`
+    gateway_process=`sudo ps aux | grep "Gateway.out" | grep -v "color" | grep -v "grep" | wc -l`
     if [ "_$gateway_process" = "_2" ]
     then 
         echo "ok"
