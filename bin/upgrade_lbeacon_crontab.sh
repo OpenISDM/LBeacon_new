@@ -10,8 +10,8 @@ then
     version_info=`sudo ls -tr /home/bedis/LBeacon/*.txt | head -1 | cut -d "/" -f 5 | cut -d "." -f 1-2`
     build_info=`sudo ls -tr /home/bedis/LBeacon/*.txt | head -1 | cut -d "/" -f 5 | cut -d "." -f 3`
     
-    new_version_info=`sudo ls -t /tmp/LBeacon-*.tar.gz | head -1 | cut -d "-" -f 3 | cut -d "." -f 1-2`
-    new_build_info=`sudo ls -t /tmp/LBeacon-*.tar.gz | head -1 | cut -d "-" -f 3 | cut -d "." -f 3`
+    new_version_info=`sudo ls -t /tmp/LBeacon-*.tar.gz | head -1 | cut -d "-" -f 2 | cut -d "." -f 1-2`
+    new_build_info=`sudo ls -t /tmp/LBeacon-*.tar.gz | head -1 | cut -d "-" -f 2 | cut -d "." -f 3`
     
     echo "$version_info $build_info"
     echo "$new_version_info $new_build_info"
