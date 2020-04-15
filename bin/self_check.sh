@@ -435,7 +435,7 @@ echo "checking [configuration file] ....."
 if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
 then 
     echo "checking [LBeacon] ....."
-    scan_interval=`sudo cat /home/bedis/LBeacon/config/config.conf | grep "scan_interval_in_uints_0625_ms=" | cut -d "=" -f 2`
+    scan_interval=`sudo cat /home/bedis/LBeacon/config/config.conf | grep "scan_interval_in" | cut -d "=" -f 2 | tr -d '\r'`
     if [ "_$scan_interval" = "_480" ]
     then 
         echo "ok"
