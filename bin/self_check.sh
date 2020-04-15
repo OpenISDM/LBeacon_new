@@ -1,7 +1,7 @@
 #!/bin/bash
 # Cusomization settings
-IS_LBEACON_WITHOUT_GATEWAY=1
-IS_LBEACON_WITH_GATEWAY=0
+IS_LBEACON_WITHOUT_GATEWAY=0
+IS_LBEACON_WITH_GATEWAY=1
 IS_GATEWAY_WITHOUT_AP=0
 IS_GATEWAY_WITH_AP=0
 
@@ -37,6 +37,7 @@ ERR_ZLOG_LBEACON=5001
 ERR_ZLOG_GATEWAY=5002
 ERR_DEBUG_LBEACON=5003
 ERR_DEBUG_GATEWAY=5004
+ERR_LBEACON_CONFIG_SCAN_INTERVAL=5005
 
 # Display expected BOT component
 if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ]
@@ -429,6 +430,22 @@ then
         exit 0 
     fi
 fi
+
+echo "checking [configuration file] ....."
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+then 
+    echo "checking [LBeacon] ....."
+    scan_interval=`sudo cat /home/bedis/LBeacon/config/config.conf | grep "scan_interval_in_uints_0625_ms=" | cut -d "=" -f 2`
+    if [ "_$scan_interval" = "_480" ]
+    then 
+        echo "ok"
+    else
+        echo "not ok"
+        sudo echo "$ERR_LBEACON_CONFIG_SCAN_INTERVAL" > $lbeacon_output
+        exit 0 
+    fi
+fi
+
 
 if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
 then

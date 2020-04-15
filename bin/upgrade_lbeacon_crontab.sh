@@ -36,6 +36,9 @@ sudo /home/bedis/LBeacon/bin/kill_LBeacon.sh
 echo "backup existing configration file"
 sudo cp /home/bedis/LBeacon/config/config.conf /home/bedis/upgrade-LBeacon/config_save.conf 
 
+echo "backup existing self_check.sh"
+sudo cp /home/bedis/LBeacon/bin/self_check.sh /home/bedis/upgrade-LBeacon/self_check.sh.bak
+
 echo "remove existing version files"
 sudo rm -f /home/bedis/LBeacon/*.txt
 
