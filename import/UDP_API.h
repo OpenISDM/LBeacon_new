@@ -71,6 +71,12 @@
 /* The time in milliseconds for the receive thread to sleep when it is idle */
 #define RECEIVE_THREAD_IDLE_SLEEP_TIME 50
 
+#define DELIMITER_SEMICOLON ";"
+
+#define LENGTH_OF_SHA256 512
+
+#define LENGTH_OF_ENCODED_WIFI_MESSAGE 8192
+
 /* When debugging is needed */
 //#define debugging
 

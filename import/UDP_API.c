@@ -38,6 +38,7 @@
      Gary Xiao      , garyh0205@hotmail.com
  */
 #include "UDP_API.h"
+#include "libEncrypt.h"
 
 
 int udp_initial(pudp_config udp_config, int recv_port)
@@ -111,11 +112,24 @@ int udp_initial(pudp_config udp_config, int recv_port)
 int udp_addpkt(pudp_config udp_config, char *address, unsigned int port, 
                char *content, int size)
 {
+    int ret = 0;
+    char content_sha256[LENGTH_OF_SHA256];
+    char ciphertext[LENGTH_OF_ENCODED_WIFI_MESSAGE];
 
+    memset(content_sha256, 0, sizeof(content_sha256));
+    ret = SHA_256_Hash(content, content_sha256, sizeof(content_sha256));
+    
+    memset(ciphertext, 0, sizeof(ciphertext));
+    ret = AES_ECB_Encoder_With_Token_Prefix(content_sha256, ciphertext, sizeof(ciphertext));
+
+    strcat(ciphertext, DELIMITER_SEMICOLON);
+    strcat(ciphertext, content);
+    size = strlen(ciphertext);
+    
     if(size > MESSAGE_LENGTH)
         return addpkt_msg_oversize;
 
-    addpkt(&udp_config -> pkt_Queue, address, port, content, size);
+    addpkt(&udp_config -> pkt_Queue, address, port, ciphertext, size);
 
     return 0;
 }
@@ -123,8 +137,32 @@ int udp_addpkt(pudp_config udp_config, char *address, unsigned int port,
 
 sPkt udp_getrecv(pudp_config udp_config)
 {
+    int ret = 0;
+    char content_sha256[LENGTH_OF_SHA256];
+    char decodedtext[LENGTH_OF_ENCODED_WIFI_MESSAGE];
+    char *ciphertext = NULL;
+    char *save_ptr = NULL;
+    sPkt empty_pkt;
+ 
 
     sPkt tmp = get_pkt(&udp_config -> Received_Queue);
+
+    if(tmp.is_null == true)
+        return tmp;
+
+    ciphertext = strtok_save(tmp.content, DELIMITER_SEMICOLON, &save_ptr);
+    memset(decodedtext, 0, sizeof(decodedtext));
+    if(1 != AES_ECB_Decoder_With_Token_Prefix(ciphertext, decodedtext, sizeof(decodedtext)))
+        return empty_pkt;
+
+    memset(content_sha256, 0, sizeof(content_sha256));
+    ret = SHA_256_Hash(save_ptr, content_sha256, sizeof(content_sha256));
+        
+    if(0 != strncmp(decodedtext, content_sha256, strlen(content_sha256)))
+        return empty_pkt;
+
+    strcpy(tmp.content, save_ptr);
+    tmp.content_size = strlen(tmp.content);
 
     return tmp;
 }
