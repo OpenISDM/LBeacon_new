@@ -8,7 +8,7 @@ INC = -I ../import -I ../import/libEncrypt
 #---------------------------------------------------------------------------
 all: LBeacon
 LBeacon: $(OBJS)
-	$(CC) $(OBJS) $(CFLAGS) -o LBeacon $(INC) $(LIB) -lrt -lpthread -lbfb -lbluetooth -lwiringPi -lzlog -lEncrypt
+	$(CC) $(OBJS) $(CFLAGS) -o LBeacon $(INC) $(LIB) -lrt -lpthread -lbluetooth -lzlog -lEncrypt
 	@mv LBeacon ../bin/
 	chown bedis:bedis ../bin/LBeacon
 

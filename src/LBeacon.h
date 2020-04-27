@@ -57,7 +57,7 @@ Authors:
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
 #include <netinet/in.h>
-#include <obexftp/client.h>
+//#include <obexftp/client.h>
 #include "BeDIS.h"
 #include "Version.h"
 
