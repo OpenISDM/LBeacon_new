@@ -11,10 +11,6 @@ if [ "X$?" != "X0" ]; then
     sudo ifup wlan0
 else
     if [ $gatewayAddr != "$( cat /home/bedis/LBeacon/config/config.conf | grep "gateway_addr" |cut -d "=" -f 2 | tr -d '\r\n')" ]; then
-	#Change NTP settings and restart
-	sudo sed -i '/prefer iburst/cserver '"$gatewayAddr"' prefer iburst' /etc/ntp.conf
-	sudo sed -i '/prefer iburst/cserver '"$gatewayAddr"' prefer iburst' /var/lib/ntp/ntp.conf.dhcp
-	sudo /etc/init.d/ntp restart
 	#Change config and restart LBeacon
 	sudo sed -i 's/gateway_addr='"$confGatewayAddr"'/gateway_addr='"$gatewayAddr"'/' /home/bedis/LBeacon/config/config.conf
 	sudo /home/bedis/LBeacon/bin/kill_LBeacon.sh
