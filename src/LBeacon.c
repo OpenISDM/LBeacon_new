@@ -2765,8 +2765,8 @@ int main(int argc, char **argv) {
             
         current_time = get_clock_time();
 
-        if((current_time - gateway_latest_polling_time >
-            INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC) &&
+        if(/*(current_time - gateway_latest_polling_time >
+            INTERVAL_RECEIVE_MESSAGE_FROM_GATEWAY_IN_SEC) &&*/
             (current_time - last_join_request_time >
             INTERVAL_FOR_RECONNECT_GATEWAY_IN_SEC)){
 
