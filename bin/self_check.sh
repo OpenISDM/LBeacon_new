@@ -43,11 +43,11 @@ ERR_LBEACON_CONFIG_SCAN_INTERVAL=5005
 if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ]
 then 
     echo "This is Lbeacon without gateway on the same box"
-    HCI_COUNT=2
+    HCI_COUNT=1
 elif [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
 then 
     echo "This is Lbeacon with gateway on the same box"
-    HCI_COUNT=2
+    HCI_COUNT=1
 elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ]
 then
     echo "This is Gateway without AP on the same box"
