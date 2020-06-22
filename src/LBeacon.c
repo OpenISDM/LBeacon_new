@@ -1190,69 +1190,69 @@ ErrorCode handle_health_report(){
     int retry_times = 0;
     int ret_val = 0;
     char message_temp[WIFI_MESSAGE_LENGTH];
+    bool is_get_file_content = false;
     
     // read self-check result
+    is_get_file_content = false;
+    memset(self_check_buf, 0, sizeof(self_check_buf));
+    
     retry_times = FILE_OPEN_RETRY;
     while(retry_times--){
         self_check_file =
             fopen(SELF_CHECK_RESULT_FILE_NAME, "r");
 
         if(NULL != self_check_file){
-            break;
+            fgets(self_check_buf, sizeof(self_check_buf), self_check_file);
+            trim_string_tail(self_check_buf);
+
+            fclose(self_check_file);
+            
+            if(strlen(self_check_buf) > 0){
+                is_get_file_content = true;
+                break;
+            }
         }
     }
     
-    memset(self_check_buf, 0, sizeof(self_check_buf));
-        
-    if(NULL == self_check_file){
+    if(false == is_get_file_content){
         zlog_error(category_health_report,
                    "Error openning file");
         zlog_error(category_debug,
                    "Error openning file");
 
         sprintf(self_check_buf, "%d", 
-                SELF_CHECK_ERROR_OPEN_FILE);
-        
-    }else{
-        fgets(self_check_buf, sizeof(self_check_buf), self_check_file);
-        trim_string_tail(self_check_buf);
-
-        if(strlen(self_check_buf) == 0){
-            sprintf(self_check_buf, "%d",
-                    SELF_CHECK_ERROR_OPEN_FILE);
-        }
-        fclose(self_check_file);
+                SELF_CHECK_ERROR_OPEN_FILE);  
     }
     
     // read version result
+    is_get_file_content = false;
+    memset(version_buf, 0, sizeof(version_buf));
+    
     retry_times = FILE_OPEN_RETRY;
     while(retry_times--){
         version_file =
             fopen(VERSION_FILE_NAME, "r");
 
         if(NULL != version_file){
-            break;
+            fgets(version_buf, sizeof(version_buf), version_file);
+            trim_string_tail(version_buf);
+            fclose(version_file);
+            
+            if(strlen(version_buf)>0){
+                is_get_file_content = true;
+                break;
+            }
         }
     }
-
-    memset(version_buf, 0, sizeof(version_buf));
         
-    if(NULL == version_file){
+    if(false == is_get_file_content){
         zlog_error(category_health_report,
                    "Error openning file");
         zlog_error(category_debug,
                    "Error openning file");
         
         sprintf(version_buf, "%d", 
-                SELF_CHECK_ERROR_OPEN_FILE);        
-    }else{
-        fgets(version_buf, sizeof(version_buf), version_file);
-        trim_string_tail(version_buf); 
-        if(strlen(version_buf) == 0){
-            sprintf(version_buf, "%d",
-                    SELF_CHECK_ERROR_OPEN_FILE);
-        }
-        fclose(version_file);             
+                SELF_CHECK_ERROR_OPEN_FILE);                  
     }
   
     /* contructs the content for UDP packet*/
