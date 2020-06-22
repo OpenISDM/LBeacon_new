@@ -59,6 +59,23 @@ else
     exit 0 
 fi
 
+echo "checking [BOT component version] ....."
+if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
+then 
+    echo "checking [LBeacon] ....."
+    beacon_version=`sudo ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5`
+    echo "$beacon_version"
+    beacon_version_number=`sudo ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
+    sudo echo "$beacon_version_number" > $lbeacon_version_output
+elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
+then 
+    echo "checking [Gateway] ....."
+    gateway_version=`sudo ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5`
+    echo "$gateway_version"
+    gateway_version_number=`sudo ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
+    sudo echo "$gateway_version_number" > $gateway_version_output
+fi
+
 # Check hardwares
 echo "checking [CPU] ....."
 echo `sudo cat /proc/cpuinfo | grep "Hardware" `
@@ -285,24 +302,6 @@ then
         sudo echo "$ERR_PROCESS_HOSTAPD" > $gateway_output
         exit 0 
     fi
-fi
-
-
-echo "checking [BOT component version] ....."
-if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
-then 
-    echo "checking [LBeacon] ....."
-    beacon_version=`sudo ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5`
-    echo "$beacon_version"
-    beacon_version_number=`sudo ls -al /home/bedis/LBeacon/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
-    sudo echo "$beacon_version_number" > $lbeacon_version_output
-elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
-then 
-    echo "checking [Gateway] ....."
-    gateway_version=`sudo ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5`
-    echo "$gateway_version"
-    gateway_version_number=`sudo ls -al /home/bedis/Lbeacon-Gateway/*.txt | cut -d "/" -f 5 | cut -d "." -f 1-3`
-    sudo echo "$gateway_version_number" > $gateway_version_output
 fi
 
 echo "checking [WLAN running status] ....."
