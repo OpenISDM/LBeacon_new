@@ -76,7 +76,7 @@
      area.
 
   Authors:
-
+     Wayne Kang, biggkqq@gmail.com
      Chun Yu Lai   , chunyu1202@gmail.com
 */
 #ifndef LIBENCRYPT_H 
