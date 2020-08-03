@@ -1,5 +1,4 @@
 /*
-/*
   Copyright (c) BiDaE Technology Inc. All rights reserved.
 
   License:
