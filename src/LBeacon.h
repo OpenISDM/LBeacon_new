@@ -225,8 +225,11 @@ typedef struct Config {
     /* The dongle used to scan */
     int scan_dongle_id;
     
-    /* Time interval in units of 0.625ms between scanning by a LBeacon */
+    /* Time interval in units of 0.625ms for BLE scan interval */
     int scan_interval_in_units_0625_ms;
+    
+    /* Time interval in units of 0.625ms for BLE scan window */
+    int scan_window_in_units_0625_ms;
 
     /* The required signal strength */
     int scan_rssi_coverage;
@@ -410,6 +413,8 @@ Memory_Pool temp_ble_device_mempool;
 
 /* Variables for storing the last polling times in second*/\
 int gateway_latest_polling_time;
+
+bool is_ble_scanning_thread_running;
 
 #ifdef Bluetooth_classic
 

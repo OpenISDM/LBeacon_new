@@ -282,9 +282,13 @@ ErrorCode get_config(Config *config, char *file_name) {
     
     /* item 12 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
+    config->scan_window_in_units_0625_ms = atoi(config_message);
+    
+    /* item 13 */
+    fetch_next_string(file, config_message, sizeof(config_message)); 
     config->scan_rssi_coverage = atoi(config_message);
 
-    /* item 13 */
+    /* item 14 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     memset(temp_buf, 0, sizeof(temp_buf));
     memcpy(temp_buf, config_message, strlen(config_message));
@@ -647,10 +651,10 @@ ErrorCode enable_advertising(int dongle_device_id,
            sizeof(advertising_parameters_copy));
 
     advertising_parameters_copy.min_interval = 
-        advertising_interval_in_units_0625_ms;
+        htobs((uint16_t)advertising_interval_in_units_0625_ms);
 
     advertising_parameters_copy.max_interval = 
-        advertising_interval_in_units_0625_ms;
+        htobs((uint16_t)advertising_interval_in_units_0625_ms);
 
     /* advertising non-connectable */
     advertising_parameters_copy.advtype = 3;
@@ -2035,8 +2039,8 @@ ErrorCode *start_ble_scanning(void *param){
     /* Set BLE scan parameters */
     if( 0> hci_le_set_scan_parameters(socket, 
                                       0x00, 
-                                      g_config.scan_interval_in_units_0625_ms,
-                                      g_config.scan_interval_in_units_0625_ms,
+                                      htobs((uint16_t)g_config.scan_interval_in_units_0625_ms),
+                                      htobs((uint16_t)g_config.scan_window_in_units_0625_ms),
                                       0x00,
                                       0x00,
                                       HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
@@ -2046,6 +2050,7 @@ ErrorCode *start_ble_scanning(void *param){
         zlog_debug(category_debug,
                   "Error setting parameters of BLE scanning");
     }
+
 
     if( 0> hci_le_set_scan_enable(socket, 
                                   0x01, 
@@ -2057,6 +2062,7 @@ ErrorCode *start_ble_scanning(void *param){
         zlog_debug(category_debug,
                    "Error enabling BLE scanning");
     }
+
 
     /* Set event mask */
     memset(&event_mask_cp, 0, sizeof(le_set_event_mask_cp));
@@ -2094,10 +2100,12 @@ ErrorCode *start_ble_scanning(void *param){
         return E_SCAN_SET_EVENT_MASK; 
     }
 
+    is_ble_scanning_thread_running = true;
+
     while(true == ready_to_work){
-        
-        while(HCI_EVENT_HDR_SIZE <=
-              read(socket, ble_buffer, sizeof(ble_buffer)) ){
+        while(true == ready_to_work && 
+              (HCI_EVENT_HDR_SIZE <=
+               read(socket, ble_buffer, sizeof(ble_buffer)))){
 
             meta = (evt_le_meta_event*)
                 (ble_buffer + HCI_EVENT_HDR_SIZE + 1);
@@ -2162,6 +2170,7 @@ ErrorCode *start_ble_scanning(void *param){
     } 
         
     hci_close_dev(socket);
+    is_ble_scanning_thread_running = false;
 
     zlog_debug(category_debug, "<< start_ble_scanning... ");
     return WORK_SUCCESSFULLY;
@@ -2555,6 +2564,7 @@ int main(int argc, char **argv) {
     int current_time;
 
     /*Initialize the global flag */
+    is_ble_scanning_thread_running = false;
     ready_to_work = true;
 
     /* Initialize the application log */
@@ -2655,6 +2665,7 @@ int main(int argc, char **argv) {
 
     /* Create the thread for track BR_EDR device */
 #ifdef Bluetooth_classic
+/*
     return_value = startThread(&br_scanning_thread,
                                start_br_scanning, NULL);
 
@@ -2666,6 +2677,7 @@ int main(int argc, char **argv) {
         cleanup_exit();
         exit(return_value);
     }
+*/
 #endif
 
     /* Create the thread for track BLE devices */
@@ -2681,17 +2693,6 @@ int main(int argc, char **argv) {
         exit(return_value);
     }
 
-    return_value = startThread(&ble_scanning_thread,
-                               start_ble_scanning, NULL);
-
-    if(return_value != WORK_SUCCESSFULLY){
-        zlog_error(category_health_report,
-                   "Error creating thread for start_ble_scanning");
-        zlog_error(category_debug,
-                   "Error creating thread for start_ble_scanning");
-        cleanup_exit();
-        exit(return_value);
-    }
     /* Start bluetooth advertising */
     return_value = enable_advertising(g_config.advertise_dongle_id,
                                       g_config.advertise_interval_in_units_0625_ms,
@@ -2709,6 +2710,18 @@ int main(int argc, char **argv) {
                    "Unable to enable advertising donegle id [%d]. Please make "
                    "sure all the hardware devices are ready and try again.",
                    g_config.advertise_dongle_id);
+        cleanup_exit();
+        exit(return_value);
+    }
+
+    return_value = startThread(&ble_scanning_thread,
+                               start_ble_scanning, NULL);
+
+    if(return_value != WORK_SUCCESSFULLY){
+        zlog_error(category_health_report,
+                   "Error creating thread for start_ble_scanning");
+        zlog_error(category_debug,
+                   "Error creating thread for start_ble_scanning");
         cleanup_exit();
         exit(return_value);
     }
@@ -2781,7 +2794,14 @@ int main(int argc, char **argv) {
     /* When Ctrl-C signal is received, disable message advertising */
     disable_advertising(g_config.advertise_dongle_id);
 
+    // Inform ble_scanning_thread to stop
+    ready_to_work = false;
+    while(is_ble_scanning_thread_running == true){
+        printf("wait for ble_scanning_thread to stop......\n");
+    }
+
     cleanup_exit();
+    
     return WORK_SUCCESSFULLY;
 }
 
