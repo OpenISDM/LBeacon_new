@@ -151,7 +151,7 @@ to determine whether to cleanup all lists. */
 #define LENGTH_OF_DEVICE_NAME 30
 
 /* Number of characters in the advertising payload of a Bluetooth device */
-#define LENGTH_OF_ADVERTISEMENT 33
+#define LENGTH_OF_ADVERTISEMENT 65
 
 /* Number of digits of MAC address to compare */
 #define NUMBER_DIGITS_TO_COMPARE 4

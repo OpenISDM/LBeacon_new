@@ -1750,26 +1750,15 @@ static ErrorCode eir_parse_specific_data(uint8_t *eir,
                 // which is our push button tag.
                 if(field_len == 7 && 
                    (eir[2] == 89 && eir[3] == 0) ){
-                       
-                    index = 0;
-                    // The first two bytes are the BeDITech tag 
-                    // identifier 1478 (0x05C6) 
-                    for(int i = 4 ; i < 6 ; i++){
-                        buf[index] = decimal_to_hex(eir[i] / 16);
-                        buf[index + 1] = decimal_to_hex(eir[i] % 16);
-                        index=index+2;
-                    }
-                    
-                    /* The next 1 byte is push-button data */
-                    buf[index] = eir[6];
-                    index++;
-                    
-                    /* The next 1 byte is battery-voltage data */
-                    buf[index] = eir[7];
-                    index++;
+                   
+                    memset(buf, 0, buf_len);
 
-                    /* Add a null terminate for easy debugging in the caller
-                       function. */
+                    index = 0 ;
+                    for(i = 0 ; i <= 7 ; i++){
+                        buf[index] = decimal_to_hex(eir[i] / 16);
+                        buf[index + 1]= decimal_to_hex(eir[i] % 16);                   
+                        index = index + 2;
+                    }
                     buf[index] = '\0';
                     
                     return WORK_SUCCESSFULLY;
@@ -1869,15 +1858,18 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                                temp->payload_length,
                                                payload,
                                                sizeof(payload))){
-                                                           
-                        if(0 == strncmp(&payload[0],
+                       
+                        if(0 == strncmp(&payload[8],
                                         BIDAETECH_TAG_IDENTIFIER, 
                                         strlen(BIDAETECH_TAG_IDENTIFIER))){
                                                     
-                            is_button_pressed = payload[4];
+                            is_button_pressed = payload[13];
 
-                            battery_voltage = payload[5];
-                                    
+                            // get the remaining battery voltage
+                            battery_voltage = 
+                                hex_to_decimal(payload[14]) * 16 +
+                                hex_to_decimal(payload[15]); 
+
                             zlog_debug(category_debug,
                                        "Detected p-tag[LE]: %s - " \
                                        "RSSI %4d, pushed=[%d], voltage=[%d]",
@@ -2729,7 +2721,7 @@ int main(int argc, char **argv) {
     // Inform ble_scanning_thread to stop
     ready_to_work = false;
     while(is_ble_scanning_thread_running == true){
-        printf("wait for ble_scanning_thread to stop......\n");
+        sleep_t(WAITING_TIME);
     }
 
     cleanup_exit();
