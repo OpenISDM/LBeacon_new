@@ -330,12 +330,13 @@ typedef struct object_list_head{
 
 } ObjectListHead;
 
-typedef struct PrefixString{
+typedef struct PrefixRule{
 
     char prefix[LENGTH_OF_MAC_ADDRESS];
+    char identifier[LENGTH_OF_ADVERTISEMENT];
     struct List_Entry list_entry;
 
-} PrefixString;
+} PrefixRule;
 
 /*
   EXTERN STRUCTS

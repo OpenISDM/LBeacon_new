@@ -202,8 +202,13 @@ ErrorCode get_config(Config *config, char *file_name) {
     char *save_current_ptr = NULL;
     int number_mac_prefix = 0;
     int i;
-    struct PrefixString *mac_prefix_node;
+    struct PrefixRule *mac_prefix_node;
     struct List_Entry *current_list_entry;
+    char single_prefix[CONFIG_BUFFER_SIZE];
+    char *prefix_current_ptr = NULL;
+    char *prefix_save_current_ptr = NULL;
+    
+
 
     retry_times = FILE_OPEN_RETRY;
     while(retry_times--){
@@ -296,24 +301,44 @@ ErrorCode get_config(Config *config, char *file_name) {
     /* construct the list of acceptable mac prefixes*/
     init_entry(&config->mac_prefix_list_head);
 
-    current_ptr = strtok_r(temp_buf, DELIMITER_COMMA, &save_current_ptr);
+    current_ptr = strtok_save(temp_buf, DELIMITER_COMMA, &save_current_ptr);
     sscanf(current_ptr, "%d", &number_mac_prefix);
 
     for(i = 0; i < number_mac_prefix ; i++){
-        current_ptr = strtok_r(NULL, DELIMITER_COMMA, &save_current_ptr);
-        mac_prefix_node = malloc(sizeof(PrefixString));
+        current_ptr = strtok_save(NULL, DELIMITER_COMMA, &save_current_ptr);
+        mac_prefix_node = malloc(sizeof(PrefixRule));
+
         init_entry(&mac_prefix_node->list_entry);
         memset(mac_prefix_node->prefix, 0, sizeof(mac_prefix_node->prefix));
-        strncpy(mac_prefix_node->prefix, current_ptr, strlen(current_ptr));
+        memset(mac_prefix_node->identifier, 0, sizeof(mac_prefix_node->identifier));
+
+        memset(single_prefix, 0, sizeof(single_prefix));
+        strncpy(single_prefix, current_ptr, strlen(current_ptr));
+        prefix_current_ptr = strtok_save(single_prefix, 
+                                         DELIMITER_SEMICOLON, 
+                                         &prefix_save_current_ptr);
+        strncpy(mac_prefix_node->prefix, 
+                prefix_current_ptr, 
+                strlen(prefix_current_ptr));
+
+        prefix_current_ptr = strtok_save(NULL, 
+                                         DELIMITER_SEMICOLON, 
+                                         &prefix_save_current_ptr);
+        strncpy(mac_prefix_node->identifier, 
+                prefix_current_ptr, 
+                strlen(prefix_current_ptr));
+
         insert_list_tail(&mac_prefix_node->list_entry,
                          &config->mac_prefix_list_head);
     }
 
     list_for_each(current_list_entry, &config->mac_prefix_list_head){
-        mac_prefix_node = ListEntry(current_list_entry, PrefixString,
+        mac_prefix_node = ListEntry(current_list_entry, PrefixRule,
                                     list_entry);
-        zlog_debug(category_debug, "mac address with prefix [%s]",
-                   mac_prefix_node->prefix);
+        zlog_debug(category_debug, 
+                   "mac address with prefix [%s] and identifie [%s]",
+                   mac_prefix_node->prefix,
+                   mac_prefix_node->identifier);
     }
 
     /* item 14 */
@@ -1788,7 +1813,7 @@ ErrorCode *examine_scanned_ble_device(void *param){
     int is_button_pressed;
     int battery_voltage;
     struct List_Entry *current_list_entry;
-    struct PrefixString *mac_prefix_node;
+    struct PrefixRule *mac_prefix_node;
     char payload[LENGTH_OF_ADVERTISEMENT];
     
     zlog_debug(category_debug, ">> examine_scanned_ble_device... ");
@@ -1844,52 +1869,62 @@ ErrorCode *examine_scanned_ble_device(void *param){
                           &g_config.mac_prefix_list_head){
                               
                 mac_prefix_node = ListEntry(current_list_entry,
-                                            PrefixString,
+                                            PrefixRule,
                                             list_entry);
                 
+                // check mac address prefix
                 if(0 == strncmp(temp->scanned_mac_address, 
                                 mac_prefix_node->prefix,
                                 strlen(mac_prefix_node->prefix))){
 
                     memset(payload, 0, sizeof(payload));
 
+                    // check 0xFF payload (Manufacture Specific Data)
+                    // for manufacture company id and length
                     if(WORK_SUCCESSFULLY ==
                        eir_parse_specific_data(temp->payload,
                                                temp->payload_length,
                                                payload,
                                                sizeof(payload))){
-                       
+                          
+                        // check 0xFF contains specific tag identifier
                         if(0 == strncmp(&payload[8],
-                                        BIDAETECH_TAG_IDENTIFIER, 
-                                        strlen(BIDAETECH_TAG_IDENTIFIER))){
-                                                    
-                            is_button_pressed = payload[13];
+                                        mac_prefix_node->identifier, 
+                                        strlen(mac_prefix_node->identifier))){
+             
+                            // parse payload as the tag identifier specified
+                            if(0 == strncmp(mac_prefix_node->identifier,
+                                            BIDAETECH_TAG_IDENTIFIER,
+                                            strlen(BIDAETECH_TAG_IDENTIFIER))){                                       
+     
+                                is_button_pressed = payload[13];
 
-                            // get the remaining battery voltage
-                            battery_voltage = 
-                                hex_to_decimal(payload[14]) * 16 +
-                                hex_to_decimal(payload[15]); 
+                                // get the remaining battery voltage
+                                battery_voltage = 
+                                    hex_to_decimal(payload[14]) * 16 +
+                                    hex_to_decimal(payload[15]); 
 
-                            zlog_debug(category_debug,
-                                       "Detected p-tag[LE]: %s - " \
-                                       "RSSI %4d, pushed=[%d], voltage=[%d]",
-                                       temp->scanned_mac_address,
-                                       temp->rssi,
-                                       is_button_pressed,
-                                       battery_voltage);
+                                zlog_debug(category_debug,
+                                           "Detected p-tag[LE]: %s - " \
+                                           "RSSI %4d, pushed=[%d], voltage=[%d]",
+                                           temp->scanned_mac_address,
+                                           temp->rssi,
+                                           is_button_pressed,
+                                           battery_voltage);
                                                
-                            send_to_push_dongle(temp->scanned_mac_address,
-                                                BLE,
-                                                temp->rssi,
-                                                is_button_pressed,
-                                                battery_voltage);
-
+                                send_to_push_dongle(temp->scanned_mac_address,
+                                                    BLE,
+                                                    temp->rssi,
+                                                    is_button_pressed,
+                                                    battery_voltage);
+                            }
+                            break;
                         }
-                    }
-                    
+                        break;
+                    } 
                     break;
-                }
-            }
+                } // if matched mac address prefix
+            } // list_for_each
             
             mp_free(&temp_ble_device_mempool, temp);
         }
@@ -2392,7 +2427,7 @@ ErrorCode *timeout_cleanup(void* param){
 
 ErrorCode cleanup_exit(){
     struct List_Entry *list_pointer, *save_list_pointers;
-    struct PrefixString *temp;
+    struct PrefixRule *temp;
     struct TempBleDevice *temp_ble_node;
 
     zlog_debug(category_debug, ">> cleanup_exit... ");
@@ -2413,7 +2448,7 @@ ErrorCode cleanup_exit(){
         list_for_each_safe(list_pointer, save_list_pointers,
                            &g_config.mac_prefix_list_head) {
 
-            temp = ListEntry(list_pointer, PrefixString,
+            temp = ListEntry(list_pointer, PrefixRule,
                              list_entry);
             remove_list_node(&temp->list_entry);
             mp_free(&mempool, temp);
