@@ -171,11 +171,8 @@ to gateway via wifi network link.*/
 /* The number of slots in the memory pool for temporarily scanned BLE devices */
 #define SLOTS_IN_MEM_POOL_TEMPORARY_BLE_DEVICE 2048
 
-/* The BeDITech button tag identifer (0x0000000000000000) */
-#define BEDITECH_BUTTON_TAG_IDENTIFIER "0000000000000000" 
-
-/* The BeDITech button tag with battery voltage identifer 1478 (0x05C6) */
-#define BEDITECH_BUTTON_BATTERY_TAG_IDENTIFIER "05C6" 
+/* The BiDaETech button tag with battery voltage identifer 1478 (0x05C6) */
+#define BIDAETECH_TAG_IDENTIFIER "05C6" 
 
 /* The macro of comparing two integer for minimum */
 #define min(a,b) \

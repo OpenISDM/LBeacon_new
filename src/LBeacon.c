@@ -1727,7 +1727,6 @@ static ErrorCode eir_parse_specific_data(uint8_t *eir,
     uint8_t field_len;
     int index;
     int i;
-    bool has_specific_data = false;
 
     offset = 0;
 
@@ -1746,34 +1745,6 @@ static ErrorCode eir_parse_specific_data(uint8_t *eir,
                 
                 if (field_len > buf_len)
                     goto failed;
-
-                // 0x5900 as first 2 bytes to be "Nordic"
-                // which is our push button tag.
-                if(field_len == 12 && 
-                   (eir[2] == 89 && eir[3] == 0) ){
-                       
-                    index = 0;
-                    // The first 8 bytes are the BeDITech tag 
-                    // identifier (0x0000000000000000) 
-                    for(int i = 4 ; i < 12 ; i++){
-                        buf[index] = decimal_to_hex(eir[i] / 16);
-                        buf[index + 1] = decimal_to_hex(eir[i] % 16);
-                        index=index+2;
-                    }
-                    
-                    /* The next 1 byte is push-button data */
-                    buf[index] = eir[12];
-                    index++;
-                    
-                    /* Add a null terminate for easy debugging in the caller
-                       function. */
-                    buf[index] = '\0';
-                    has_specific_data = true;
-                }
-                
-                if(true == has_specific_data){
-                    return WORK_SUCCESSFULLY;
-                }
 
                 // 0x5900 as first 2 bytes to be "Nordic"
                 // which is our push button tag.
@@ -1800,10 +1771,7 @@ static ErrorCode eir_parse_specific_data(uint8_t *eir,
                     /* Add a null terminate for easy debugging in the caller
                        function. */
                     buf[index] = '\0';
-                    has_specific_data = true;
-                }
-
-                if(true == has_specific_data){
+                    
                     return WORK_SUCCESSFULLY;
                 }
 
@@ -1902,30 +1870,9 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                                payload,
                                                sizeof(payload))){
                                                            
-                        if(0 == 
-                           strncmp(&payload[0], 
-                                   BEDITECH_BUTTON_TAG_IDENTIFIER, 
-                                   16)){
-                                                    
-                            is_button_pressed = payload[16];
-                         
-                            zlog_debug(category_debug,
-                                       "Detected p-tag[LE]: %s - " \
-                                       "RSSI %4d, pushed=[%d]",
-                                       temp->scanned_mac_address, 
-                                       temp->rssi,
-                                       is_button_pressed);
-                                               
-                            send_to_push_dongle(temp->scanned_mac_address,
-                                                BLE,
-                                                temp->rssi,
-                                                is_button_pressed,
-                                                battery_voltage);
-
-                        }else if(0 == 
-                                 strncmp(&payload[0],
-                                         BEDITECH_BUTTON_BATTERY_TAG_IDENTIFIER, 
-                                         4)){
+                        if(0 == strncmp(&payload[0],
+                                        BIDAETECH_TAG_IDENTIFIER, 
+                                        strlen(BIDAETECH_TAG_IDENTIFIER))){
                                                     
                             is_button_pressed = payload[4];
 
@@ -1946,21 +1893,6 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                                 battery_voltage);
 
                         }
-                    }else{
-                        
-                        is_button_pressed = 0;
-                        zlog_debug(category_debug,
-                                   "Detected o-tag[LE]: %s - " \
-                                   "RSSI %4d, pushed=[%d]",
-                                   temp->scanned_mac_address,
-                                   temp->rssi,
-                                   is_button_pressed);
-                                   
-                        send_to_push_dongle(temp->scanned_mac_address,
-                                            BLE,
-                                            temp->rssi,
-                                            is_button_pressed,
-                                            battery_voltage);
                     }
                     
                     break;
