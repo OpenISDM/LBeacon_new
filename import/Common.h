@@ -87,6 +87,7 @@ typedef enum pkt_types {
 
     /* A pkt containing IPC command */
     ipc_command = 8,
+
 } PktType;
 
 typedef enum pkt_direction {
@@ -108,6 +109,8 @@ typedef enum IPCCommand {
 
     CMD_NONE = 0,
     CMD_RELOAD_GEO_FENCE_SETTING = 1,
+    CMD_STOP_LIGHT_ALARM = 2,
+    CMD_RELOAD_LBEACON_SETTING = 3,
     CMD_MAX,
 
 } IPCCommand;

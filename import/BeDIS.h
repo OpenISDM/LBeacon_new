@@ -192,7 +192,10 @@
 #define LENGTH_OF_TIME_FORMAT 80
 
 /* Number of objects been monitored in each covered area */
-#define NUMBER_OBJECTS_PER_AREA 512 
+#define NUMBER_OBJECTS_PER_AREA 1024 
+
+/* Number of Lbeacons monitored in each covered area */
+#define NUMBER_LBEACONS_PER_AREA 256
 
 /* Error code for failure of opening self-check and version files */
 #define SELF_CHECK_ERROR_OPEN_FILE 9999
@@ -251,8 +254,9 @@ typedef enum _ErrorCode{
     E_PARSE_UUID = 45,
     E_PARSE_JOIN_RESPONSE = 46,
     E_API_PROTOCOL_FORMAT = 47,
+    E_CONFIG_SETTING = 48,
 
-    MAX_ERROR_CODE = 48
+    MAX_ERROR_CODE = 49
 
 } ErrorCode;
  
@@ -282,6 +286,7 @@ typedef enum ObjectMonitorType {
     MONITOR_PANIC = 2,
     MONITOR_MOVEMENT = 4,
     MONITOR_LOCATION = 8,
+    MONITOR_BED_CLEARNESS = 16,
 
 } ObjectMonitorType;
 
@@ -498,7 +503,7 @@ unsigned int twoc(int in, int t);
 /*
   decimal_to_hex:
 
-     This function translates the input number from demical to hex format 
+     This function translates the input number from decimal to hex format 
 
   Parameters:
 
@@ -509,6 +514,21 @@ unsigned int twoc(int in, int t);
      the hex format of the input number
  */
 char decimal_to_hex(int number);
+
+/*
+  hex_to_decimal:
+
+     This function translates the input number from hex format to decimal 
+
+  Parameters:
+
+     hex_number - the input hex number
+
+  Return value:
+
+     the decimal format of the input number
+ */
+int hex_to_decimal(char hex_number);
 
 
 /*
@@ -727,6 +747,22 @@ void trim_string_tail(char *message);
 void fetch_next_string(FILE *file, char *message, size_t message_size);
 
 /*
+  is_numeric:
+
+     This function checks whether the input value is numeric or not.
+
+  Parameters:
+
+     str_value - the input value string to be checked
+
+  Return value:
+
+     True - the input value is numeric. 
+     Flase - otherwise
+ */
+bool is_numeric(char *str_value);
+
+/*
   ctrlc_handler:
 
      When the user presses CTRL-C, the function sets the global variable
@@ -778,6 +814,27 @@ int strncasecmp(char const *str_a, char const *str_b, size_t len);
  */
 
 ErrorCode strtolowercase(char const * source_str, char * buf, size_t buf_len);
+
+/*
+  remove_uuid_hyphen:
+
+     This function remove hypen from uuid string
+
+  Parameters:
+
+     source_str - the original string
+
+     buf - the output buffer to store the result string 
+     
+     buf_len - number of characters in the size of buf
+
+  Return value:
+
+     ErrorCode - WORK_SUCCESSFULLY: work successfully.
+ */
+
+ErrorCode remove_uuid_hyphen(char const * source_str, char * buf, size_t buf_len);
+
 
 /*
   startThread:

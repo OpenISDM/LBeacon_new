@@ -1,0 +1,6 @@
+Copyright (c) 2020 by BiDaE Technology Inc.
+All rights reserved.
+
+The copyright declaration and ﻿BiDaE SHAREWARE LICENSE applies to any part of the project, however if the declaration and Free and Open Source license requirements are in explicit conflict, the FOSS license prevails.
+
+The software included in this project contains copyrighted software that is originally licensed under the Free and Open Source Software licenses, such as the PostgreSQL Licence for the PostgreSQL and the respective licenses for the other independent components. The related notices and disclaimers of FOSS projects are attributed as is according to the guidance of the original redistributors by the received date at notice files located in the sub-directories.

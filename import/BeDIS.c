@@ -60,6 +60,18 @@ char decimal_to_hex(int number)
     return c;
 }
 
+int hex_to_decimal(char hex_number){
+    
+    int a = 0;
+    
+    if(hex_number >= 'A' )
+        a = hex_number - 'A' + 10;
+    else
+        a = hex_number - '0';
+    
+    return a;
+}
+
 void init_buffer(BufferListHead *buffer_list_head, void (*function_p)(void *),
                  int priority_nice)
 {
@@ -383,7 +395,8 @@ void *CommUnit_routine()
            to lower priority. When the timer expired for MAX_STARVATION_TIME,
            reverse the scanning order */
         while(ready_to_work == true && 
-              uptime - init_time < MAX_STARVATION_TIME)
+              (uptime - init_time < MAX_STARVATION_TIME) ||
+              (uptime < init_time))
         {
             /* Scan the priority_list to get the buffer list with the highest
                priority among all lists that are not empty. */
@@ -584,6 +597,26 @@ void fetch_next_string(FILE *file, char *message, size_t message_size)
     strcpy(message, config_message);
 }
 
+bool is_numeric(char * str_value)
+{
+    size_t len = 0;
+    int i = 0;
+    
+    len = strlen(str_value);
+    for(i = 0 ; i < len ; i++){
+        if(str_value[i] < '0' || str_value[i] > '9'){
+            if(i == 0 && str_value[i] == '-'){
+                continue;
+            }
+            else{
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
 void ctrlc_handler(int stop) { ready_to_work = false; }
 
 int strncmp_caseinsensitive(char const *str_a, char const *str_b, size_t len)
@@ -615,6 +648,24 @@ ErrorCode strtolowercase(char const * source_str, char * buf, size_t buf_len){
         buf[i] = tolower((unsigned char)source_str[i]);
     }
 
+    return WORK_SUCCESSFULLY;
+}
+
+ErrorCode remove_uuid_hyphen(char const * source_str, char * buf, size_t buf_len){
+
+    int i = 0; 
+    int dest_index = 0;
+
+    for(i = 0 ; i < strlen(source_str) ; i ++){
+        if(source_str[i] >= '0' && source_str[i] <= '9'){
+            if(buf_len > dest_index){
+                buf[dest_index] = source_str[i];
+                dest_index ++;
+            }else
+                return E_INPUT_PARAMETER;
+        }
+    }
+    buf[dest_index] = '\0';
     return WORK_SUCCESSFULLY;
 }
 
