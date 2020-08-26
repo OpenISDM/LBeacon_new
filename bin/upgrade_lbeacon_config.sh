@@ -7,8 +7,6 @@ config_result="/home/bedis/LBeacon/config/config_result.conf"
 
 sudo cat /dev/null > $config_result
 
-sudo sed -i 's/scan_mac_address=.*//' $config_save
-
 while IFS= read -r line
 do
     config_key=`echo $line | cut -d "=" -f 1`
