@@ -262,20 +262,6 @@ then
     fi
 fi
 
-if [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
-then 
-    echo "checking have network.sh ....."
-    crontab_count=`sudo crontab -l | grep "network.sh" | grep -v "#" | wc -l`
-    if [ "_$crontab_count" = "_0" ]
-    then
-        echo "ok"
-    else
-        echo "not ok"
-        sudo echo "$ERR_CRONTAB_NETWORK" > $lbeacon_output
-        exit 0
-    fi
-fi
-
 if [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then
     echo "checking have ping_ip.sh ....."
