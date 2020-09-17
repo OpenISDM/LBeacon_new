@@ -233,6 +233,9 @@ typedef struct Config {
 
     /* The list of all acceptable mac address prefixes */
     struct List_Entry mac_prefix_list_head;
+    
+    /* The list of all acceptable device name prefixes */
+    struct List_Entry device_name_prefix_list_head;
 
     /* The IPv4 network address of the gateway */
     char gateway_addr[NETWORK_ADDR_LENGTH];
@@ -337,6 +340,14 @@ typedef struct PrefixRule{
     struct List_Entry list_entry;
 
 } PrefixRule;
+
+typedef struct DeviceNamePrefix{
+
+    char prefix[LENGTH_OF_ADVERTISEMENT];
+    struct List_Entry list_entry;
+
+} DeviceNamePrefix;
+
 
 /*
   EXTERN STRUCTS
@@ -846,6 +857,7 @@ const struct hci_request ble_hci_request(uint16_t ocf,
       eir - the data member of the advertising information result
             from bluetooth BLE scan result
       eir_len - the length in number of bytes of the eir argument
+      eir_type - eir type defined by Bluetooth specifications
       buf - the output buffer to receive the parsed result
       buf_len - the length in number of bytes of the buf argument
 
@@ -857,6 +869,7 @@ const struct hci_request ble_hci_request(uint16_t ocf,
 
 static ErrorCode eir_parse_specific_data(uint8_t *eir,
                                          size_t eir_len,
+                                         uint8_t eir_type,
                                          char *buf,
                                          size_t buf_len);
 

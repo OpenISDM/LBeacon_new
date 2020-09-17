@@ -201,8 +201,10 @@ ErrorCode get_config(Config *config, char *file_name) {
     char *current_ptr = NULL;
     char *save_current_ptr = NULL;
     int number_mac_prefix = 0;
+    int number_device_name_prefix = 0;
     int i;
     struct PrefixRule *mac_prefix_node;
+    struct DeviceNamePrefix *device_name_node;
     struct List_Entry *current_list_entry;
     char single_prefix[CONFIG_BUFFER_SIZE];
     char *prefix_current_ptr = NULL;
@@ -341,18 +343,53 @@ ErrorCode get_config(Config *config, char *file_name) {
                    mac_prefix_node->identifier);
     }
 
-    /* item 14 */
+    /* item 15 */
+    fetch_next_string(file, config_message, sizeof(config_message)); 
+    memset(temp_buf, 0, sizeof(temp_buf));
+    memcpy(temp_buf, config_message, strlen(config_message));
+
+    /* construct the list of acceptable mac prefixes*/
+    init_entry(&config->device_name_prefix_list_head);
+
+    current_ptr = strtok_save(temp_buf, DELIMITER_COMMA, &save_current_ptr);
+    sscanf(current_ptr, "%d", &number_device_name_prefix);
+
+    for(i = 0; i < number_device_name_prefix ; i++){
+        current_ptr = strtok_save(NULL, DELIMITER_COMMA, &save_current_ptr);
+        device_name_node = malloc(sizeof(DeviceNamePrefix));
+
+        init_entry(&device_name_node->list_entry);
+        memset(device_name_node->prefix, 0, sizeof(device_name_node->prefix));
+        
+        strncpy(device_name_node->prefix, 
+                current_ptr, 
+                strlen(current_ptr));
+
+        insert_list_tail(&device_name_node->list_entry,
+                         &config->device_name_prefix_list_head);
+    }
+
+    list_for_each(current_list_entry, &config->device_name_prefix_list_head){
+        device_name_node = ListEntry(current_list_entry, 
+                                     DeviceNamePrefix,
+                                     list_entry);
+        zlog_debug(category_debug, 
+                   "device name with prefix [%s]",
+                   device_name_node->prefix);
+    }
+    
+    /* item 16 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     memset(config->gateway_addr, 0, sizeof(config->gateway_addr));
     memcpy(config->gateway_addr, config_message, strlen(config_message));
 
-    /* item 15 */
+    /* item 17 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     config->gateway_port = atoi(config_message);
 
     memset(g_config.local_addr, 0, sizeof(g_config.local_addr));
 
-    /* item 16 */
+    /* item 18 */
     fetch_next_string(file, config_message, sizeof(config_message)); 
     config->local_client_port = atoi(config_message);
 
@@ -1746,6 +1783,7 @@ const struct hci_request ble_hci_request(uint16_t ocf,
 /* A static function to parse the specific data from the BLE device. */
 static ErrorCode eir_parse_specific_data(uint8_t *eir,
                                          size_t eir_len,
+                                         uint8_t eir_type,
                                          char *buf,
                                          size_t buf_len){
     size_t offset;
@@ -1766,7 +1804,28 @@ static ErrorCode eir_parse_specific_data(uint8_t *eir,
             goto failed;
 
         switch (eir[1]) {
+            case EIR_NAME_COMPLETE:
+                if(eir[1] != eir_type)
+                    break;
+                
+                if (field_len > buf_len)
+                    goto failed;
+                
+                memset(buf, 0, buf_len);
+
+                index = 0 ;
+                for(i = 0 ; i <= field_len ; i++){
+                    buf[index] = decimal_to_hex(eir[i] / 16);
+                    buf[index + 1]= decimal_to_hex(eir[i] % 16);                   
+                    index = index + 2;
+                }
+                buf[index] = '\0';
+                    
+                return WORK_SUCCESSFULLY;
             case EIR_MANUFACTURE_SPECIFIC_DATA:
+                
+                if(eir[1] != eir_type)
+                    break;
                 
                 if (field_len > buf_len)
                     goto failed;
@@ -1790,6 +1849,8 @@ static ErrorCode eir_parse_specific_data(uint8_t *eir,
                 }
 
                 return E_PARSE_UUID;
+            default:
+                break;
             }
 
         offset += field_len + 1;
@@ -1814,7 +1875,9 @@ ErrorCode *examine_scanned_ble_device(void *param){
     int battery_voltage;
     struct List_Entry *current_list_entry;
     struct PrefixRule *mac_prefix_node;
+    struct DeviceNamePrefix *device_name_node;
     char payload[LENGTH_OF_ADVERTISEMENT];
+    bool is_matched = false;
     
     zlog_debug(category_debug, ">> examine_scanned_ble_device... ");
 
@@ -1864,7 +1927,8 @@ ErrorCode *examine_scanned_ble_device(void *param){
                 
             is_button_pressed = 0;
             battery_voltage = 0;
-
+            is_matched = false;
+            
             list_for_each(current_list_entry,
                           &g_config.mac_prefix_list_head){
                               
@@ -1884,6 +1948,7 @@ ErrorCode *examine_scanned_ble_device(void *param){
                     if(WORK_SUCCESSFULLY ==
                        eir_parse_specific_data(temp->payload,
                                                temp->payload_length,
+                                               EIR_MANUFACTURE_SPECIFIC_DATA,
                                                payload,
                                                sizeof(payload))){
                           
@@ -1892,6 +1957,8 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                         mac_prefix_node->identifier, 
                                         strlen(mac_prefix_node->identifier))){
              
+                            is_matched = true;
+                            
                             // parse payload as the tag identifier specified
                             if(0 == strncmp(mac_prefix_node->identifier,
                                             BIDAETECH_TAG_IDENTIFIER,
@@ -1925,6 +1992,49 @@ ErrorCode *examine_scanned_ble_device(void *param){
                     break;
                 } // if matched mac address prefix
             } // list_for_each
+            
+            if(is_matched == false){
+                // check device name EIR_NAME_COMPLETE
+
+                if(WORK_SUCCESSFULLY ==
+                       eir_parse_specific_data(temp->payload,
+                                               temp->payload_length,
+                                               EIR_NAME_COMPLETE,
+                                               payload,
+                                               sizeof(payload))){
+                                                   
+                    list_for_each(current_list_entry,
+                                  &g_config.device_name_prefix_list_head){
+                              
+                        device_name_node = ListEntry(current_list_entry,
+                                                     DeviceNamePrefix,
+                                                     list_entry); 
+                                                     
+                        // check 0x09 matched one of device name prefixes
+                        if(0 == strncmp(&payload[0],
+                                        device_name_node->prefix, 
+                                        strlen(device_name_node->prefix))){
+             
+                            is_matched = true;
+                            
+                            zlog_debug(category_debug,
+                                       "Detected d-tag[LE]: %s - " \
+                                       "RSSI %4d, pushed=[%d], voltage=[%d]",
+                                       temp->scanned_mac_address,
+                                       temp->rssi,
+                                       is_button_pressed,
+                                       battery_voltage);
+                                               
+                            send_to_push_dongle(temp->scanned_mac_address,
+                                                BLE,
+                                                temp->rssi,
+                                                is_button_pressed,
+                                                battery_voltage);
+                            break;
+                        } // if
+                    } // list for each                   
+                } // if 
+            }
             
             mp_free(&temp_ble_device_mempool, temp);
         }
