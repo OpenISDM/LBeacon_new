@@ -1964,7 +1964,7 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                             BIDAETECH_TAG_IDENTIFIER,
                                             strlen(BIDAETECH_TAG_IDENTIFIER))){                                       
      
-                                is_button_pressed = payload[13];
+                                is_button_pressed = hex_to_decimal(payload[13]);
 
                                 // get the remaining battery voltage
                                 battery_voltage = 
