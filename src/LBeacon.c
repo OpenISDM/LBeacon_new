@@ -1830,10 +1830,8 @@ static ErrorCode eir_parse_specific_data(uint8_t *eir,
                 if (field_len > buf_len)
                     goto failed;
 
-                // 0x5900 as first 2 bytes to be "Nordic"
-                // which is our push button tag.
-                if(field_len == 7 && 
-                   (eir[2] == 89 && eir[3] == 0) ){
+                // BiDaE tags
+                if(field_len == 7){
                    
                     memset(buf, 0, buf_len);
 
