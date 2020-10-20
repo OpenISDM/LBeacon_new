@@ -305,7 +305,9 @@ typedef struct ScannedDevice {
     int rssi;
     int is_button_pressed;
     int battery_voltage;
-    char payload[LENGTH_OF_ADVERTISEMENT];
+    uint8_t payload[LENGTH_OF_ADVERTISEMENT];
+    size_t payload_length;
+    bool is_payload_needed;
     
     /* List entries for linking the struct to scanned_list and
        tracked_BR_object_list or to tracked_BLE_object_list, depending
@@ -535,7 +537,10 @@ ErrorCode get_config(Config *config, char *file_name);
       rssi - the RSSI value of this device
       is_button_pressed - the push_button is pressed
       battery_voltage - the remaining battery voltage
-      hex_payload - the ble payload in hex format
+      is_payload_needed - flag indicating whether this device need to upload 
+                          ble adv payload
+      payload - the ble payload in decimal format
+      payload_length - the length of input payload
 
   Return value:
 
@@ -547,7 +552,9 @@ void send_to_push_dongle(char * mac_address,
                          int rssi,
                          int is_button_pressed,
                          int battery_voltage,
-                         char *hex_payload);
+                         bool is_payload_needed,
+                         uint8_t *payload,
+                         size_t payload_length);
 
 /*
   compare_mac_address:
@@ -767,37 +774,6 @@ ErrorCode handle_health_report();
 ErrorCode *manage_communication(void *param);
 
 /*
-  copy_object_data_to_file:
-
-      This function copies the data on tracked objects captured in the
-      specifed tracked object list to file to be transferred to gateway. The
-      output file contains for each ScannedDevice struct found in the list,
-      the MAC address and the initial and final timestamps.
-
-  Parameters:
-
-      file_name - name of the file containing data stored in all
-                  ScannedDevice struct found in specified tracked object
-                  list.
-      list - head of the tracked object list from which data is to be
-             copied.
-      max_num_objects - the maximum number of objects to be consolidated at
-                        one time
-      used_objects - used for return value to let caller know how many
-                     objects were consolidated by this function.
-
-  Return value:
-
-      ErrorCode - The error code for the corresponding error if the function
-                  fails or WORK SUCCESSFULLY otherwise
-*/
-
-ErrorCode copy_object_data_to_file(char *file_name,
-                                   ObjectListHead *list,
-                                   const int max_num_objects,
-                                   int *used_objects);
-
-/*
   consolidate_tracked_data:
 
       This function places the data on tracked objects captured in the
@@ -814,10 +790,6 @@ ErrorCode copy_object_data_to_file(char *file_name,
 
       msg_size - size of msg_buf in number of bytes
 
-      max_num_objects - the maximum number of objects whose data are to be
-                        consolidated at one time
-      used_objects - the actual number of objects whose data were moved into
-                     the message buffer
   Return value:
 
       ErrorCode - The error code for the corresponding error if the function
@@ -825,9 +797,7 @@ ErrorCode copy_object_data_to_file(char *file_name,
 */
 
 ErrorCode consolidate_tracked_data(ObjectListHead *list,
-                                   char *msg_buf, size_t msg_size,
-                                   const int max_num_objects,
-                                   int *used_objects);
+                                   char *msg_buf, size_t msg_size);
 
 /*
   ble_hci_request:

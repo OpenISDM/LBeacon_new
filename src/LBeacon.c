@@ -412,7 +412,9 @@ void send_to_push_dongle(char * mac_address,
                          int rssi,
                          int is_button_pressed,
                          int battery_voltage,
-                         char *hex_payload) {
+                          bool is_payload_needed,
+                         uint8_t *payload,
+                         size_t payload_length) {
 
     struct ScannedDevice *temp_node;
 
@@ -437,8 +439,13 @@ void send_to_push_dongle(char * mac_address,
     if(NULL != temp_node){
         /* Update the final scan time */
         temp_node->final_scanned_time = get_system_time();
-        strcpy(temp_node->payload, hex_payload);
         
+        temp_node->is_payload_needed = is_payload_needed;
+        
+        if(is_payload_needed){
+            memcpy(temp_node -> payload, payload, payload_length);
+            temp_node -> payload_length = payload_length;
+        }
         if(is_button_pressed == 1){
             temp_node->is_button_pressed = is_button_pressed;
         }
@@ -484,8 +491,12 @@ void send_to_push_dongle(char * mac_address,
     temp_node->is_button_pressed = is_button_pressed;
     temp_node->battery_voltage = battery_voltage;
     memset(temp_node->payload, 0, sizeof(temp_node->payload));
-
-    strcpy(temp_node->payload, hex_payload);
+    
+    temp_node->is_payload_needed = is_payload_needed;
+    if(is_payload_needed){
+         memcpy(temp_node -> payload, payload, payload_length);
+         temp_node -> payload_length = payload_length;
+    }
 
     /* Copy the MAC address to the node */
     strncpy(temp_node->scanned_mac_address, mac_address,
@@ -1134,15 +1145,13 @@ ErrorCode handle_join_response(char *resp_payload, JoinStatus *join_status){
 
 ErrorCode handle_tracked_object_data(){
     char message[WIFI_MESSAGE_LENGTH];
+    char msg_temp[WIFI_MESSAGE_LENGTH];
     FILE *br_object_file = NULL;
     FILE *ble_object_file = NULL;
     bool is_br_object_list_empty = false;
     bool is_ble_object_list_empty = false;
-    char msg_temp_one[WIFI_MESSAGE_LENGTH];
-    char msg_temp_two[WIFI_MESSAGE_LENGTH];
-    int max_objects = 0;
-    int used_objects = 0;
     int ret_val = 0;
+    size_t msg_remain_size = 0;
     
     /* return directly, if both BR and BLE tracked lists are emtpy
     */
@@ -1162,44 +1171,10 @@ ErrorCode handle_tracked_object_data(){
 
     /* Copy track_object data to a file to be transmitted.
     */
+    
+    // Lbeacon basic information
     memset(message, 0, sizeof(message));
-    memset(msg_temp_one, 0, sizeof(msg_temp_one));
-    memset(msg_temp_two, 0, sizeof(msg_temp_two));
-
-    max_objects = (sizeof(message) - MAX_LENGTH_RESP_BASIC_INFO)/
-                  MAX_LENGTH_RESP_DEVICE_INFO;
-
-    if(WORK_SUCCESSFULLY !=
-        consolidate_tracked_data(&BR_object_list_head,
-                                 msg_temp_one, sizeof(msg_temp_one),
-                                 max_objects, &used_objects)){
-
-        zlog_error(category_health_report,
-            "Unable to consolidate BR_EDR device data, "
-            "omit BR_EDR devices this time.");
-        zlog_error(category_debug,
-            "Unable to consolidate BR_EDR device data, "
-            "omit BR_EDR device data this time.");
-    }
-
-    max_objects = (sizeof(message) -
-                  MAX_LENGTH_RESP_BASIC_INFO -
-                  used_objects * MAX_LENGTH_RESP_DEVICE_INFO)/
-                  MAX_LENGTH_RESP_DEVICE_INFO;
-
-    if(WORK_SUCCESSFULLY !=
-        consolidate_tracked_data(&BLE_object_list_head,
-                                 msg_temp_two, sizeof(msg_temp_two),
-                                 max_objects, &used_objects)){
-
-        zlog_error(category_health_report,
-                    "Unable to consolidate BLE device data, "
-                    "omit BLE devices this time.");
-        zlog_error(category_debug,
-                   "Unable to consolidate BLE device data, "
-                   "omit BLE devices this time.");
-    }
-
+    
     if(WORK_SUCCESSFULLY != beacon_basic_info(message, sizeof(message),
                             tracked_object_data)){
 
@@ -1211,27 +1186,42 @@ ErrorCode handle_tracked_object_data(){
                    "Abort sending this response to gateway.");
         return E_PREPARE_RESPONSE_BASIC_INFO;
     }
-
-    if(sizeof(message) <= strlen(message) + strlen(msg_temp_one) +
-        strlen(msg_temp_two)){
+    
+    memset(msg_temp, 0, sizeof(msg_temp));
+    msg_remain_size = sizeof(message) - strlen(message);
+   
+    if(WORK_SUCCESSFULLY !=
+        consolidate_tracked_data(&BR_object_list_head,
+                                 msg_temp, 
+                                 msg_remain_size)){
 
         zlog_error(category_health_report,
-                   "Abort BR/BLE tracked data, because there is "
-                   "potential buffer overflow. strlen(message)=%d, "
-                   "strlen(msg_temp_one)=%d,strlen(msg_temp_two)=%d",
-                   strlen(message), strlen(msg_temp_one),
-                   strlen(msg_temp_two));
+            "Unable to consolidate BR_EDR device data, "
+            "omit BR_EDR devices this time.");
         zlog_error(category_debug,
-                   "Abort BR/BLE tracked data, because there is "
-                   "potential buffer overflow. strlen(message)=%d, "
-                   "strlen(msg_temp_one)=%d,strlen(msg_temp_two)=%d",
-                   strlen(message), strlen(msg_temp_one),
-                   strlen(msg_temp_two));
-        return E_BUFFER_SIZE;
+            "Unable to consolidate BR_EDR device data, "
+            "omit BR_EDR device data this time.");
+    }else{
+        strcat(message, msg_temp);
     }
+    
+    memset(msg_temp, 0, sizeof(msg_temp));
+    msg_remain_size = sizeof(message) - strlen(message);
+    
+    if(WORK_SUCCESSFULLY !=
+        consolidate_tracked_data(&BLE_object_list_head,
+                                 msg_temp, 
+                                 msg_remain_size)){
 
-    strcat(message, msg_temp_one);
-    strcat(message, msg_temp_two);
+        zlog_error(category_health_report,
+                    "Unable to consolidate BLE device data, "
+                    "omit BLE devices this time.");
+        zlog_error(category_debug,
+                   "Unable to consolidate BLE device data, "
+                   "omit BLE devices this time.");
+    }else{
+        strcat(message, msg_temp);
+    }
 
     udp_addpkt( &udp_config, 
                 g_config.gateway_addr, 
@@ -1496,77 +1486,35 @@ ErrorCode *manage_communication(void *param){
     return WORK_SUCCESSFULLY;
 }
 
-ErrorCode copy_object_data_to_file(char *file_name,
-                                   ObjectListHead *list,
-                                   const int max_num_objects,
-                                   int *used_objects ) {
-    FILE *track_file = NULL;;
+ErrorCode consolidate_tracked_data(ObjectListHead *list,
+                                   char *msg_buf,
+                                   size_t msg_remain_size){
+    ErrorCode ret_val;
     struct List_Entry *list_pointer, *save_list_pointers;
     struct List_Entry *head_pointer, *tail_pointer;
-    ScannedDevice *temp;
-    int number_in_list;
-    int number_to_send;
+    ScannedDevice *temp = NULL;
+    int number_to_send = 0;
     char basic_info[MAX_LENGTH_RESP_BASIC_INFO];
     char response_buf[MAX_LENGTH_RESP_DEVICE_INFO];
-    int retry_times = 0;
-    int node_count;
+    int node_count = 0;
     unsigned timestamp_init;
     unsigned timestamp_end;
     /* Head of a local list for tracked object */
     struct List_Entry local_list_head;
     DeviceType device_type = list->device_type;
+    char hex_payload[LENGTH_OF_ADVERTISEMENT];
 
-    retry_times = FILE_OPEN_RETRY;
-    while(retry_times--){
-        track_file = fopen(file_name, "w");
-
-        if(NULL != track_file){
-            break;
-        }
-    }
-
-    if(NULL == track_file){
-        retry_times = FILE_OPEN_RETRY;
-        while(retry_times--){
-            track_file = fopen(file_name, "wt");
-
-            if(NULL != track_file){
-                break;
-            }
-        }
-    }
-
-    if(NULL == track_file){
+   
+    /* Check input parameters to determine whether they are valid */
+    if(list != &BR_object_list_head && list != &BLE_object_list_head){
         zlog_error(category_health_report,
-                   "Error openning file");
+                   "Error of invalid input parameter, list is neither BR "
+                   "nor BLE list");
         zlog_error(category_debug,
-                   "Error openning file");
-        return E_OPEN_FILE;
+                   "Error of invalid input parameter, list is neither BR "
+                   "nor BLE list");
+        return E_INPUT_PARAMETER;
     }
-
-    /* Get the number of objects with data to be transmitted */
-    number_in_list = get_list_length(&list->list_entry);
-    number_to_send = min(max_num_objects, number_in_list);
-    *used_objects = number_to_send;
-
-    /*Check if number_to_send is zero. If yes, no need to do more. Put basic 
-    information and number to send in track file; then close file and return */
-    if(0 == number_to_send){
-        sprintf(basic_info, "%d;%d;", device_type, number_to_send);
-        fputs(basic_info, track_file);
-        fclose(track_file);
-        return WORK_SUCCESSFULLY;
-    }
-
-    /* Insert device_type and number_to_send at the start of the track
-    file
-    */
-    sprintf(basic_info, "%d;%d;", device_type, number_to_send);
-    fputs(basic_info, track_file);
-
-    zlog_debug(category_debug,
-               "Device type: %d; Number to send: %d",
-               device_type, number_to_send);
 
     pthread_mutex_lock(&list_lock);
 
@@ -1589,27 +1537,46 @@ ErrorCode copy_object_data_to_file(char *file_name,
 
     /* Set temporary pointer to point to the head of the input list */
     head_pointer = list->list_entry.next;
-    list_pointer = list->list_entry.next;
-
+    tail_pointer = list->list_entry.next;
+    
     /* Go through the input tracked_object list to move
     number_to_send nodes in the list to a local list
     */
-    for (node_count = 1; node_count <= number_to_send;
-         list_pointer = list_pointer->next, node_count++){
+    
+    list_for_each(list_pointer, &list->list_entry){
 
-        /* If the node is the last in the list */
-        if(node_count == number_to_send){
-            /* Set a marker for the last pointer of the last node */
+        temp = ListEntry(list_pointer, ScannedDevice, tr_list_entry);
+        
+        if(msg_remain_size > MAX_LENGTH_RESP_DEVICE_INFO){
+            
+            number_to_send++;
+            
             tail_pointer = list_pointer;
+            
+            msg_remain_size = 
+                msg_remain_size - 
+                MAX_LENGTH_RESP_DEVICE_INFO + 
+                (LENGTH_OF_ADVERTISEMENT - temp->payload_length);
+           
+        }else{
+            break;
         }
     }
-
+       
     /* Set the head of the input list to point to the last node */
     list->list_entry.next = tail_pointer->next;
     tail_pointer->next->prev = &list->list_entry;
 
     pthread_mutex_unlock(&list_lock);
 
+ 
+    /*Check if number_to_send is zero. If yes, no need to do more. */
+    if(0 == number_to_send){
+        sprintf(msg_buf, "%d;%d;", device_type, number_to_send);
+        
+        return WORK_SUCCESSFULLY;
+    }
+    
     /* Initialize the local list */
     init_entry(&local_list_head);
     local_list_head.next = head_pointer;
@@ -1621,7 +1588,6 @@ ErrorCode copy_object_data_to_file(char *file_name,
     version, we should not waste resource in iterating the linked list only
     ensure the correctnedd.
 
-
     list_for_each(list_pointer, &local_list_entry){
         zlog_debug(category_debug,
                    "local list:  list_pointer %d prev %d next %d",
@@ -1629,9 +1595,17 @@ ErrorCode copy_object_data_to_file(char *file_name,
                    list_pointer->prev,
                    list_pointer->next);
     }
-
     */
 
+    /* Insert device_type and number_to_send at the start of the track
+    file
+    */
+    sprintf(msg_buf, "%d;%d;", device_type, number_to_send);
+    
+    zlog_debug(category_debug,
+               "Device type: %d; Number to send: %d",
+               device_type, number_to_send);
+               
     /* Go throngh the local object list to get the content and write the
     content to file
     */
@@ -1643,6 +1617,15 @@ ErrorCode copy_object_data_to_file(char *file_name,
         datatype to char
         */
         memset(response_buf, 0, sizeof(response_buf));
+        memset(hex_payload, 0, sizeof(hex_payload));
+        
+        if(temp->is_payload_needed){
+            get_printable_ble_payload(temp->payload,
+                                      temp->payload_length,
+                                      hex_payload,
+                                      sizeof(hex_payload));
+        }                         
+        
         sprintf(response_buf, "%s;%d;%d;%d;%d;%d;%s;",
                 temp->scanned_mac_address,
                 temp->initial_scanned_time,
@@ -1650,10 +1633,9 @@ ErrorCode copy_object_data_to_file(char *file_name,
                 temp->rssi,
                 temp->is_button_pressed,
                 temp->battery_voltage,
-                temp->payload);
-
-        /* Write the content to the file */
-        fputs(response_buf, track_file);
+                hex_payload);
+                
+        strcat(msg_buf, response_buf);
     }
 
     /* Remove nodes from the local list. If the node is no longer in the scan
@@ -1697,76 +1679,8 @@ ErrorCode copy_object_data_to_file(char *file_name,
         }
     }
 
-    /* Close the file for storing data in the input list */
-    fclose(track_file);
-
     return WORK_SUCCESSFULLY;
-}
-
-
-ErrorCode consolidate_tracked_data(ObjectListHead *list,
-                                   char *msg_buf,
-                                   size_t msg_size,
-                                   const int max_num_objects,
-                                   int *used_objects){
-    ErrorCode ret_val;
-    FILE *file_fd = NULL;
-    char *file_name = NULL;
-    int retry_times = 0;
-
-    /* Check input parameters to determine whether they are valid */
-    if(list != &BR_object_list_head && list != &BLE_object_list_head){
-        zlog_error(category_health_report,
-                   "Error of invalid input parameter, list is neither BR "
-                   "nor BLE list");
-        zlog_error(category_debug,
-                   "Error of invalid input parameter, list is neither BR "
-                   "nor BLE list");
-        return E_INPUT_PARAMETER;
-    }
-
-    if(BR_EDR == list->device_type){
-        file_name = TRACKED_BR_TXT_FILE_NAME;
-    }else if(BLE == list->device_type){
-        file_name = TRACKED_BLE_TXT_FILE_NAME;
-    }else{
-        zlog_error(category_health_report,
-                   "Error of invalid input parameter, "
-                   "list device_type=[%d]",
-                   list->device_type);
-        zlog_error(category_debug,
-                   "Error of invalid input parameter, "
-                   "list device_type=[%d]",
-                   list->device_type);
-        return E_INPUT_PARAMETER;
-    }
-
-    ret_val = copy_object_data_to_file(file_name, list,
-                                       max_num_objects, used_objects);
-
-    if(WORK_SUCCESSFULLY == ret_val){
-        /* Open the file that is going to be sent to the gateway */
-        retry_times = FILE_OPEN_RETRY;
-        while(retry_times--){
-            file_fd = fopen(file_name, "r");
-
-            if(NULL != file_fd){
-                break;
-            }
-        }
-
-        if (NULL == file_fd){
-            zlog_error(category_health_report,
-                       "Error openning file");
-            zlog_error(category_debug,
-                       "Error openning file");
-            return E_OPEN_FILE;
-        }
-
-        fgets(msg_buf, msg_size, file_fd);
-        fclose(file_fd);
-    }
-
+/**/
     return ret_val;
 }
 
@@ -1901,7 +1815,7 @@ ErrorCode *examine_scanned_ble_device(void *param){
     struct DeviceNamePrefix *device_name_node;
     char payload[LENGTH_OF_ADVERTISEMENT];
     bool is_matched = false;
-    char hex_payload[LENGTH_OF_ADVERTISEMENT];
+    bool is_payload_needed = false;
     
     zlog_debug(category_debug, ">> examine_scanned_ble_device... ");
 
@@ -1995,28 +1909,24 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                     hex_to_decimal(payload[14]) * 16 +
                                     hex_to_decimal(payload[15]); 
                                 
-                                memset(hex_payload, 0 , sizeof(hex_payload));
-                                /*
-                                get_printable_ble_payload(temp->payload,
-                                                          temp->payload_length,
-                                                          hex_payload,
-                                                          sizeof(hex_payload));
-                                */                          
+                                is_payload_needed = false;                                
+                                
                                 zlog_debug(category_debug,
                                            "Detected p-tag[LE]: %s - " \
-                                           "RSSI %4d, pushed=[%d], voltage=[%d], payload=[%s]",
+                                           "RSSI %4d, pushed=[%d], voltage=[%d]",
                                            temp->scanned_mac_address,
                                            temp->rssi,
                                            is_button_pressed,
-                                           battery_voltage,
-                                           hex_payload);
+                                           battery_voltage);
                                                
                                 send_to_push_dongle(temp->scanned_mac_address,
                                                     BLE,
                                                     temp->rssi,
                                                     is_button_pressed,
                                                     battery_voltage,
-                                                    hex_payload);
+                                                    is_payload_needed,
+                                                    temp->payload,
+                                                    temp->payload_length);
                             }
                             break;
                         }
@@ -2050,27 +1960,24 @@ ErrorCode *examine_scanned_ble_device(void *param){
              
                             is_matched = true;
                             
-                            memset(hex_payload, 0 , sizeof(hex_payload));
-                            get_printable_ble_payload(temp->payload,
-                                                      temp->payload_length,
-                                                      hex_payload,
-                                                      sizeof(hex_payload));
+                            is_payload_needed = true;
                                                           
                             zlog_debug(category_debug,
                                        "Detected d-tag[LE]: %s - " \
-                                       "RSSI %4d, pushed=[%d], voltage=[%d], hex_payload=[%s]",
+                                       "RSSI %4d, pushed=[%d], voltage=[%d]",
                                        temp->scanned_mac_address,
                                        temp->rssi,
                                        is_button_pressed,
-                                       battery_voltage,
-                                       hex_payload);
+                                       battery_voltage);
                                                
                             send_to_push_dongle(temp->scanned_mac_address,
                                                 BLE,
                                                 temp->rssi,
                                                 is_button_pressed,
                                                 battery_voltage,
-                                                hex_payload);
+                                                is_payload_needed,
+                                                temp->payload,
+                                                temp->payload_length);
                             break;
                         } // if
                     } // list for each                   
@@ -2309,7 +2216,9 @@ ErrorCode *start_br_scanning(void* param) {
     int is_button_pressed = 0;
     int battery_voltage = 0;
     char address[LENGTH_OF_MAC_ADDRESS];
-    char hex_payload[LENGTH_OF_ADVERTISEMENT];
+    bool is_payload_needed = false;
+    uint8_t payload[LENGTH_OF_ADVERTISEMENT];
+    uint8_t payload_length = 0;
 
     zlog_debug(category_debug, ">> start_br_scanning... ");
 
@@ -2472,7 +2381,9 @@ ErrorCode *start_br_scanning(void* param) {
                                                 info_rssi->rssi,
                                                 is_button_pressed,
                                                 battery_voltage,
-                                                hex_payload);
+                                                is_payload_needed,
+                                                payload,
+                                                payload_length);
                         }
                     }
                 }
