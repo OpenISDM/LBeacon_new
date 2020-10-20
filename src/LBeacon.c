@@ -411,7 +411,8 @@ void send_to_push_dongle(char * mac_address,
                          DeviceType device_type,
                          int rssi,
                          int is_button_pressed,
-                         int battery_voltage) {
+                         int battery_voltage,
+                         char *hex_payload) {
 
     struct ScannedDevice *temp_node;
 
@@ -436,6 +437,8 @@ void send_to_push_dongle(char * mac_address,
     if(NULL != temp_node){
         /* Update the final scan time */
         temp_node->final_scanned_time = get_system_time();
+        strcpy(temp_node->payload, hex_payload);
+        
         if(is_button_pressed == 1){
             temp_node->is_button_pressed = is_button_pressed;
         }
@@ -480,6 +483,9 @@ void send_to_push_dongle(char * mac_address,
     temp_node->rssi = rssi;
     temp_node->is_button_pressed = is_button_pressed;
     temp_node->battery_voltage = battery_voltage;
+    memset(temp_node->payload, 0, sizeof(temp_node->payload));
+
+    strcpy(temp_node->payload, hex_payload);
 
     /* Copy the MAC address to the node */
     strncpy(temp_node->scanned_mac_address, mac_address,
@@ -1637,13 +1643,14 @@ ErrorCode copy_object_data_to_file(char *file_name,
         datatype to char
         */
         memset(response_buf, 0, sizeof(response_buf));
-        sprintf(response_buf, "%s;%d;%d;%d;%d;%d;",
+        sprintf(response_buf, "%s;%d;%d;%d;%d;%d;%s;",
                 temp->scanned_mac_address,
                 temp->initial_scanned_time,
                 temp->final_scanned_time,
                 temp->rssi,
                 temp->is_button_pressed,
-                temp->battery_voltage);
+                temp->battery_voltage,
+                temp->payload);
 
         /* Write the content to the file */
         fputs(response_buf, track_file);
@@ -1860,6 +1867,24 @@ failed:
     return E_PARSE_UUID;
 }
 
+static ErrorCode get_printable_ble_payload(char *in_buf,
+                                           size_t in_buf_len,
+                                           char *out_buf,
+                                           size_t out_buf_len){
+    int i = 0;
+    int index = 0;
+    
+    for(i = 0 ; i < in_buf_len ; i++){
+        
+        out_buf[index] = decimal_to_hex(in_buf[i] / 16);
+        out_buf[index + 1]= decimal_to_hex(in_buf[i] % 16);                   
+        index = index + 2;
+    } 
+    out_buf[index] = '\0';  
+                                                  
+    return WORK_SUCCESSFULLY;                                            
+}
+
 ErrorCode *examine_scanned_ble_device(void *param){
  
     struct List_Entry *head_pointer, *tail_pointer;
@@ -1876,6 +1901,7 @@ ErrorCode *examine_scanned_ble_device(void *param){
     struct DeviceNamePrefix *device_name_node;
     char payload[LENGTH_OF_ADVERTISEMENT];
     bool is_matched = false;
+    char hex_payload[LENGTH_OF_ADVERTISEMENT];
     
     zlog_debug(category_debug, ">> examine_scanned_ble_device... ");
 
@@ -1968,20 +1994,29 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                 battery_voltage = 
                                     hex_to_decimal(payload[14]) * 16 +
                                     hex_to_decimal(payload[15]); 
-
+                                
+                                memset(hex_payload, 0 , sizeof(hex_payload));
+                                /*
+                                get_printable_ble_payload(temp->payload,
+                                                          temp->payload_length,
+                                                          hex_payload,
+                                                          sizeof(hex_payload));
+                                */                          
                                 zlog_debug(category_debug,
                                            "Detected p-tag[LE]: %s - " \
-                                           "RSSI %4d, pushed=[%d], voltage=[%d]",
+                                           "RSSI %4d, pushed=[%d], voltage=[%d], payload=[%s]",
                                            temp->scanned_mac_address,
                                            temp->rssi,
                                            is_button_pressed,
-                                           battery_voltage);
+                                           battery_voltage,
+                                           hex_payload);
                                                
                                 send_to_push_dongle(temp->scanned_mac_address,
                                                     BLE,
                                                     temp->rssi,
                                                     is_button_pressed,
-                                                    battery_voltage);
+                                                    battery_voltage,
+                                                    hex_payload);
                             }
                             break;
                         }
@@ -2015,19 +2050,27 @@ ErrorCode *examine_scanned_ble_device(void *param){
              
                             is_matched = true;
                             
+                            memset(hex_payload, 0 , sizeof(hex_payload));
+                            get_printable_ble_payload(temp->payload,
+                                                      temp->payload_length,
+                                                      hex_payload,
+                                                      sizeof(hex_payload));
+                                                          
                             zlog_debug(category_debug,
                                        "Detected d-tag[LE]: %s - " \
-                                       "RSSI %4d, pushed=[%d], voltage=[%d]",
+                                       "RSSI %4d, pushed=[%d], voltage=[%d], hex_payload=[%s]",
                                        temp->scanned_mac_address,
                                        temp->rssi,
                                        is_button_pressed,
-                                       battery_voltage);
+                                       battery_voltage,
+                                       hex_payload);
                                                
                             send_to_push_dongle(temp->scanned_mac_address,
                                                 BLE,
                                                 temp->rssi,
                                                 is_button_pressed,
-                                                battery_voltage);
+                                                battery_voltage,
+                                                hex_payload);
                             break;
                         } // if
                     } // list for each                   
@@ -2266,6 +2309,7 @@ ErrorCode *start_br_scanning(void* param) {
     int is_button_pressed = 0;
     int battery_voltage = 0;
     char address[LENGTH_OF_MAC_ADDRESS];
+    char hex_payload[LENGTH_OF_ADVERTISEMENT];
 
     zlog_debug(category_debug, ">> start_br_scanning... ");
 
@@ -2427,7 +2471,8 @@ ErrorCode *start_br_scanning(void* param) {
                                                 BR_EDR,
                                                 info_rssi->rssi,
                                                 is_button_pressed,
-                                                battery_voltage);
+                                                battery_voltage,
+                                                hex_payload);
                         }
                     }
                 }

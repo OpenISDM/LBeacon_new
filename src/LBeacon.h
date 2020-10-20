@@ -163,7 +163,9 @@ LBeacon to gateway.
 
 /* Maximum length in number of bytes of device information of each response
 to gateway via wifi network link.*/
-#define MAX_LENGTH_RESP_DEVICE_INFO 60
+
+/* mac_address;timestamp;timestamp;rssi;button;batt_vol;payload;*/
+#define MAX_LENGTH_RESP_DEVICE_INFO 120
 
 /* The number of slots in the memory pool for scanned devices */
 #define SLOTS_IN_MEM_POOL_SCANNED_DEVICE 2048
@@ -303,6 +305,8 @@ typedef struct ScannedDevice {
     int rssi;
     int is_button_pressed;
     int battery_voltage;
+    char payload[LENGTH_OF_ADVERTISEMENT];
+    
     /* List entries for linking the struct to scanned_list and
        tracked_BR_object_list or to tracked_BLE_object_list, depending
        whether the device type is BR_EDR or BLE. */
@@ -531,6 +535,7 @@ ErrorCode get_config(Config *config, char *file_name);
       rssi - the RSSI value of this device
       is_button_pressed - the push_button is pressed
       battery_voltage - the remaining battery voltage
+      hex_payload - the ble payload in hex format
 
   Return value:
 
@@ -541,7 +546,8 @@ void send_to_push_dongle(char * mac_address,
                          DeviceType device_type,
                          int rssi,
                          int is_button_pressed,
-                         int battery_voltage);
+                         int battery_voltage,
+                         char *hex_payload);
 
 /*
   compare_mac_address:
@@ -873,6 +879,30 @@ static ErrorCode eir_parse_specific_data(uint8_t *eir,
                                          char *buf,
                                          size_t buf_len);
 
+/*
+  get_printable_ble_payload:
+
+      This function change the ble payload from decimal format (non-printable) 
+      to hex format (printable).
+
+  Parameters:
+
+      in_buf - the input buffer containing decimal format (non-printable)
+      in_buf_len - the length in number of bytes of the in_buf argument
+      out_buf - the output buffer to receive the resulted hex format (printable)
+      out_buf_len - the length in number of bytes of the out_buf argument
+
+  Return value:
+
+      ErrorCode - The error code for the corresponding error if the function
+                  fails or WORK SUCCESSFULLY otherwise
+*/
+
+static ErrorCode get_printable_ble_payload(char *in_buf,
+                                           size_t in_buf_len,
+                                           char *out_buf,
+                                           size_t out_buf_len);
+                                         
 
 /*
   examine_scanned_ble_device:

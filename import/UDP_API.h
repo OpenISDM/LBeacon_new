@@ -54,7 +54,7 @@
 #include <sys/socket.h>
 #endif
 
-
+#include "Common.h"
 #include "pkt_Queue.h"
 
 
@@ -71,7 +71,7 @@
 
 #define LENGTH_OF_SHA256 512
 
-#define LENGTH_OF_ENCODED_WIFI_MESSAGE 8192
+#define LENGTH_OF_ENCODED_WIFI_MESSAGE   (WIFI_MESSAGE_LENGTH + LENGTH_OF_SHA256)
 
 /* When debugging is needed */
 //#define debugging
