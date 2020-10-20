@@ -1781,7 +1781,7 @@ failed:
     return E_PARSE_UUID;
 }
 
-static ErrorCode get_printable_ble_payload(char *in_buf,
+static ErrorCode get_printable_ble_payload(uint8_t *in_buf,
                                            size_t in_buf_len,
                                            char *out_buf,
                                            size_t out_buf_len){

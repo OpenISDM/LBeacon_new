@@ -868,7 +868,7 @@ static ErrorCode eir_parse_specific_data(uint8_t *eir,
                   fails or WORK SUCCESSFULLY otherwise
 */
 
-static ErrorCode get_printable_ble_payload(char *in_buf,
+static ErrorCode get_printable_ble_payload(uint8_t *in_buf,
                                            size_t in_buf_len,
                                            char *out_buf,
                                            size_t out_buf_len);
