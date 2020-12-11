@@ -13,7 +13,7 @@ do
     echo "handle config key: $config_key"    
     
     is_exist=`sudo cat $config_save | grep "$config_key" | wc -l`
-    if [ "_$is_exist" = "_1" ] 
+    if [ "_$is_exist" = "_1" ] && [ "_$config_key" != "_scan_device_name_prefix" ] 
     then
         config_value_save=`sudo cat $config_save | grep $config_key | cut -d "=" -f 2`
         echo "$config_key=$config_value_save" >> $config_result
