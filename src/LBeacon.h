@@ -173,8 +173,36 @@ to gateway via wifi network link.*/
 /* The number of slots in the memory pool for temporarily scanned BLE devices */
 #define SLOTS_IN_MEM_POOL_TEMPORARY_BLE_DEVICE 2048
 
+/* The BLE payload identifier indicating no need to parse BLE payload */
+#define BLE_PAYLOAD_IDENTIFIER_NO_PARSE "0000"
+
+/* The general index of format indetifider in 0xFF field of BLE payload */
+#define BLE_PAYLOAD_FORMAT_INDEX_OF_IDENTIFER 8
+
+/* The 0xFF format specification for identifier 05C6 */
 /* The BiDaETech button tag with battery voltage identifer 1478 (0x05C6) */
-#define BIDAETECH_TAG_IDENTIFIER "05C6" 
+#define BIDAETECH_TAG_IDENTIFIER_05C6 "05C6" 
+
+/* The length of 0xFF field in BLE payload format with identifier 05C6 */
+#define BLE_PAYLOAD_FORMAT_05C6_0XFF_FIELD_LEN 7 
+
+/* The index of panic in BLE payload format with identifer 05C6 */
+#define BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_PANIC 13
+
+/* The index of voltage information in BLE payload format with identifer 05C6 */
+#define BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_VOLTAGE 14
+
+/* The 0xFF format specification for identifier 05C7 */
+/* The BiDaETech tag identifer 1479 (0x05C7) */
+#define BIDAETECH_TAG_IDENTIFIER_05C7 "05C7" 
+
+/* The length of 0xFF field in BLE payload format with identifier 05C7 */
+#define BLE_PAYLOAD_FORMAT_05C7_0XFF_FIELD_LEN 11 
+
+/* The index of voltage information in BLE payload format with identifer 05C6 */
+#define BLE_PAYLOAD_FORMAT_05C7_INDEX_OF_MAC_ADDRESS 12
+
+
 
 /* The macro of comparing two integer for minimum */
 #define min(a,b) \
@@ -350,6 +378,7 @@ typedef struct PrefixRule{
 typedef struct DeviceNamePrefix{
 
     char prefix[LENGTH_OF_ADVERTISEMENT];
+    char identifier[LENGTH_OF_ADVERTISEMENT];
     struct List_Entry list_entry;
 
 } DeviceNamePrefix;
@@ -576,6 +605,24 @@ void send_to_push_dongle(char * mac_address,
 int compare_mac_address(char address[],
                         ScannedDevice *node,
                         int number_digits_compared);
+                        
+/*
+  convert_str_to_mac_address:
+
+     This function converts char array to MAC address
+
+  Parameters:
+
+    mac_address_payload - the input buffer contains the mac address in BLE payload 
+    out_buf - the output buffer to store the resulted MAC address
+    
+  Return value:
+    0: if the MAC addresses exactly match
+
+*/
+
+int convert_str_to_mac_address(char mac_address_payload[],
+                               char *out_buf);
 
 /*
   check_is_in_list:
