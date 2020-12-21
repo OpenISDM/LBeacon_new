@@ -1915,59 +1915,87 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                 mac_prefix_node->prefix,
                                 strlen(mac_prefix_node->prefix))){
 
-                    memset(payload, 0, sizeof(payload));
-
-                    // check 0xFF payload (Manufacture Specific Data)
-                    // for manufacture company id and length
-                    if(WORK_SUCCESSFULLY ==
-                       eir_parse_specific_data(temp->payload,
-                                               temp->payload_length,
-                                               EIR_MANUFACTURE_SPECIFIC_DATA,
-                                               payload,
-                                               sizeof(payload))){
-                          
-                        // check 0xFF contains specific tag identifier
-                        if(0 == strncmp(&payload[BLE_PAYLOAD_FORMAT_INDEX_OF_IDENTIFER],
-                                        mac_prefix_node->identifier, 
-                                        strlen(mac_prefix_node->identifier))){
-             
-                            is_matched = true;
+                    if(0 == strncmp(BLE_PAYLOAD_IDENTIFIER_NO_PARSE,
+                                    mac_prefix_node->identifier, 
+                                    strlen(BLE_PAYLOAD_IDENTIFIER_NO_PARSE))){
+                                            
+                        is_matched = true;
                             
-                            // parse payload as the tag identifier specified
-                            if(0 == strncmp(mac_prefix_node->identifier,
-                                            BIDAETECH_TAG_IDENTIFIER_05C6,
-                                            strlen(BIDAETECH_TAG_IDENTIFIER_05C6))){                                       
-     
-                                is_button_pressed = hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_PANIC]);
-
-                                // get the remaining battery voltage
-                                battery_voltage = 
-                                    hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_VOLTAGE]) * 16 +
-                                    hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_VOLTAGE + 1]); 
-                                
-                                is_payload_needed = false;                                
-                                
-                                zlog_debug(category_debug,
-                                           "Detected p-tag[LE]: %s - " \
-                                           "RSSI %4d, pushed=[%d], voltage=[%d]",
-                                           temp->scanned_mac_address,
-                                           temp->rssi,
-                                           is_button_pressed,
-                                           battery_voltage);
+                        is_payload_needed = false;
+                            
+                        zlog_debug(category_debug,
+                                   "Detected d-tag[LE]: %s - " \
+                                   "RSSI %4d, pushed=[%d], voltage=[%d]",
+                                   temp->scanned_mac_address,
+                                   temp->rssi,
+                                   is_button_pressed,
+                                   battery_voltage);
                                                
-                                send_to_push_dongle(temp->scanned_mac_address,
-                                                    BLE,
-                                                    temp->rssi,
-                                                    is_button_pressed,
-                                                    battery_voltage,
-                                                    is_payload_needed,
-                                                    temp->payload,
-                                                    temp->payload_length);
+                        send_to_push_dongle(temp->scanned_mac_address,
+                                            BLE,
+                                            temp->rssi,
+                                            is_button_pressed,
+                                            battery_voltage,
+                                            is_payload_needed,
+                                            temp->payload,
+                                            temp->payload_length);
+                            
+                    }else{
+                                
+                        memset(payload, 0, sizeof(payload));
+
+                        // check 0xFF payload (Manufacture Specific Data)
+                        // for manufacture company id and length
+                        if(WORK_SUCCESSFULLY ==
+                           eir_parse_specific_data(temp->payload,
+                                                   temp->payload_length,
+                                                   EIR_MANUFACTURE_SPECIFIC_DATA,
+                                                   payload,
+                                                   sizeof(payload))){
+                        
+                            // check 0xFF contains specific tag identifier
+                            if(0 == strncmp(&payload[BLE_PAYLOAD_FORMAT_INDEX_OF_IDENTIFER],
+                                            mac_prefix_node->identifier, 
+                                            strlen(mac_prefix_node->identifier))){
+             
+                                is_matched = true;
+                            
+                                // parse payload as the tag identifier specified
+                                if(0 == strncmp(mac_prefix_node->identifier,
+                                                BIDAETECH_TAG_IDENTIFIER_05C6,
+                                                strlen(BIDAETECH_TAG_IDENTIFIER_05C6))){                                       
+     
+                                    is_button_pressed = hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_PANIC]);
+
+                                    // get the remaining battery voltage
+                                    battery_voltage = 
+                                        hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_VOLTAGE]) * 16 +
+                                        hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_VOLTAGE + 1]); 
+                                
+                                    is_payload_needed = false;                                
+                                
+                                    zlog_debug(category_debug,
+                                               "Detected p-tag[LE]: %s - " \
+                                               "RSSI %4d, pushed=[%d], voltage=[%d]",
+                                               temp->scanned_mac_address,
+                                               temp->rssi,
+                                               is_button_pressed,
+                                               battery_voltage);
+                                               
+                                    send_to_push_dongle(temp->scanned_mac_address,
+                                                        BLE,
+                                                        temp->rssi,
+                                                        is_button_pressed,
+                                                        battery_voltage,
+                                                        is_payload_needed,
+                                                        temp->payload,
+                                                        temp->payload_length);
+                                }
+                                break;
                             }
                             break;
-                        }
-                        break;
-                    } 
+                        } 
+                    }    
                     break;
                 } // if matched mac address prefix
             } // list_for_each
