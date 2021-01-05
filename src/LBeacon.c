@@ -1924,7 +1924,7 @@ ErrorCode *examine_scanned_ble_device(void *param){
                         is_payload_needed = false;
                             
                         zlog_debug(category_debug,
-                                   "Detected d-tag[LE]: %s - " \
+                                   "Detected tag 0000 [LE]: %s - " \
                                    "RSSI %4d, pushed=[%d], voltage=[%d]",
                                    temp->scanned_mac_address,
                                    temp->rssi,
@@ -1975,7 +1975,31 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                     is_payload_needed = false;                                
                                 
                                     zlog_debug(category_debug,
-                                               "Detected p-tag[LE]: %s - " \
+                                               "Detected tag 05C6 [LE]: %s - " \
+                                               "RSSI %4d, pushed=[%d], voltage=[%d]",
+                                               temp->scanned_mac_address,
+                                               temp->rssi,
+                                               is_button_pressed,
+                                               battery_voltage);
+                                               
+                                    send_to_push_dongle(temp->scanned_mac_address,
+                                                        BLE,
+                                                        temp->rssi,
+                                                        is_button_pressed,
+                                                        battery_voltage,
+                                                        is_payload_needed,
+                                                        temp->payload,
+                                                        temp->payload_length);
+                                }else if(0 == strncmp(mac_prefix_node->identifier,
+                                                      BIDAETECH_TAG_IDENTIFIER_4153,
+                                                      strlen(BIDAETECH_TAG_IDENTIFIER_4153))){                                       
+     
+                                    is_button_pressed = hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_4153_INDEX_OF_PANIC]);
+
+                                    is_payload_needed = true;                                
+                                
+                                    zlog_debug(category_debug,
+                                               "Detected tag 4153 [LE]: %s - " \
                                                "RSSI %4d, pushed=[%d], voltage=[%d]",
                                                temp->scanned_mac_address,
                                                temp->rssi,
@@ -2033,7 +2057,7 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                 is_payload_needed = true;
                             
                                 zlog_debug(category_debug,
-                                           "Detected d-tag[LE]: %s - " \
+                                           "Detected tag 0000 [LE]: %s - " \
                                            "RSSI %4d, pushed=[%d], voltage=[%d]",
                                            temp->scanned_mac_address,
                                            temp->rssi,
@@ -2081,7 +2105,7 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                                                        &virtual_mac_address);
                                             
                                             zlog_debug(category_debug,
-                                                       "Detected b-tag[LE]: %s - " \
+                                                       "Detected tag 05C7 [LE]: %s - " \
                                                        "RSSI %4d, pushed=[%d], voltage=[%d]", 
                                                        virtual_mac_address,
                                                        temp->rssi,

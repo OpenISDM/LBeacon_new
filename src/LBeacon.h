@@ -179,8 +179,9 @@ to gateway via wifi network link.*/
 /* The general index of format indetifider in 0xFF field of BLE payload */
 #define BLE_PAYLOAD_FORMAT_INDEX_OF_IDENTIFER 8
 
+
 /* The 0xFF format specification for identifier 05C6 */
-/* The BiDaETech button tag with battery voltage identifer 1478 (0x05C6) */
+/* The BiDaETech button tag with panic and battery voltage identifer 1478 (0x05C6) */
 #define BIDAETECH_TAG_IDENTIFIER_05C6 "05C6" 
 
 /* The length of 0xFF field in BLE payload format with identifier 05C6 */
@@ -192,6 +193,7 @@ to gateway via wifi network link.*/
 /* The index of voltage information in BLE payload format with identifer 05C6 */
 #define BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_VOLTAGE 14
 
+
 /* The 0xFF format specification for identifier 05C7 */
 /* The BiDaETech tag identifer 1479 (0x05C7) */
 #define BIDAETECH_TAG_IDENTIFIER_05C7 "05C7" 
@@ -202,6 +204,16 @@ to gateway via wifi network link.*/
 /* The index of voltage information in BLE payload format with identifer 05C6 */
 #define BLE_PAYLOAD_FORMAT_05C7_INDEX_OF_MAC_ADDRESS 12
 
+
+/* The 0xFF format specification for identifier 4153 */
+/* The tag with panic identifer 4153 (AS) */
+#define BIDAETECH_TAG_IDENTIFIER_4153 "4153" 
+
+/* The length of 0xFF field in BLE payload format with identifier 4153 */
+#define BLE_PAYLOAD_FORMAT_4153_0XFF_FIELD_LEN 7 
+
+/* The index of panic in BLE payload format with identifer 4153 */
+#define BLE_PAYLOAD_FORMAT_4153_INDEX_OF_PANIC 13
 
 
 /* The macro of comparing two integer for minimum */
