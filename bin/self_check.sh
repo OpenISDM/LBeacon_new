@@ -1,7 +1,7 @@
 #!/bin/bash
 # Cusomization settings
-IS_LBEACON_WITHOUT_GATEWAY=1
-IS_LBEACON_WITH_GATEWAY=0
+IS_LBEACON_WITHOUT_GATEWAY=0
+IS_LBEACON_WITH_GATEWAY=1
 IS_GATEWAY_WITHOUT_AP=0
 IS_GATEWAY_WITH_AP=0
 
@@ -372,64 +372,6 @@ then
 fi
 
 # Check BOT component configuration
-echo "checking [zlog.conf] ....."
-if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
-then 
-    echo "checking [LBeacon] ....."
-    beacon_zlog=`sudo cat /home/bedis/LBeacon/config/zlog.conf | grep "LBeacon_Debug.DEBUG.*bedis" | wc -l`
-    if [ "_$beacon_zlog" = "_1" ]
-    then 
-        echo "ok"
-    else
-        echo "not ok"
-        sudo echo "$ERR_ZLOG_LBEACON" > $lbeacon_output
-        exit 0 
-    fi
-elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ] 
-then 
-    echo "checking [Gateway] ....."
-    gateway_zlog=`sudo cat /home/bedis/Lbeacon-Gateway/config/zlog.conf | grep "LBeacon_Debug.DEBUG.*bedis" | wc -l`
-    if [ "_$gateway_zlog" = "_1" ]
-    then 
-        echo "ok"
-    else
-        echo "not ok"
-        sudo echo "$ERR_ZLOG_GATEWAY" > $gateway_output
-        exit 0 
-    fi
-fi
-
-echo "checking [DEBUG log] ....."
-if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
-then 
-    echo "checking [LBeacon] ....."
-    beacon_current_debug=`sudo wc -c /home/bedis/LBeacon/log/diagnostic.log | cut -d " " -f 1`
-    sleep 5
-    beacon_later_debug=`sudo wc -c /home/bedis/LBeacon/log/diagnostic.log | cut -d " " -f 1`
-    if [ "_$beacon_current_debug" != "_$beacon_later_debug" ]
-    then 
-        echo "ok"
-    else
-        echo "not ok"
-        sudo echo "$ERR_DEBUG_LBEACON" > $lbeacon_output
-        exit 0 
-    fi
-elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
-then 
-    echo "checking [Gateway] ....."
-    gateway_current_debug=`sudo wc -c /home/bedis/Lbeacon-Gateway/log/diagnostic.log | cut -d " " -f 1`
-    sleep 5
-    gateway_later_debug=`sudo wc -c /home/bedis/Lbeacon-Gateway/log/diagnostic.log | cut -d " " -f 1`
-    if [ "_$gateway_current_debug" != "_$gateway_later_debug" ]
-    then 
-        echo "ok"
-    else
-        echo "not ok"
-        sudo echo "$ERR_DEBUG_GATEWAY" > $gateway_output
-        exit 0 
-    fi
-fi
-
 echo "checking [configuration file] ....."
 if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
 then 
