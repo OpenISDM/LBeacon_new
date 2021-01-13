@@ -1990,30 +1990,6 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                                         is_payload_needed,
                                                         temp->payload,
                                                         temp->payload_length);
-                                }else if(0 == strncmp(mac_prefix_node->identifier,
-                                                      BIDAETECH_TAG_IDENTIFIER_4153,
-                                                      strlen(BIDAETECH_TAG_IDENTIFIER_4153))){                                       
-     
-                                    is_button_pressed = hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_4153_INDEX_OF_PANIC]);
-
-                                    is_payload_needed = true;                                
-                                
-                                    zlog_debug(category_debug,
-                                               "Detected tag 4153 [LE]: %s - " \
-                                               "RSSI %4d, pushed=[%d], voltage=[%d]",
-                                               temp->scanned_mac_address,
-                                               temp->rssi,
-                                               is_button_pressed,
-                                               battery_voltage);
-                                               
-                                    send_to_push_dongle(temp->scanned_mac_address,
-                                                        BLE,
-                                                        temp->rssi,
-                                                        is_button_pressed,
-                                                        battery_voltage,
-                                                        is_payload_needed,
-                                                        temp->payload,
-                                                        temp->payload_length);
                                 }
                                 break;
                             }
@@ -2120,6 +2096,33 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                                                 is_payload_needed,
                                                                 temp->payload,
                                                                 temp->payload_length);                                                       
+                                        }else if(0 == strncmp(device_name_node->identifier,
+                                                              BIDAETECH_TAG_IDENTIFIER_4153,
+                                                              strlen(BIDAETECH_TAG_IDENTIFIER_4153))){                                       
+                                                              
+                                            is_matched = true;
+                                            is_payload_needed = true;  
+                                            
+                                            is_button_pressed = 
+                                                hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_4153_INDEX_OF_PANIC]);
+
+                                                                
+                                            zlog_debug(category_debug,
+                                                       "Detected tag 4153 [LE]: %s - " \
+                                                       "RSSI %4d, pushed=[%d], voltage=[%d]",
+                                                       temp->scanned_mac_address,
+                                                       temp->rssi,
+                                                       is_button_pressed,
+                                                       battery_voltage);
+                                               
+                                            send_to_push_dongle(temp->scanned_mac_address,
+                                                                BLE,
+                                                                temp->rssi,
+                                                                is_button_pressed,
+                                                                battery_voltage,
+                                                                is_payload_needed,
+                                                                temp->payload,
+                                                                temp->payload_length);
                                         }
                                     }
                                 }
