@@ -82,48 +82,6 @@ echo `sudo cat /proc/cpuinfo | grep "Hardware" `
 echo "checking [Raspberry Pi revision] ....."
 echo `sudo cat /proc/cpuinfo | grep "Revision" `
 
-echo "checking [Voltage] ....."
-if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
-then
-    volts_detected=`sudo vcgencmd get_throttled`
-    if [ "_$volts_detected" = "_throttled=0x0" ]
-    then 
-        echo "ok"
-    else
-        echo "not ok"
-        sudo echo "$ERR_UNDER_VOLTAGE" > $lbeacon_output
-        exit 0
-    fi    
-elif [ "_$IS_GATEWAY_WITHOUT_AP" = "_1" ] || [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
-then
-    volts_detected=`sudo vcgencmd get_throttled`
-    if [ "_$volts_detected" = "_throttled=0x0" ]
-    then 
-        echo "ok"
-    else
-        echo "not ok"
-        sudo echo "$ERR_UNDER_VOLTAGE" > $gateway_output
-        exit 0
-    fi    
-fi
-
-
-
-if [ "_$IS_LBEACON_WITHOUT_GATEWAY" = "_1" ] || [ "_$IS_LBEACON_WITH_GATEWAY" = "_1" ]
-then
-    echo "checking [HCI] ....."
-    echo "checking number of running HCI devices ....."
-    detected_hci_count=`sudo hciconfig | grep "RUNNING" | wc -l`
-    echo "detected hci count:" $detected_hci_count
-    if [ "_$detected_hci_count" = "_$HCI_COUNT" ]
-    then
-        echo "ok"
-    else 
-        echo "not ok"
-        sudo echo "$ERR_HCI_COUNT" > $lbeacon_output
-        exit 0
-    fi
-fi
 
 if [ "_$IS_GATEWAY_WITH_AP" = "_1" ]
 then
