@@ -540,6 +540,33 @@ void send_to_push_dongle(char * mac_address,
     return;
 }
 
+void send_to_push_dongle_scan_rsp(char * mac_address,
+                                  DeviceType device_type,
+                                  uint8_t *payload,
+                                  size_t payload_length) {
+
+    struct ScannedDevice *temp_node;
+
+    /* Check whether the MAC address has been seen recently by the LBeacon.*/
+    switch(device_type){
+        case BLE:
+            temp_node = check_is_in_list(mac_address, &BLE_object_list_head);
+            break;
+        default:
+            zlog_error(category_debug, "Unknown device_type=[%d]",
+                       device_type);
+            return;
+    }
+
+    if(NULL != temp_node){
+        
+        memcpy(temp_node -> scan_rsp, payload, payload_length);
+        temp_node -> scan_rsp_length = payload_length;
+        return;
+    }
+    return;
+}
+
 int compare_mac_address(char address[],
                         ScannedDevice *node,
                         int number_digits_compared){
@@ -1536,6 +1563,7 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list,
     struct List_Entry local_list_head;
     DeviceType device_type = list->device_type;
     char hex_payload[LENGTH_OF_ADVERTISEMENT];
+    char hex_scan_rsp[LENGTH_OF_ADVERTISEMENT];
 
    
     /* Check input parameters to determine whether they are valid */
@@ -1651,22 +1679,31 @@ ErrorCode consolidate_tracked_data(ObjectListHead *list,
         */
         memset(response_buf, 0, sizeof(response_buf));
         memset(hex_payload, 0, sizeof(hex_payload));
+        memset(hex_scan_rsp, 0, sizeof(hex_scan_rsp));
         
         if(temp->is_payload_needed){
             get_printable_ble_payload(temp->payload,
                                       temp->payload_length,
                                       hex_payload,
                                       sizeof(hex_payload));
+            get_printable_ble_payload(temp->scan_rsp,
+                                      temp->scan_rsp_length,
+                                      hex_scan_rsp,
+                                      sizeof(hex_scan_rsp));
         }                         
-        
-        sprintf(response_buf, "%s;%d;%d;%d;%d;%d;%s;",
+       
+        // note, when you change this part, please also update
+        // MAX_LENGTH_RESP_DEVICE_INFO in LBeacon.h 
+        sprintf(response_buf, "%s;%d;%d;%d;%d;%d;%s%s;",
                 temp->scanned_mac_address,
                 temp->initial_scanned_time,
                 temp->final_scanned_time,
                 temp->rssi,
                 temp->is_button_pressed,
                 temp->battery_voltage,
-                hex_payload);
+                hex_payload,
+                hex_scan_rsp);
+   
                 
         strcat(msg_buf, response_buf);
     }
@@ -1876,7 +1913,7 @@ ErrorCode *examine_scanned_ble_device(void *param){
         
         pthread_mutex_unlock(&temp_ble_device_list_lock);            
         
-       
+    
         /* Initialize the local list */
         init_entry(&local_list_head);
         local_list_head.next = head_pointer;
@@ -1895,93 +1932,155 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                        temp->scanned_mac_address, 
                                        temp->rssi);
             */
+
             if(temp->rssi < g_config.scan_rssi_coverage){
                 continue;
             }
+
+            if(EVENT_TYPE_ADV_IND == temp->evt_type || 
+               EVENT_TYPE_ADV_NONCONN_IND == temp->evt_type){
                 
-            is_button_pressed = 0;
-            battery_voltage = 0;
-            is_matched = false;
+                is_button_pressed = 0;
+                battery_voltage = 0;
+                is_matched = false;
             
-            list_for_each(current_list_entry,
-                          &g_config.mac_prefix_list_head){
+                list_for_each(current_list_entry,
+                              &g_config.mac_prefix_list_head){
                               
-                mac_prefix_node = ListEntry(current_list_entry,
-                                            PrefixRule,
-                                            list_entry);
+                    mac_prefix_node = ListEntry(current_list_entry,
+                                                PrefixRule,
+                                                list_entry);
                 
-                // check mac address prefix
-                if(0 == strncmp(temp->scanned_mac_address, 
-                                mac_prefix_node->prefix,
-                                strlen(mac_prefix_node->prefix))){
+                    // check mac address prefix
+                    if(0 == strncmp(temp->scanned_mac_address, 
+                                    mac_prefix_node->prefix,
+                                    strlen(mac_prefix_node->prefix))){
 
-                    if(0 == strncmp(BLE_PAYLOAD_IDENTIFIER_NO_PARSE,
-                                    mac_prefix_node->identifier, 
-                                    strlen(BLE_PAYLOAD_IDENTIFIER_NO_PARSE))){
+                        if(0 == strncmp(BLE_PAYLOAD_IDENTIFIER_NO_PARSE,
+                                        mac_prefix_node->identifier, 
+                                        strlen(BLE_PAYLOAD_IDENTIFIER_NO_PARSE))){
                                             
-                        is_matched = true;
-                            
-                        is_payload_needed = false;
-                            
-                        zlog_debug(category_debug,
-                                   "Detected tag 0000 [LE]: %s - " \
-                                   "RSSI %4d, pushed=[%d], voltage=[%d]",
-                                   temp->scanned_mac_address,
-                                   temp->rssi,
-                                   is_button_pressed,
-                                   battery_voltage);
-                                               
-                        send_to_push_dongle(temp->scanned_mac_address,
-                                            BLE,
-                                            temp->rssi,
-                                            is_button_pressed,
-                                            battery_voltage,
-                                            is_payload_needed,
-                                            temp->payload,
-                                            temp->payload_length);
-                            
-                    }else{
+                            is_matched = true;
                                 
-                        memset(payload, 0, sizeof(payload));
+                            is_payload_needed = false;
+                            
+                            zlog_debug(category_debug,
+                                       "Detected tag 0000 [LE]: %s - " \
+                                       "RSSI %4d, pushed=[%d], voltage=[%d]",
+                                       temp->scanned_mac_address,
+                                       temp->rssi,
+                                       is_button_pressed,
+                                       battery_voltage);
+                                               
+                            send_to_push_dongle(temp->scanned_mac_address,
+                                                BLE,
+                                                temp->rssi,
+                                                is_button_pressed,
+                                                battery_voltage,
+                                                is_payload_needed,
+                                                temp->payload,
+                                                temp->payload_length);
+                            
+                        }else{
+                                  
+                            memset(payload, 0, sizeof(payload));
 
-                        // check 0xFF payload (Manufacture Specific Data)
-                        // for manufacture company id and length
-                        if(WORK_SUCCESSFULLY ==
+                            // check 0xFF payload (Manufacture Specific Data)
+                            // for manufacture company id and length
+                            if(WORK_SUCCESSFULLY ==
+                               eir_parse_specific_data(temp->payload,
+                                                       temp->payload_length,
+                                                       EIR_MANUFACTURE_SPECIFIC_DATA,
+                                                       payload,
+                                                       sizeof(payload))){
+                        
+                                // check 0xFF contains specific tag identifier
+                                if(0 == strncmp(&payload[BLE_PAYLOAD_FORMAT_INDEX_OF_IDENTIFER],
+                                                mac_prefix_node->identifier, 
+                                                strlen(mac_prefix_node->identifier))){
+             
+                                    is_matched = true;
+                            
+                                    // parse payload as the tag identifier specified
+                                    if(0 == strncmp(mac_prefix_node->identifier,
+                                                    BIDAETECH_TAG_IDENTIFIER_05C6,
+                                                    strlen(BIDAETECH_TAG_IDENTIFIER_05C6))){                                       
+     
+                                        is_button_pressed = hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_PANIC]);
+
+                                        // get the remaining battery voltage
+                                        battery_voltage = 
+                                            hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_VOLTAGE]) * 16 +
+                                            hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_VOLTAGE + 1]); 
+                                
+                                        is_payload_needed = false;                                
+                                
+                                        zlog_debug(category_debug,
+                                                   "Detected tag 05C6 [LE]: %s - " \
+                                                   "RSSI %4d, pushed=[%d], voltage=[%d]",
+                                                   temp->scanned_mac_address,
+                                                   temp->rssi,
+                                                   is_button_pressed,
+                                                   battery_voltage);
+                                               
+                                        send_to_push_dongle(temp->scanned_mac_address,
+                                                            BLE,
+                                                            temp->rssi,
+                                                            is_button_pressed,
+                                                            battery_voltage,
+                                                            is_payload_needed,
+                                                            temp->payload,
+                                                            temp->payload_length);
+                                    }
+                                    break;
+                                }
+                                break;
+                            } 
+                        }    
+                        break;
+                    } // if matched mac address prefix
+                }// list_for_each
+            
+                if(is_matched == false){
+                    // check device name EIR_NAME_COMPLETE
+
+                    memset(payload, 0, sizeof(payload));
+                
+                    if(WORK_SUCCESSFULLY ==
                            eir_parse_specific_data(temp->payload,
                                                    temp->payload_length,
-                                                   EIR_MANUFACTURE_SPECIFIC_DATA,
+                                                   EIR_NAME_COMPLETE,
                                                    payload,
                                                    sizeof(payload))){
-                        
-                            // check 0xFF contains specific tag identifier
-                            if(0 == strncmp(&payload[BLE_PAYLOAD_FORMAT_INDEX_OF_IDENTIFER],
-                                            mac_prefix_node->identifier, 
-                                            strlen(mac_prefix_node->identifier))){
-             
-                                is_matched = true;
+                                                   
+                        list_for_each(current_list_entry,
+                                      &g_config.device_name_prefix_list_head){
+                              
+                            device_name_node = ListEntry(current_list_entry,
+                                                         DeviceNamePrefix,
+                                                         list_entry); 
+                                          
+                            // check 0x09 matched one of device name prefixes
+                            if(0 == strncmp(&payload[0],
+                                            device_name_node->prefix, 
+                                            strlen(device_name_node->prefix))){
+                                            
+                                if(0 == strncmp(BLE_PAYLOAD_IDENTIFIER_NO_PARSE,
+                                                device_name_node->identifier, 
+                                                strlen(BLE_PAYLOAD_IDENTIFIER_NO_PARSE))){
+                                            
+                                    is_matched = true;
                             
-                                // parse payload as the tag identifier specified
-                                if(0 == strncmp(mac_prefix_node->identifier,
-                                                BIDAETECH_TAG_IDENTIFIER_05C6,
-                                                strlen(BIDAETECH_TAG_IDENTIFIER_05C6))){                                       
-     
-                                    is_button_pressed = hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_PANIC]);
-
-                                    // get the remaining battery voltage
-                                    battery_voltage = 
-                                        hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_VOLTAGE]) * 16 +
-                                        hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_05C6_INDEX_OF_VOLTAGE + 1]); 
-                                
-                                    is_payload_needed = false;                                
-                                
+                                    is_payload_needed = true;
+                            
                                     zlog_debug(category_debug,
-                                               "Detected tag 05C6 [LE]: %s - " \
+                                               "Detected tag 0000 [LE]: %s - " \
                                                "RSSI %4d, pushed=[%d], voltage=[%d]",
                                                temp->scanned_mac_address,
                                                temp->rssi,
                                                is_button_pressed,
                                                battery_voltage);
-                                               
+                        
                                     send_to_push_dongle(temp->scanned_mac_address,
                                                         BLE,
                                                         temp->rssi,
@@ -1990,148 +2089,96 @@ ErrorCode *examine_scanned_ble_device(void *param){
                                                         is_payload_needed,
                                                         temp->payload,
                                                         temp->payload_length);
-                                }
-                                break;
-                            }
-                            break;
-                        } 
-                    }    
-                    break;
-                } // if matched mac address prefix
-            } // list_for_each
-            
-            if(is_matched == false){
-                // check device name EIR_NAME_COMPLETE
-
-                memset(payload, 0, sizeof(payload));
-                
-                if(WORK_SUCCESSFULLY ==
-                       eir_parse_specific_data(temp->payload,
-                                               temp->payload_length,
-                                               EIR_NAME_COMPLETE,
-                                               payload,
-                                               sizeof(payload))){
-                                                   
-                    list_for_each(current_list_entry,
-                                  &g_config.device_name_prefix_list_head){
-                              
-                        device_name_node = ListEntry(current_list_entry,
-                                                     DeviceNamePrefix,
-                                                     list_entry); 
-                                          
-                        // check 0x09 matched one of device name prefixes
-                        if(0 == strncmp(&payload[0],
-                                        device_name_node->prefix, 
-                                        strlen(device_name_node->prefix))){
-                                            
-                            if(0 == strncmp(BLE_PAYLOAD_IDENTIFIER_NO_PARSE,
-                                            device_name_node->identifier, 
-                                            strlen(BLE_PAYLOAD_IDENTIFIER_NO_PARSE))){
-                                            
-                                is_matched = true;
-                            
-                                is_payload_needed = true;
-                            
-                                zlog_debug(category_debug,
-                                           "Detected tag 0000 [LE]: %s - " \
-                                           "RSSI %4d, pushed=[%d], voltage=[%d]",
-                                           temp->scanned_mac_address,
-                                           temp->rssi,
-                                           is_button_pressed,
-                                           battery_voltage);
-                                               
-                                send_to_push_dongle(temp->scanned_mac_address,
-                                                    BLE,
-                                                    temp->rssi,
-                                                    is_button_pressed,
-                                                    battery_voltage,
-                                                    is_payload_needed,
-                                                    temp->payload,
-                                                    temp->payload_length);
-                            
-                            }else{
+                                }else{
                                 
-                                memset(payload, 0, sizeof(payload));
+                                    memset(payload, 0, sizeof(payload));
 
-                                // check 0xFF payload (Manufacture Specific Data)
-                                // for manufacture company id and length
-                                if(WORK_SUCCESSFULLY ==
-                                    eir_parse_specific_data(temp->payload,
-                                                            temp->payload_length,
-                                                            EIR_MANUFACTURE_SPECIFIC_DATA,
-                                                            payload,
-                                                            sizeof(payload))){
+                                    // check 0xFF payload (Manufacture Specific Data)
+                                    // for manufacture company id and length
+                                    if(WORK_SUCCESSFULLY ==
+                                        eir_parse_specific_data(temp->payload,
+                                                                temp->payload_length,
+                                                                EIR_MANUFACTURE_SPECIFIC_DATA,
+                                                                payload,
+                                                                sizeof(payload))){
                                      
-                                    // check 0xFF contains specific tag identifier
-                                    if(0 == strncmp(&payload[BLE_PAYLOAD_FORMAT_INDEX_OF_IDENTIFER],
-                                                    device_name_node->identifier, 
-                                                    strlen(device_name_node->identifier))){
+                                        // check 0xFF contains specific tag identifier
+                                        if(0 == strncmp(&payload[BLE_PAYLOAD_FORMAT_INDEX_OF_IDENTIFER],
+                                                        device_name_node->identifier, 
+                                                        strlen(device_name_node->identifier))){
              
-                                        // parse payload as the tag identifier specified
-                                        if(0 == strncmp(device_name_node->identifier,
-                                                        BIDAETECH_TAG_IDENTIFIER_05C7,
-                                                        strlen(BIDAETECH_TAG_IDENTIFIER_05C7))){ 
+                                            // parse payload as the tag identifier specified
+                                            if(0 == strncmp(device_name_node->identifier,
+                                                            BIDAETECH_TAG_IDENTIFIER_05C7,
+                                                            strlen(BIDAETECH_TAG_IDENTIFIER_05C7))){ 
                                                         
-                                            is_matched = true;
+                                                is_matched = true;
                             
-                                            is_payload_needed = false;  
+                                                is_payload_needed = false;  
 
-                                            memset(virtual_mac_address, 0, sizeof(virtual_mac_address));
-                                            convert_str_to_mac_address(&payload[BLE_PAYLOAD_FORMAT_05C7_INDEX_OF_MAC_ADDRESS],
-                                                                       &virtual_mac_address);
+                                                memset(virtual_mac_address, 0, sizeof(virtual_mac_address));
+                                                convert_str_to_mac_address(&payload[BLE_PAYLOAD_FORMAT_05C7_INDEX_OF_MAC_ADDRESS],
+                                                                           &virtual_mac_address);
                                             
-                                            zlog_debug(category_debug,
-                                                       "Detected tag 05C7 [LE]: %s - " \
-                                                       "RSSI %4d, pushed=[%d], voltage=[%d]", 
-                                                       virtual_mac_address,
-                                                       temp->rssi,
-                                                       is_button_pressed,
-                                                       battery_voltage);
+                                                zlog_debug(category_debug,
+                                                           "Detected tag 05C7 [LE]: %s - " \
+                                                           "RSSI %4d, pushed=[%d], voltage=[%d]", 
+                                                           virtual_mac_address,
+                                                           temp->rssi,
+                                                           is_button_pressed,
+                                                           battery_voltage);
                                                        
-                                            send_to_push_dongle(virtual_mac_address,
-                                                                BLE,
-                                                                temp->rssi,
-                                                                is_button_pressed,
-                                                                battery_voltage,
-                                                                is_payload_needed,
-                                                                temp->payload,
-                                                                temp->payload_length);                                                       
-                                        }else if(0 == strncmp(device_name_node->identifier,
-                                                              BIDAETECH_TAG_IDENTIFIER_4153,
-                                                              strlen(BIDAETECH_TAG_IDENTIFIER_4153))){                                       
+                                                send_to_push_dongle(virtual_mac_address,
+                                                                    BLE,
+                                                                    temp->rssi,
+                                                                    is_button_pressed,
+                                                                    battery_voltage,
+                                                                    is_payload_needed,
+                                                                    temp->payload,
+                                                                    temp->payload_length);                                                       
+                                            }else if(0 == strncmp(device_name_node->identifier,
+                                                                  BIDAETECH_TAG_IDENTIFIER_4153,
+                                                                  strlen(BIDAETECH_TAG_IDENTIFIER_4153))){                                       
                                                               
-                                            is_matched = true;
-                                            is_payload_needed = true;  
+                                                is_matched = true;
+                                                is_payload_needed = true;  
                                             
-                                            is_button_pressed = 
-                                                hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_4153_INDEX_OF_PANIC]);
+                                                is_button_pressed = 
+                                                    hex_to_decimal(payload[BLE_PAYLOAD_FORMAT_4153_INDEX_OF_PANIC]);
 
                                                                 
-                                            zlog_debug(category_debug,
-                                                       "Detected tag 4153 [LE]: %s - " \
-                                                       "RSSI %4d, pushed=[%d], voltage=[%d]",
-                                                       temp->scanned_mac_address,
-                                                       temp->rssi,
-                                                       is_button_pressed,
-                                                       battery_voltage);
+                                                zlog_debug(category_debug,
+                                                           "Detected tag 4153 [LE]: %s - " \
+                                                           "RSSI %4d, pushed=[%d], voltage=[%d]",
+                                                           temp->scanned_mac_address,
+                                                           temp->rssi,
+                                                           is_button_pressed,
+                                                           battery_voltage);
                                                
-                                            send_to_push_dongle(temp->scanned_mac_address,
-                                                                BLE,
-                                                                temp->rssi,
-                                                                is_button_pressed,
-                                                                battery_voltage,
-                                                                is_payload_needed,
-                                                                temp->payload,
-                                                                temp->payload_length);
+                                                send_to_push_dongle(temp->scanned_mac_address,
+                                                                    BLE,
+                                                                    temp->rssi,
+                                                                    is_button_pressed,
+                                                                    battery_voltage,
+                                                                    is_payload_needed,
+                                                                    temp->payload,
+                                                                    temp->payload_length);
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            break;
-                        } // if
-                    } // list for each                   
-                } // if 
-            }
+                                break;
+                            } // if
+                        } // list for each                   
+                    }
+                }                    
+            }// if evt_type == EVENT_TYPE_ADV_IND or EVENT_TYPE_ADV_NONCONN_ADV
+            else if(EVENT_TYPE_SCAN_RSP == temp->evt_type){
+                send_to_push_dongle_scan_rsp(temp->scanned_mac_address,
+                                             BLE,
+                                             temp->payload,
+                                             temp->payload_length);
+            }// if evt_type == EVENT_TYPE_SCAN_RSP
             
             mp_free(&temp_ble_device_mempool, temp);
         }
@@ -2159,7 +2206,10 @@ ErrorCode *start_ble_scanning(void *param){
     int rssi;
     char address[LENGTH_OF_MAC_ADDRESS];
     struct TempBleDevice *temp_node;
-
+    int scan_type = 0x01; // 0x00: passive scan, 0x01: active_scan
+    int own_type = 0x00;
+    int filter_policy = 0x00;
+    char hex_payload[1024];
 
     zlog_debug(category_debug, ">> start_ble_scanning... ");
 
@@ -2204,11 +2254,11 @@ ErrorCode *start_ble_scanning(void *param){
 
     /* Set BLE scan parameters */
     if( 0> hci_le_set_scan_parameters(socket, 
-                                      0x00, 
+                                      scan_type, 
                                       htobs((uint16_t)g_config.scan_interval_in_units_0625_ms),
                                       htobs((uint16_t)g_config.scan_window_in_units_0625_ms),
-                                      0x00,
-                                      0x00,
+                                      own_type,
+                                      filter_policy,
                                       HCI_SEND_REQUEST_TIMEOUT_IN_MS)){
 
         zlog_info(category_health_report,
@@ -2278,47 +2328,54 @@ ErrorCode *start_ble_scanning(void *param){
 
             if(EVT_LE_ADVERTISING_REPORT == meta->subevent){
                 info = (le_advertising_info *)(meta->data + 1);
-
-                ba2str(&info->bdaddr, address);
-                strcat(address, "\0");
                 
-                /* the rssi is in the next byte after the packet*/
-                rssi = (signed char)info->data[info->length];
+        
+                if(EVENT_TYPE_ADV_IND  == info->evt_type || 
+                   EVENT_TYPE_ADV_NONCONN_IND == info->evt_type || 
+                   EVENT_TYPE_SCAN_RSP == info->evt_type){
+                          
+                    ba2str(&info->bdaddr, address);
+                    strcat(address, "\0");               
+               
+                    /* the rssi is in the next byte after the packet*/
+                    rssi = (signed char)info->data[info->length];
                 
-                temp_node = (struct TempBleDevice*) mp_alloc(&temp_ble_device_mempool);
+                    temp_node = (struct TempBleDevice*) mp_alloc(&temp_ble_device_mempool);
                 
-                if(NULL == temp_node){
-                    zlog_error(category_health_report,
-                               "Unable to get memory from mp_alloc(). "
-                               "Skip this new device.");
-                    zlog_error(category_debug,
-                               "Unable to get memory from mp_alloc(). "
-                               "Skip this new device.");
-                    continue;
-                }
+                    if(NULL == temp_node){
+                        zlog_error(category_health_report,
+                                   "Unable to get memory from mp_alloc(). "
+                                   "Skip this new device.");
+                        zlog_error(category_debug,
+                                   "Unable to get memory from mp_alloc(). "
+                                   "Skip this new device.");
+                        continue;
+                    }
                 
-                memset(temp_node, 0, sizeof(TempBleDevice));
+                    memset(temp_node, 0, sizeof(TempBleDevice));
                 
-                init_entry(&temp_node->list_entry);
+                    init_entry(&temp_node->list_entry);
                 
-                strcpy(temp_node -> scanned_mac_address, address);
-                memcpy(temp_node -> payload, info->data, info->length);
-                temp_node -> payload_length = info->length;
-                temp_node -> rssi = rssi;
-                /*
-                zlog_debug(category_debug, "start_ble_scanning scanned " \
-                                           "[%s], [%d], [%d]", 
-                                           temp_node->scanned_mac_address, 
-                                           temp_node->payload_length,
-                                           temp_node->rssi);
-                */
-                pthread_mutex_lock(&temp_ble_device_list_lock);
+                    strcpy(temp_node -> scanned_mac_address, address);
+                    temp_node -> evt_type = info->evt_type;
+                    memcpy(temp_node -> payload, info->data, info->length);
+                    temp_node -> payload_length = info->length;
+                    temp_node -> rssi = rssi;
                 
-                insert_list_tail(&temp_node->list_entry,
-                                 &temp_ble_device_list_head);
+                    /*
+                    zlog_debug(category_debug, "start_ble_scanning scanned " \
+                                               "[%s], [%d], [%d]", 
+                                               temp_node->scanned_mac_address, 
+                                               temp_node->payload_length,
+                                               temp_node->rssi);
+                    */
+                    pthread_mutex_lock(&temp_ble_device_list_lock);
                 
-                pthread_mutex_unlock(&temp_ble_device_list_lock);  
+                    insert_list_tail(&temp_node->list_entry,
+                                     &temp_ble_device_list_head);
                 
+                    pthread_mutex_unlock(&temp_ble_device_list_lock);  
+                }               
             }
         } // end while (HCI_EVENT_HDR_SIZE)
             

@@ -107,6 +107,14 @@ https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile
    Data */
 #define EIR_MANUFACTURE_SPECIFIC_DATA 0xFF
 
+/* BlueZ bluetooth event tyep of LE advertising report  */
+#define EVENT_TYPE_ADV_IND 0x00
+
+/* BlueZ bluetooth event tyep of LE advertising report  */
+#define EVENT_TYPE_ADV_NONCONN_IND 0x03
+
+/* BlueZ bluetooth event tyep of LE advertising report  */
+#define EVENT_TYPE_SCAN_RSP 0x04
 
 /* Maximum number of characters in message file name */
 #define FILE_NAME_BUFFER 64
@@ -164,8 +172,8 @@ LBeacon to gateway.
 /* Maximum length in number of bytes of device information of each response
 to gateway via wifi network link.*/
 
-/* mac_address;timestamp;timestamp;rssi;button;batt_vol;payload;*/
-#define MAX_LENGTH_RESP_DEVICE_INFO 120
+/* mac_address;timestamp;timestamp;rssi;button;batt_vol;payload scan_rsp;*/
+#define MAX_LENGTH_RESP_DEVICE_INFO 190
 
 /* The number of slots in the memory pool for scanned devices */
 #define SLOTS_IN_MEM_POOL_SCANNED_DEVICE 2048
@@ -348,6 +356,8 @@ typedef struct ScannedDevice {
     uint8_t payload[LENGTH_OF_ADVERTISEMENT];
     size_t payload_length;
     bool is_payload_needed;
+    uint8_t scan_rsp[LENGTH_OF_ADVERTISEMENT];
+    size_t scan_rsp_length;
     
     /* List entries for linking the struct to scanned_list and
        tracked_BR_object_list or to tracked_BLE_object_list, depending
@@ -363,6 +373,7 @@ typedef struct ScannedDevice {
 typedef struct TempBleDevice {
 
     char scanned_mac_address[LENGTH_OF_MAC_ADDRESS];
+    uint8_t evt_type;
     uint8_t payload[LENGTH_OF_ADVERTISEMENT];
     size_t payload_length;
     int rssi;
@@ -596,6 +607,30 @@ void send_to_push_dongle(char * mac_address,
                          bool is_payload_needed,
                          uint8_t *payload,
                          size_t payload_length);
+/*
+  send_to_push_dongle_scan_rsp:
+
+      When called, this functions first checks whether there is a
+      ble_object_list with MAC address matching the input bluetooth device. 
+      If a struct with MAC address matching the input device address is found, 
+      this function sets the scan reponse payload.
+
+  Parameters:
+
+      mac_address - MAC address of a bluetooth device discovered during inquiry
+      device_type - the indicator to show the device type of the input address
+      payload - the ble payload in decimal format
+      payload_length - the length of input payload
+
+  Return value:
+
+      None
+*/
+
+void send_to_push_dongle_scan_rsp(char * mac_address,
+                                  DeviceType device_type,
+                                  uint8_t *payload,
+                                  size_t payload_length);
 
 /*
   compare_mac_address:
