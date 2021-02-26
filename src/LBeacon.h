@@ -356,6 +356,7 @@ typedef struct ScannedDevice {
     uint8_t payload[LENGTH_OF_ADVERTISEMENT];
     size_t payload_length;
     bool is_payload_needed;
+    bool is_scan_rsp_needed;
     uint8_t scan_rsp[LENGTH_OF_ADVERTISEMENT];
     size_t scan_rsp_length;
     
@@ -402,6 +403,8 @@ typedef struct DeviceNamePrefix{
 
     char prefix[LENGTH_OF_ADVERTISEMENT];
     char identifier[LENGTH_OF_ADVERTISEMENT];
+    bool is_payload_needed;
+    bool is_scan_rsp_needed;
     struct List_Entry list_entry;
 
 } DeviceNamePrefix;
@@ -590,7 +593,9 @@ ErrorCode get_config(Config *config, char *file_name);
       is_button_pressed - the push_button is pressed
       battery_voltage - the remaining battery voltage
       is_payload_needed - flag indicating whether this device need to upload 
-                          ble adv payload
+                          ble adv (ADV_IND, ADV_NONCONN_IND) payload
+      is_scan_rsp_needed - flag indicating whether this device need to upload 
+                           ble scan rsp (SCAN_RSP) payload
       payload - the ble payload in decimal format
       payload_length - the length of input payload
 
@@ -605,6 +610,7 @@ void send_to_push_dongle(char * mac_address,
                          int is_button_pressed,
                          int battery_voltage,
                          bool is_payload_needed,
+                         bool is_scan_rsp_needed,
                          uint8_t *payload,
                          size_t payload_length);
 /*
